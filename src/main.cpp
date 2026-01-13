@@ -1,10 +1,12 @@
 #include "base/base_inc.h"
 #include "os/os_inc.h"
-//#include "async/async_inc.h"
+#include "async/async_inc.h"
+#include "asset/asset_inc.h"
 
 #include "base/base_inc.cpp"
 #include "os/os_inc.cpp"
-//#include "async/async_inc.cpp"
+#include "async/async_inc.cpp"
+#include "asset/asset_inc.cpp"
 
 struct AppState {
   Arena *arena;
