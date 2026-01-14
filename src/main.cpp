@@ -28,6 +28,12 @@ entry_point(void)
     .window = os_window_open(S8("Kage"), screen_w, screen_h),
   };
 
+  AC_Builder ac = ac_make();
+  {
+    AC_Blob blob = ac_blob_from_gltf(&ac, S8("../assets/models/BoxTextured/BoxTextured.gltf"));
+  }
+  ac_release(&ac);
+
   for (;;) {
     OS_EventList *events = os_get_events();
     for (OS_Event *e = events->first; e != 0; e = e->next) {

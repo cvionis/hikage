@@ -266,10 +266,10 @@ union Mat4x4 {
 };
 
 function Mat4x4 m4x4_identity(void);
-function Mat4x4 m4x4_mul(Mat4x4 *a, Mat4x4 *b);
-function Mat4x4 m4x4_scale(Mat4x4 *a, F32 s);
-function Mat4x4 m4x4_transpose(Mat4x4 *m);
-function Mat4x4 m4x4_inverse(Mat4x4 *m);
+function Mat4x4 m4x4_mul(Mat4x4 a, Mat4x4 b);
+function Mat4x4 m4x4_scale(Mat4x4 a, F32 s);
+function Mat4x4 m4x4_transpose(Mat4x4 m);
+function Mat4x4 m4x4_inverse(Mat4x4 m);
 
 function Mat4x4 translation_m4x4(V3F32 t);
 function Mat4x4 rotation_m4x4(V3F32 r);
@@ -283,7 +283,7 @@ function Mat4x4 perspective_m4x4(F32 fov, F32 aspect, F32 n, F32 f);
 //
 
 function V4F32 v4f32_transform(Mat4x4 *m, V4F32 v);
-function V3F32 unproject(V3F32 scrn, V4F32 viewport, Mat4x4 *modelview, Mat4x4 *proj);
+function V3F32 unproject(V3F32 scrn, V4F32 viewport, Mat4x4 modelview, Mat4x4 proj);
 
 //
 // Quaternions

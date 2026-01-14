@@ -96,7 +96,7 @@ struct AC_MaterialEntry {
   U32 occlusion_tex;
   U32 emissive_tex;
 
-  U32 sampler_id;             // @Todo: determine if you want to use this.
+  U32 sampler_id;             // @Todo: determine if you want to use this; maybe just include all sampler info here (convert gltf enum -> yours)
 };
 
 struct AC_TextureEntry {
@@ -109,16 +109,32 @@ struct AC_TextureEntry {
   U32 data_size_bytes;        // total bytes for all mips
 };
 
+struct AC_Builder {
+  Arena *arena;
+  void *data;
+  U64 size;
+};
+
 struct AC_Blob {
   void *data;
   U64 size;
 };
 
-struct AC_Builder {
-  Arena *arena;
+struct AC_Primitive {
+  cgltf_primitive *gltf_primitive;
+  cgltf_material  *gltf_material;
 
-  void *data;
-  U64 size;
+  Mat4x4 world_transform;
+
+  U32 vertex_count;
+  U32 index_count;
+};
+
+// Flattened array of the primitives (submeshes) in a gltf file, with
+// any scene node transforms that will later be baked into their vertex data.
+struct AC_PrimitiveArray {
+  AC_Primitive *v;
+  S32 count;
 };
 
 // Internal helpers

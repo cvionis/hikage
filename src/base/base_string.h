@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 //
-// Single-byte strings 
+// Single-byte strings
 //
 
 struct String8 {
@@ -19,6 +19,7 @@ function String8 str8_pushf(Arena *arena, char *fmt, ...);
 function B32 str8_read(void *dst, String8 str, U64 off, U64 size);
 
 #define S8(lit) {(U8 *)lit, sizeof(lit)-1}
+#define chr_from_str8(str) (char *)str.data
 
 //
 // Two-byte strings
@@ -36,6 +37,7 @@ function String16 str16_pushf(Arena *arena, char *fmt, ...);
 function B32 str16_read(void *dst, String16 str, U64 off, U64 size);
 
 #define S16(lit) {(U16 *)lit, sizeof(lit)-1}
+#define chr_from_str16(str) (char *)str.data
 
 //
 // Unicode
@@ -70,13 +72,13 @@ struct String8Node {
 
 struct String8List {
   String8Node *first;
-  String8Node *last; 
+  String8Node *last;
   U32 count;
   U64 size;
 };
 
 function void str8_list_push(Arena *arena, String8List *list, String8 str);
-function String8 str8_list_join(Arena *arena, String8List *list); 
+function String8 str8_list_join(Arena *arena, String8List *list);
 
 //
 // C-string helpers
@@ -89,7 +91,7 @@ function B32 cstr_equal(const char *a, const char *b);
 function B32 cstr_equal_n(const char *a, const char *b, U64 count);
 
 //
-// Character helpers 
+// Character helpers
 //
 
 function B32 is_numeric(char c);
@@ -97,7 +99,7 @@ function B32 is_alpha(char c);
 function B32 is_lowercase(char c);
 function B32 is_uppercase(char c);
 function B32 is_end_of_line(char c);
-function B32 is_whitespace(char c);  
+function B32 is_whitespace(char c);
 
 //
 // Hashes
