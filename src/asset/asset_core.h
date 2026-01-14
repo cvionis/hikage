@@ -67,7 +67,7 @@ struct AssetContext {
 };
 
 // Internal helpers
-static B32 asset_cached(AssetContext *ctx, String8 path)
+static B32 asset_cached(AssetContext *ctx, String8 path);
 static AssetHandle alloc_asset_handle(AssetContext *ctx, AssetKind kind);
 
 // Public API

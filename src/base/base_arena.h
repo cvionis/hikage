@@ -11,7 +11,7 @@
 //
 
 struct Arena {
-  U64 pos; 
+  U64 pos;
   U64 commit_pos;
   U64 align;
   U64 reserve_size;
