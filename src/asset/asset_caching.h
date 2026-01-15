@@ -22,21 +22,30 @@
 
     [Material table]
     [Texture table]
-    [Texture data]
+    [Image data]
  */
 
-enum AC_TextureFmt {
-  AC_TextureFmt_BC1_UNORM,
-  AC_TextureFmt_BC3_UNORM,
-  AC_TextureFmt_BC4_UNORM,
-  AC_TextureFmt_BC5_UNORM,
-  AC_TextureFmt_BC6_UNORM,
-  AC_TextureFmt_BC7_UNORM,
+enum AC_ImageFormat {
+  AC_ImageFormat_BC1,
+  AC_ImageFormat_BC3,
+  AC_ImageFormat_BC4,
+  AC_ImageFormat_BC5,
+  AC_ImageFormat_BC6H,
+  AC_ImageFormat_BC7,
 };
 
 enum AC_IndexKind {
   AC_IndexKind_U16,
   AC_IndexKind_U32,
+};
+
+enum AC_MaterialFlags {
+  AC_MaterialFlag_None = 0,
+  AC_MaterialFlag_BaseColor = (1 << 0),
+  AC_MaterialFlag_Normal = (1 << 1),
+  AC_MaterialFlag_MetalRough = (1 << 2),
+  AC_MaterialFlag_Occlusion = (1 << 3),
+  AC_MaterialFlag_Emissive = (1 << 4),
 };
 
 struct AC_Vertex {
@@ -57,11 +66,13 @@ struct AC_Header {
   U32 mesh_count;
   U32 material_count;
   U32 texture_count;
+  U32 image_count;
 
   // Offsets (bytes) from start of blob
   U32 mesh_table_off;
   U32 material_table_off;
   U32 texture_table_off;
+  U32 image_table_off;
 
   U32 vb_bytes_off;     // contiguous vertex buffer bytes
   U32 vb_bytes_size;
@@ -69,8 +80,8 @@ struct AC_Header {
   U32 ib_bytes_off;     // contiguous index buffer bytes (typically u32 or u16)
   U32 ib_bytes_size;
 
-  U32 tex_bytes_off;    // contiguous compressed texture payload bytes (all mips, all textures)
-  U32 tex_bytes_size;
+  U32 img_bytes_off;    // contiguous compressed image bytes (all mips in order)
+  U32 img_bytes_size;
 };
 
 struct AC_MeshEntry {
@@ -92,22 +103,29 @@ struct AC_MaterialEntry {
   F32 metallic;
   F32 roughness;
 
-  U32 base_color_tex;         // index into texture table or MODL_TEX_NONE
+  // @Todo: Should probably have a flag that determines which of these are used, instead of defaulting to non-zero AC_TEXTURE_NONE.
+
+  U32 flags;
+
+  U32 base_color_tex;         // index into texture table or AC_TEXTURE_NONE
   U32 normal_tex;
   U32 metallic_roughness_tex;
   U32 occlusion_tex;
   U32 emissive_tex;
-
-  U32 sampler_id;             // @Todo: determine if you want to use this; maybe just include all sampler info here (convert gltf enum -> yours)
 };
 
 struct AC_TextureEntry {
-  AC_TextureFmt format;
+  U32 img_index;
+  // @Todo: Store sampler state.
+};
+
+struct AC_ImageEntry {
+  AC_ImageFormat format;
   U32 width;
   U32 height;
   U32 mip_count;
 
-  U32 data_offset_bytes;      // into tex_bytes section
+  U32 data_offset_bytes;      // into img_bytes section
   U32 data_size_bytes;        // total bytes for all mips
 };
 

@@ -1,3 +1,5 @@
+// @Todo: Replace ChatGPT's U32's with S32's.
+
 static AC_Builder
 ac_make(void)
 {
@@ -178,7 +180,7 @@ ac_push(AC_Builder *builder, U64 size, U64 align)
 }
 
 static AC_MeshEntry *
-ac_build_mesh_table(AC_Builder *builder, AC_PrimitiveArray prims)
+ac_build_mesh_table(AC_Builder *builder, AC_PrimitiveArray prims, cgltf_data *gltf)
 {
   AC_MeshEntry *mesh_table = (AC_MeshEntry *)ac_push(
     builder,
@@ -199,7 +201,7 @@ ac_build_mesh_table(AC_Builder *builder, AC_PrimitiveArray prims)
       .index_kind          = (p->vertex_count <= 65535)
                                ? AC_IndexKind_U16
                                : AC_IndexKind_U32,
-      .material_index      = 0, // filled during material build
+      .material_index      = (U32)(p->gltf_primitive->material - gltf->materials), // @Todo: Make sure material isn't null first.
     };
   }
   return mesh_table;
@@ -446,6 +448,109 @@ ac_build_geometry_payload(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshE
   }
 }
 
+static U32
+ac_texture_index_from_view(cgltf_data *gltf, cgltf_texture_view *view)
+{
+  if (!view || !view->texture) {
+    return AC_TEXTURE_NONE;
+  }
+
+  return (U32)(view->texture - gltf->textures);
+}
+
+static void
+ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
+{
+  AC_MaterialEntry *mtl_table = (AC_MaterialEntry *)ac_push(
+    builder,
+    sizeof(AC_MaterialEntry) * gltf->materials_count,
+    1
+  );
+
+  for (U32 mat_idx = 0; mat_idx < gltf->materials_count; ++mat_idx) {
+    cgltf_material *gltf_mat = &gltf->materials[mat_idx];
+    AC_MaterialEntry *dst    = &mtl_table[mat_idx];
+
+    // ---- Defaults ----
+    dst->flags      = AC_MaterialFlag_None;
+
+    dst->base_color.x = 1.0f;
+    dst->base_color.y = 1.0f;
+    dst->base_color.z = 1.0f;
+    dst->base_color.w = 1.0f;
+
+    dst->emissive.x = 0.0f;
+    dst->emissive.y = 0.0f;
+    dst->emissive.z = 0.0f;
+
+    dst->metallic  = 1.0f;
+    dst->roughness = 1.0f;
+
+    dst->base_color_tex         = AC_TEXTURE_NONE;
+    dst->normal_tex             = AC_TEXTURE_NONE;
+    dst->metallic_roughness_tex = AC_TEXTURE_NONE;
+    dst->occlusion_tex          = AC_TEXTURE_NONE;
+    dst->emissive_tex           = AC_TEXTURE_NONE;
+
+    // ---- PBR metallic-roughness ----
+    if (gltf_mat->has_pbr_metallic_roughness) {
+      cgltf_pbr_metallic_roughness *pbr =
+        &gltf_mat->pbr_metallic_roughness;
+
+      dst->base_color.x = pbr->base_color_factor[0];
+      dst->base_color.y = pbr->base_color_factor[1];
+      dst->base_color.z = pbr->base_color_factor[2];
+      dst->base_color.w = pbr->base_color_factor[3];
+
+      dst->metallic  = pbr->metallic_factor;
+      dst->roughness = pbr->roughness_factor;
+
+      if (pbr->base_color_texture.texture) {
+        dst->base_color_tex =
+          ac_texture_index_from_view(gltf,
+            &pbr->base_color_texture);
+        dst->flags |= AC_MaterialFlag_BaseColor;
+      }
+
+      if (pbr->metallic_roughness_texture.texture) {
+        dst->metallic_roughness_tex =
+          ac_texture_index_from_view(gltf,
+            &pbr->metallic_roughness_texture);
+        dst->flags |= AC_MaterialFlag_MetalRough;
+      }
+    }
+
+    // ---- Normal map ----
+    if (gltf_mat->normal_texture.texture) {
+      dst->normal_tex =
+        ac_texture_index_from_view(gltf,
+          &gltf_mat->normal_texture);
+      dst->flags |= AC_MaterialFlag_Normal;
+    }
+
+    // ---- Occlusion map ----
+    if (gltf_mat->occlusion_texture.texture) {
+      dst->occlusion_tex =
+        ac_texture_index_from_view(gltf,
+          &gltf_mat->occlusion_texture);
+      dst->flags |= AC_MaterialFlag_Occlusion;
+    }
+
+    // ---- Emissive ----
+    dst->emissive.x = gltf_mat->emissive_factor[0];
+    dst->emissive.y = gltf_mat->emissive_factor[1];
+    dst->emissive.z = gltf_mat->emissive_factor[2];
+
+    if (gltf_mat->emissive_texture.texture) {
+      dst->emissive_tex =
+        ac_texture_index_from_view(gltf,
+          &gltf_mat->emissive_texture);
+      dst->flags |= AC_MaterialFlag_Emissive;
+    }
+  }
+}
+
+
 static AC_Blob
 ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
 {
@@ -453,23 +558,31 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
 
   cgltf_data *gltf = ac_parse_gltf(gltf_path);
   if (gltf) {
-    // @Todo: Build header placeholder, fill out as you go along using return values of ac_build_ helpers.
     TempArena scratch = arena_scratch_begin(0,0);
-
     AC_PrimitiveArray primitives = ac_flatten_gltf(scratch.arena, gltf);
 
     // @Todo: Build header placeholder, then fill out within each functions (pass header to them).
 
-    AC_MeshEntry *mesh_table = ac_build_mesh_table(builder, primitives);
+    // @Todo: Probably don't even need this shitty "AC_Builder" abstraction. Just incrementally push to array, pass that pointer
+    // to each build function. E.g. ac_build_material_table should write out to a passed AC_MaterialEntry array allocated from the builder
+    // arena.
+
+    AC_MeshEntry *mesh_table = ac_build_mesh_table(builder, primitives, gltf);
     ac_build_geometry_payload(builder, primitives, mesh_table);
+
+    ac_build_material_table(builder, gltf);
+    // @Todo: Copy image indices from gltf using ptr arithmetic; worry about copy sampling state later.
+    ac_build_texture_table(builder, gltf);
+    // @Todo: Compress images, storing each result's metadeta in one array of metadata structs and pushing the actual image data onto
+    // a separate arena. Then use the former to populate image table entries; finally, copy compressed image data onto builder arena.
+    ac_build_image_table_and_payload(builder, gltf);
+
     #if 0
-    ac_build_texture_table(builder, primitives);
-    ac_build_material_table(builder, primitives);
     ac_build_texture_payload(builder, primitives);
     #endif
 
-    ac_free_gltf(gltf);
     arena_scratch_end(scratch);
+    ac_free_gltf(gltf);
 
     res = {
       .data = builder->data,
