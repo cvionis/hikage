@@ -3,6 +3,7 @@ ac_make(void)
 {
   AC_Builder result = {};
   result.arena = arena_alloc_default();
+  result.data = (U8 *)result.arena + ARENA_HEADER_SIZE;
   return result;
 }
 
@@ -46,44 +47,50 @@ ac_free_gltf(cgltf_data *data)
 static Mat4x4
 ac_node_local_matrix(cgltf_node *node)
 {
+  Mat4x4 res = {};
+
   if (node->has_matrix) {
-    // @Todo: Implement
-    //return m4x4_from_column_major(node->matrix);
+    // @Todo: Make sure this casting produces the expected results. Maybe use static_cast?
+    res = m4x4_transpose(*(Mat4x4 *)&node->matrix);
   }
+  // @Todo: Test this path for correctness
+  else {
+    V3F32 t = node->has_translation
+      ? v3f32(node->translation[0], node->translation[1], node->translation[2])
+      : v3f32(0,0,0);
 
-  V3F32 t = node->has_translation
-    ? v3f32(node->translation[0], node->translation[1], node->translation[2])
-    : v3f32(0,0,0);
+    Quat r = node->has_rotation
+      ? quat_from_f32(node->rotation[0], node->rotation[1],
+            node->rotation[2], node->rotation[3])
+      : quat_identity();
 
-  Quat r = node->has_rotation
-    ? quat_from_f32(node->rotation[0], node->rotation[1],
-           node->rotation[2], node->rotation[3])
-    : quat_identity();
+    V3F32 s = node->has_scale
+      ? v3f32(node->scale[0], node->scale[1], node->scale[2])
+      : v3f32(1,1,1);
 
-  V3F32 s = node->has_scale
-    ? v3f32(node->scale[0], node->scale[1], node->scale[2])
-    : v3f32(1,1,1);
+    res = m4x4_mul(
+            translation_m4x4(t),
+            m4x4_mul(
+              m4x4_from_quat(r),
+              scale_m4x4(s)
+            )
+         );
+    }
 
-  // @Todo: Don't pass pointers to m4x4 operations
-  return {};
-  #if 0
-  m4x4_mul(
-           translation_m4x4(t),
-           m4x4_mul(
-             m4x4_from_quat(r),
-             scale_m4x4(s)));
-  #endif
+  return res;
 }
 
 static U32
 ac_vertex_count_from_primitive(cgltf_primitive *prim)
 {
+  U32 result = 0;
   for (U32 i = 0; i < prim->attributes_count; ++i) {
     if (prim->attributes[i].type == cgltf_attribute_type_position) {
-      return (U32)prim->attributes[i].data->count;
+      result = (U32)prim->attributes[i].data->count;
+      break;;
     }
   }
-  return 0;
+  return result;
 }
 
 static U32
@@ -101,10 +108,7 @@ ac_collect_primitives_from_node(Arena *arena, cgltf_node *node, Mat4x4 parent_wo
   if (node->mesh) {
     cgltf_mesh *mesh = node->mesh;
     for (U32 p = 0; p < mesh->primitives_count; ++p) {
-
-      AC_Primitive *dst = ArenaPushStruct(arena, AC_Primitive);
-      out->v[out->count++] = *dst;
-
+      AC_Primitive *dst = &out->v[out->count++];
       *dst = {
         .gltf_primitive = &mesh->primitives[p],
         .gltf_material  = mesh->primitives[p].material,
@@ -114,12 +118,13 @@ ac_collect_primitives_from_node(Arena *arena, cgltf_node *node, Mat4x4 parent_wo
       };
     }
   }
-
   for (U32 i = 0; i < node->children_count; ++i) {
     ac_collect_primitives_from_node(arena, node->children[i], world, out);
   }
 }
 
+// @Todo: ChatGPT: i -> idx; remove ternaries; ++ -> += 1;
+// @Todo: Test with more files.
 function AC_PrimitiveArray
 ac_flatten_gltf(Arena *arena, cgltf_data *gltf)
 {
@@ -155,6 +160,292 @@ ac_flatten_gltf(Arena *arena, cgltf_data *gltf)
   return result;
 }
 
+static void *
+ac_push(AC_Builder *builder, U64 size, U64 align)
+{
+  void *result = 0;
+
+  if (builder) {
+    Arena *arena = builder->arena;
+    arena_set_align(arena, align);
+    result = arena_push(arena, size);
+    arena_set_align(arena, 0);
+
+    builder->size += size;
+  }
+
+  return result;
+}
+
+static AC_MeshEntry *
+ac_build_mesh_table(AC_Builder *builder, AC_PrimitiveArray prims)
+{
+  AC_MeshEntry *mesh_table = (AC_MeshEntry *)ac_push(
+    builder,
+    sizeof(AC_MeshEntry) * prims.count,
+    1
+  );
+
+  for (S32 i = 0; i < prims.count; ++i) {
+    AC_Primitive *p = &prims.v[i];
+    AC_MeshEntry *m = &mesh_table[i];
+
+    *m = {
+      .vertex_offset_bytes = 0, // filled during geometry build
+      .vertex_count        = p->vertex_count,
+      .vertex_stride       = AC_VERTEX_STRIDE,
+      .index_offset_bytes  = 0, // filled during geometry build
+      .index_count         = p->index_count,
+      .index_kind          = (p->vertex_count <= 65535)
+                               ? AC_IndexKind_U16
+                               : AC_IndexKind_U32,
+      .material_index      = 0, // filled during material build
+    };
+  }
+  return mesh_table;
+}
+
+static V3F32
+ac_transform_point(Mat4x4 m, V3F32 p)
+{
+  V4F32 v = { p.x, p.y, p.z, 1.0f };
+  V4F32 r = v4f32_transform(m, v);
+  return { r.x, r.y, r.z };
+}
+
+static V3F32
+ac_transform_vector(Mat4x4 m, V3F32 v)
+{
+  V4F32 vv = { v.x, v.y, v.z, 0.0f };
+  V4F32 r  = v4f32_transform(m, vv);
+  return { r.x, r.y, r.z };
+}
+
+static void
+ac_emit_vertices(AC_Vertex *dst, AC_Primitive *prim)
+{
+  cgltf_primitive *p = prim->gltf_primitive;
+
+  //---------------------------------------------------------------------------
+  // Locate attribute accessors
+  //---------------------------------------------------------------------------
+
+  cgltf_accessor *acc_pos = 0;
+  cgltf_accessor *acc_nrm = 0;
+  cgltf_accessor *acc_tan = 0;
+  cgltf_accessor *acc_uv  = 0;
+
+  for (U32 i = 0; i < p->attributes_count; ++i) {
+    cgltf_attribute *a = &p->attributes[i];
+    switch (a->type) {
+      case cgltf_attribute_type_position:
+        acc_pos = a->data;
+        break;
+      case cgltf_attribute_type_normal:
+        acc_nrm = a->data;
+        break;
+      case cgltf_attribute_type_tangent:
+        acc_tan = a->data;
+        break;
+      case cgltf_attribute_type_texcoord:
+        if (a->index == 0) acc_uv = a->data;
+        break;
+    }
+  }
+
+  Assert(acc_pos != 0);
+  U32 count = (U32)acc_pos->count;
+
+  //---------------------------------------------------------------------------
+  // Precompute normal matrix: inverse-transpose of world
+  //---------------------------------------------------------------------------
+
+  Mat4x4 world_mat = prim->world_transform;
+  Mat4x4 normal_mat = m4x4_transpose(m4x4_inverse(world_mat));
+
+  //---------------------------------------------------------------------------
+  // Emit vertices
+  //---------------------------------------------------------------------------
+
+  for (U32 i = 0; i < count; ++i) {
+    AC_Vertex *v = &dst[i];
+
+    // --- position ---
+    {
+      F32 p3[3];
+      cgltf_accessor_read_float(acc_pos, i, p3, 3);
+      V3F32 p0 = { p3[0], p3[1], p3[2] };
+      v->position = ac_transform_point(world_mat, p0);
+    }
+
+    // --- normal ---
+    if (acc_nrm) {
+      F32 n3[3];
+      cgltf_accessor_read_float(acc_nrm, i, n3, 3);
+      V3F32 n0 = { n3[0], n3[1], n3[2] };
+      v->normal = v3f32_normalize(ac_transform_vector(normal_mat, n0));
+    } else {
+      v->normal = {0, 0, 1};
+    }
+
+    // --- tangent ---
+    if (acc_tan) {
+      F32 t4[4];
+      cgltf_accessor_read_float(acc_tan, i, t4, 4);
+      V3F32 t0 = { t4[0], t4[1], t4[2] };
+      V3F32 t1 = v3f32_normalize(ac_transform_vector(normal_mat, t0));
+      v->tangent = { t1.x, t1.y, t1.z, t4[3] };
+    } else {
+      v->tangent = {1, 0, 0, 1};
+    }
+
+    // --- UV ---
+    if (acc_uv) {
+      F32 uv2[2];
+      cgltf_accessor_read_float(acc_uv, i, uv2, 2);
+      v->uv = { uv2[0], uv2[1] };
+    } else {
+      v->uv = {0, 0};
+    }
+  }
+}
+
+static B32
+ac_should_flip_winding(Mat4x4 world)
+{
+  // determinant of upper-left 3×3
+  F32 det =
+    world.e[0][0] * (world.e[1][1]*world.e[2][2] - world.e[1][2]*world.e[2][1]) -
+    world.e[0][1] * (world.e[1][0]*world.e[2][2] - world.e[1][2]*world.e[2][0]) +
+    world.e[0][2] * (world.e[1][0]*world.e[2][1] - world.e[1][1]*world.e[2][0]);
+
+  return det < 0.0f;
+}
+
+static void
+ac_emit_indices_u32_impl(U32 *dst, cgltf_accessor *acc, U32 index_count, B32 flip_winding)
+{
+  if (acc) {
+    // Indexed primitive
+    for (U32 i = 0; i < index_count; i += 3) {
+      U32 i0 = (U32)cgltf_accessor_read_index(acc, i + 0);
+      U32 i1 = (U32)cgltf_accessor_read_index(acc, i + 1);
+      U32 i2 = (U32)cgltf_accessor_read_index(acc, i + 2);
+
+      if (flip_winding) {
+        dst[i + 0] = i0;
+        dst[i + 1] = i2;
+        dst[i + 2] = i1;
+      } else {
+        dst[i + 0] = i0;
+        dst[i + 1] = i1;
+        dst[i + 2] = i2;
+      }
+    }
+  } else {
+    // Non-indexed primitive: implicit 0..N-1
+    for (U32 i = 0; i < index_count; i += 3) {
+      U32 i0 = i + 0;
+      U32 i1 = i + 1;
+      U32 i2 = i + 2;
+
+      if (flip_winding) {
+        dst[i + 0] = i0;
+        dst[i + 1] = i2;
+        dst[i + 2] = i1;
+      } else {
+        dst[i + 0] = i0;
+        dst[i + 1] = i1;
+        dst[i + 2] = i2;
+      }
+    }
+  }
+}
+
+static void
+ac_emit_indices_u16(U16 *dst, AC_Primitive *prim)
+{
+  cgltf_primitive *p = prim->gltf_primitive;
+  cgltf_accessor *acc = p->indices;
+
+  U32 index_count = acc ? (U32)acc->count : prim->vertex_count;
+  B32 flip = ac_should_flip_winding(prim->world_transform);
+
+  // Emit into temporary U32 buffer, then narrow
+  for (U32 i = 0; i < index_count; i += 3) {
+    U32 i0, i1, i2;
+
+    if (acc) {
+      i0 = (U32)cgltf_accessor_read_index(acc, i + 0);
+      i1 = (U32)cgltf_accessor_read_index(acc, i + 1);
+      i2 = (U32)cgltf_accessor_read_index(acc, i + 2);
+    } else {
+      i0 = i + 0;
+      i1 = i + 1;
+      i2 = i + 2;
+    }
+
+    if (flip) {
+      dst[i + 0] = (U16)i0;
+      dst[i + 1] = (U16)i2;
+      dst[i + 2] = (U16)i1;
+    } else {
+      dst[i + 0] = (U16)i0;
+      dst[i + 1] = (U16)i1;
+      dst[i + 2] = (U16)i2;
+    }
+  }
+}
+
+static void
+ac_emit_indices_u32(U32 *dst, AC_Primitive *prim)
+{
+  cgltf_primitive *p = prim->gltf_primitive;
+  cgltf_accessor *acc = p->indices;
+
+  U32 index_count = acc ? (U32)acc->count : prim->vertex_count;
+  B32 flip = ac_should_flip_winding(prim->world_transform);
+
+  ac_emit_indices_u32_impl(dst, acc, index_count, flip);
+}
+
+static void
+ac_build_geometry_payload(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshEntry *mesh_table)
+{
+  for (S32 i = 0; i < prims.count; ++i) {
+    AC_Primitive *p = &prims.v[i];
+    AC_MeshEntry *m = &mesh_table[i];
+
+    // Vertices
+    m->vertex_offset_bytes = (U32)builder->size;
+    AC_Vertex *vertices = (AC_Vertex *)ac_push(
+      builder,
+      sizeof(AC_Vertex) * p->vertex_count,
+      16
+    );
+    ac_emit_vertices(vertices, p);
+
+    // Indices
+    m->index_offset_bytes = (U32)builder->size;
+    if (m->index_kind == AC_IndexKind_U16) {
+      U16 *indices = (U16 *)ac_push(
+        builder,
+        sizeof(U16) * p->index_count,
+        16
+      );
+      ac_emit_indices_u16(indices, p);
+    }
+    else {
+      U32 *indices = (U32 *)ac_push(
+        builder,
+        sizeof(U32) * p->index_count,
+        16
+      );
+       ac_emit_indices_u32(indices, p);
+    }
+  }
+}
+
 static AC_Blob
 ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
 {
@@ -163,16 +454,22 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
   cgltf_data *gltf = ac_parse_gltf(gltf_path);
   if (gltf) {
     // @Todo: Build header placeholder, fill out as you go along using return values of ac_build_ helpers.
-    AC_PrimitiveArray primitives = ac_flatten_gltf(builder->arena, gltf);
-    ac_free_gltf(gltf);
+    TempArena scratch = arena_scratch_begin(0,0);
 
+    AC_PrimitiveArray primitives = ac_flatten_gltf(scratch.arena, gltf);
+
+    // @Todo: Build header placeholder, then fill out within each functions (pass header to them).
+
+    AC_MeshEntry *mesh_table = ac_build_mesh_table(builder, primitives);
+    ac_build_geometry_payload(builder, primitives, mesh_table);
     #if 0
-    // @Todo: Order
-    ac_build_mesh_table(builder, primitives);
-    ac_build_material_texture_tables(builder, meshes);
-    ac_build_geometry_payload(builder);
-    ac_build_texture_payload(builder);
+    ac_build_texture_table(builder, primitives);
+    ac_build_material_table(builder, primitives);
+    ac_build_texture_payload(builder, primitives);
     #endif
+
+    ac_free_gltf(gltf);
+    arena_scratch_end(scratch);
 
     res = {
       .data = builder->data,

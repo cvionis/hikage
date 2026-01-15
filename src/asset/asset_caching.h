@@ -3,6 +3,8 @@
 #define AC_MAGIC 0x4C444F4D  // 'MODL'
 #define AC_VERSION 1
 
+#define AC_TEXTURE_NONE 0xFFFFFFFFu
+
 /*
  * TODO:
  *  Align vb_bytes_off and ib_bytes_off to 256 bytes.
@@ -15,12 +17,12 @@
     [Header]
 
     [Mesh table]
-    [Material table]
-    [Texture table]
-
     [Vertex buffer data]
     [Index buffer data]
-    [Texture payloads]
+
+    [Material table]
+    [Texture table]
+    [Texture data]
  */
 
 enum AC_TextureFmt {
@@ -111,7 +113,7 @@ struct AC_TextureEntry {
 
 struct AC_Builder {
   Arena *arena;
-  void *data;
+  U8 *data;
   U64 size;
 };
 
