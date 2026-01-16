@@ -59,8 +59,8 @@ struct AC_Vertex {
 #define AC_VERTEX_STRIDE sizeof(AC_Vertex)
 
 struct AC_Header {
-  U32 magic;            // MODL_MAGIC
-  U32 version;          // MODL_VERSION
+  U32 magic;
+  U32 version;
 
   U32 flags;            // @Note: Reserved for later.
 
@@ -136,6 +136,7 @@ struct AC_Builder {
   U64 size;
 };
 
+// @Todo: AC_ModelBlob, or AC_PackedModelData
 struct AC_Blob {
   void *data;
   U64 size;
@@ -158,9 +159,13 @@ struct AC_PrimitiveArray {
   S32 count;
 };
 
-// Internal helpers
+struct AC_BuildResult {
+  void *data; // entry data; put in bottom with other optional field, `count`.
+  U32 offset;
+  U32 size;
+  U32 count; // entry count, for table builders
+};
 
-// @Todo: ac_append_() helpers
 
 // Public API
 static AC_Builder ac_make(void);

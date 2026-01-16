@@ -179,16 +179,19 @@ ac_push(AC_Builder *builder, U64 size, U64 align)
   return result;
 }
 
-static AC_MeshEntry *
+static AC_BuildResult
 ac_build_mesh_table(AC_Builder *builder, AC_PrimitiveArray prims, cgltf_data *gltf)
 {
+  U32 mesh_count = prims.count;
+  U32 mesh_table_size = sizeof(AC_MeshEntry) * mesh_count;
+  U32 mesh_table_offset = (U32)builder->size;
   AC_MeshEntry *mesh_table = (AC_MeshEntry *)ac_push(
     builder,
-    sizeof(AC_MeshEntry) * prims.count,
+    mesh_table_size,
     1
   );
 
-  for (S32 i = 0; i < prims.count; ++i) {
+  for (U32 i = 0; i < mesh_count; ++i) {
     AC_Primitive *p = &prims.v[i];
     AC_MeshEntry *m = &mesh_table[i];
 
@@ -198,13 +201,19 @@ ac_build_mesh_table(AC_Builder *builder, AC_PrimitiveArray prims, cgltf_data *gl
       .vertex_stride       = AC_VERTEX_STRIDE,
       .index_offset_bytes  = 0, // filled during geometry build
       .index_count         = p->index_count,
-      .index_kind          = (p->vertex_count <= 65535)
-                               ? AC_IndexKind_U16
-                               : AC_IndexKind_U32,
+      .index_kind          = (p->vertex_count <= 65535) ? AC_IndexKind_U16 : AC_IndexKind_U32,
       .material_index      = (U32)(p->gltf_primitive->material - gltf->materials), // @Todo: Make sure material isn't null first.
     };
   }
-  return mesh_table;
+
+  AC_BuildResult result = {
+    .data = (void *)mesh_table,
+    .offset = mesh_table_offset,
+    .size = mesh_table_size,
+    .count = mesh_count,
+  };
+
+  return result;
 }
 
 static V3F32
@@ -411,41 +420,89 @@ ac_emit_indices_u32(U32 *dst, AC_Primitive *prim)
   ac_emit_indices_u32_impl(dst, acc, index_count, flip);
 }
 
-static void
-ac_build_geometry_payload(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshEntry *mesh_table)
+static AC_BuildResult
+ac_build_geometry_vertices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshEntry *mesh_table)
 {
+  U32 section_offset = (U32)builder->size;
+  section_offset = AlignPow2(section_offset, 256);
+  U32 section_size = 0;
+  U32 entry_offset = 0;
+
   for (S32 i = 0; i < prims.count; ++i) {
     AC_Primitive *p = &prims.v[i];
     AC_MeshEntry *m = &mesh_table[i];
 
-    // Vertices
-    m->vertex_offset_bytes = (U32)builder->size;
+    m->vertex_offset_bytes = entry_offset;
+
+    U32 vertices_size = sizeof(AC_Vertex) * p->vertex_count;
     AC_Vertex *vertices = (AC_Vertex *)ac_push(
       builder,
-      sizeof(AC_Vertex) * p->vertex_count,
+      vertices_size,
       16
     );
     ac_emit_vertices(vertices, p);
 
-    // Indices
-    m->index_offset_bytes = (U32)builder->size;
+    section_size += vertices_size;
+    entry_offset += vertices_size;
+  }
+
+  AC_BuildResult result = {
+    .data = 0,
+    .offset = section_offset,
+    .size = section_size,
+    .count = 0,
+  };
+
+  return result;
+}
+
+static AC_BuildResult
+ac_build_geometry_indices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshEntry *mesh_table)
+{
+  U32 section_offset = (U32)builder->size;
+  section_offset = AlignPow2(section_offset, 256);
+  U32 section_size = 0;
+  U32 entry_offset = 0;
+
+  for (S32 i = 0; i < prims.count; ++i) {
+    AC_Primitive *p = &prims.v[i];
+    AC_MeshEntry *m = &mesh_table[i];
+
+    m->index_offset_bytes = entry_offset;
+
+    U32 indices_size = 0;
+
     if (m->index_kind == AC_IndexKind_U16) {
+      indices_size = sizeof(U16) * p->index_count;
       U16 *indices = (U16 *)ac_push(
         builder,
-        sizeof(U16) * p->index_count,
+        indices_size,
         16
       );
       ac_emit_indices_u16(indices, p);
     }
     else {
+      indices_size = sizeof(U32) * p->index_count;
       U32 *indices = (U32 *)ac_push(
         builder,
-        sizeof(U32) * p->index_count,
+        indices_size,
         16
       );
-       ac_emit_indices_u32(indices, p);
+      ac_emit_indices_u32(indices, p);
     }
+
+    section_size += indices_size;
+    entry_offset += indices_size;
   }
+
+  AC_BuildResult result = {
+    .data = 0,
+    .offset = section_offset,
+    .size = section_size,
+    .count = 0,
+  };
+
+  return result;
 }
 
 static U32
@@ -458,16 +515,19 @@ ac_texture_index_from_view(cgltf_data *gltf, cgltf_texture_view *view)
   return (U32)(view->texture - gltf->textures);
 }
 
-static AC_MaterialEntry *
+static AC_BuildResult
 ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
 {
+  U32 mtl_count = (U32)gltf->materials_count;
+  U32 mtl_table_size = sizeof(AC_MaterialEntry) * mtl_count;
+  U32 mtl_table_offset = (U32)builder->size;
   AC_MaterialEntry *mtl_table = (AC_MaterialEntry *)ac_push(
     builder,
-    sizeof(AC_MaterialEntry) * gltf->materials_count,
+    mtl_table_size,
     1
   );
 
-  for (U32 mat_idx = 0; mat_idx < gltf->materials_count; ++mat_idx) {
+  for (U32 mat_idx = 0; mat_idx < mtl_count; ++mat_idx) {
     cgltf_material *gltf_mat = &gltf->materials[mat_idx];
     AC_MaterialEntry *dst    = &mtl_table[mat_idx];
 
@@ -549,7 +609,14 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
     }
   }
 
-  return mtl_table;
+  AC_BuildResult result = {
+    .data = (void *)mtl_table,
+    .offset = mtl_table_offset,
+    .size = mtl_table_size,
+    .count = mtl_count,
+  };
+
+  return result;
 }
 
 static U32
@@ -562,18 +629,30 @@ ac_image_index_from_image(cgltf_data *gltf, cgltf_image *image)
   return (U32)(image - gltf->images);
 }
 
-static void
+static AC_BuildResult
 ac_build_texture_table(AC_Builder *builder, cgltf_data *gltf)
 {
+  U32 tex_count = (U32)gltf->textures_count;
+  U32 tex_table_size = sizeof(AC_TextureEntry) * tex_count;
+  U32 tex_table_offset = (U32)builder->size;
   AC_TextureEntry *tex_table = (AC_TextureEntry *)ac_push(
     builder,
-    sizeof(AC_TextureEntry) * gltf->textures_count,
+    tex_table_size,
     1
   );
 
-  for (S32 tex_idx = 0; tex_idx < gltf->textures_count; tex_idx += 1) {
+  for (U32 tex_idx = 0; tex_idx < tex_count; tex_idx += 1) {
     tex_table[tex_idx].img_index = ac_image_index_from_image(gltf, gltf->textures[tex_idx].image);
   }
+
+  AC_BuildResult result = {
+    .data = (void *)tex_table,
+    .offset = tex_table_offset,
+    .size = tex_table_size,
+    .count = tex_count,
+  };
+
+  return result;
 }
 
 static void
@@ -606,7 +685,7 @@ ac_image_usage_from_materials(U32 *image_flags, cgltf_data *gltf, AC_MaterialEnt
   }
 }
 
-struct AC_CompressedImageHeader {
+struct AC_ImageMetadata {
   AC_ImageFormat fmt;
   U32 width;
   U32 height;
@@ -703,36 +782,49 @@ ac_dxgi_from_img_fmt(AC_ImageFormat fmt)
   return result;
 }
 
-static void
-ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_table)
+// @Note: This doesn't fill out any fields in the table's entries.
+static AC_BuildResult
+ac_build_image_table(AC_Builder *builder, cgltf_data *gltf)
 {
+  U32 img_count = (U32)gltf->images_count;
+  U32 img_table_size = sizeof(AC_ImageEntry) * img_count;
+  U32 img_table_offset = (U32)builder->size;
   AC_ImageEntry *img_table = (AC_ImageEntry *)ac_push(
     builder,
-    sizeof(AC_ImageEntry) * gltf->images_count,
+    img_table_size,
     1
   );
 
-  // * Decide compression format for each image
-  // * Use that to create a set of compressed images, and an array of image metadata
-  //   - For each gltf image: load into memory, decode into raw pixel data using stbi,
-  //                          gen mipmaps, feed result into a compressor, return compressed data
-  //
+  AC_BuildResult result = {
+    .data = (void *)img_table,
+    .offset = img_table_offset,
+    .size = img_table_size,
+    .count = img_count,
+  };
 
-  Arena *scratch = arena_get_scratch(0,0);
+  return result;
+}
+
+static AC_BuildResult
+ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_table, AC_ImageEntry *img_table)
+{
+  U32 section_offset = (U32)builder->size;
+  section_offset = AlignPow2(section_offset, 256);
+  U32 section_size = 0;
 
   // Preliminary work: Prepare compressed image metadata
-
+  Arena *scratch = arena_get_scratch(0,0);
   U32 *img_usage_flags = ArenaPushArray(scratch, U32, gltf->images_count);
   ac_image_usage_from_materials(img_usage_flags, gltf, mtl_table);
 
-  AC_CompressedImageHeader *img_metadata = ArenaPushArray(scratch, AC_CompressedImageHeader, gltf->images_count);
+  AC_ImageMetadata *img_metadata = ArenaPushArray(scratch, AC_ImageMetadata, gltf->images_count);
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
     img_metadata[img_idx].fmt = ac_image_fmt_from_usage(img_usage_flags[img_idx]);
   }
 
   // Load, decode, build mips, compress image data
 
-  U32 compressed_data_offset = 0;
+  U32 compressed_data_offset = 0; // From start of compressed image data, not file.
 
   // @Todo: Make sure to handle sRGB data correctly.
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
@@ -762,7 +854,7 @@ ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_Mater
 
       stbi_image_free(img_data_decoded);
 
-      if (hr == S_OK) {
+      if (SUCCEEDED(hr)) {
         // Compress zeh mips
         AC_ImageFormat fmt = img_metadata[img_idx].fmt;
         DXGI_FORMAT dxgi_fmt = ac_dxgi_from_img_fmt(fmt);
@@ -778,32 +870,36 @@ ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_Mater
             1.0f,
             compressed
           );
+          if (SUCCEEDED(hr)) {
+            // Save image metadata
+            const DirectX::TexMetadata &meta = compressed.GetMetadata();
+            const DirectX::Image *images = compressed.GetImages();
 
-          // Save image metadata
-          const DirectX::TexMetadata &meta = compressed.GetMetadata();
-          const DirectX::Image *images = compressed.GetImages();
+            img_metadata[img_idx].mip_count = (U32)meta.mipLevels;
+            img_metadata[img_idx].width     = (U32)meta.width;
+            img_metadata[img_idx].height    = (U32)meta.height;
 
-          img_metadata[img_idx].mip_count = (U32)meta.mipLevels;
-          img_metadata[img_idx].width     = (U32)meta.width;
-          img_metadata[img_idx].height    = (U32)meta.height;
+            U32 compressed_size = 0;
+            for (U32 mip = 0; mip < meta.mipLevels; ++mip) {
+              compressed_size += (U32)images[mip].slicePitch;
+            }
 
-          // Copy compressed image data to output
-          U32 compressed_size = 0;
-          for (U32 mip = 0; mip < meta.mipLevels; ++mip) {
-            compressed_size += (U32)images[mip].slicePitch;
-          }
-          img_metadata[img_idx].data_size = compressed_size;
-          img_metadata[img_idx].data_offset = compressed_data_offset; // @Todo: Alignment
-          compressed_data_offset += compressed_size;
+            compressed_data_offset = AlignPow2(compressed_data_offset, 256);
+            img_metadata[img_idx].data_offset = compressed_data_offset;
+            img_metadata[img_idx].data_size = compressed_size;
+            compressed_data_offset += compressed_size;
+            section_size += compressed_size;
 
-          {
-            U32 image_count = (U32)compressed.GetImageCount();
-            U8 *compressed_mips = (U8 *)ac_push(builder, compressed_size, 16);
-            U32 pos = 0;
-            for (U32 i = 0; i < image_count; ++i) {
-              U32 sz = (U32)images[i].slicePitch;
-              MemoryCopy(compressed_mips + pos, images[i].pixels, sz);
-              pos += sz;
+            // Copy compressed image data to output
+            {
+              U32 image_count = (U32)compressed.GetImageCount();
+              U8 *compressed_mips = (U8 *)ac_push(builder, compressed_size, 256);
+              U32 pos = 0;
+              for (U32 i = 0; i < image_count; ++i) {
+                U32 sz = (U32)images[i].slicePitch;
+                MemoryCopy(compressed_mips + pos, images[i].pixels, sz);
+                pos += sz;
+              }
             }
           }
         }
@@ -812,13 +908,22 @@ ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_Mater
   }
 
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
-    img_table[img_idx].format = img_metadata[img_idx].fmt;
-    img_table[img_idx].width = img_metadata[img_idx].width;
-    img_table[img_idx].height = img_metadata[img_idx].height;
-    img_table[img_idx].mip_count = img_metadata[img_idx].mip_count;
-    img_table[img_idx].data_offset_bytes = img_metadata[img_idx].data_offset; // @Todo: Alignment
-    img_table[img_idx].data_size_bytes = img_metadata[img_idx].data_size;
+    AC_ImageMetadata *metadata = &img_metadata[img_idx];
+    img_table[img_idx].format = metadata->fmt;
+    img_table[img_idx].width = metadata->width;
+    img_table[img_idx].height = metadata->height;
+    img_table[img_idx].mip_count = metadata->mip_count;
+    img_table[img_idx].data_offset_bytes = metadata->data_offset;
+    img_table[img_idx].data_size_bytes = metadata->data_size;
   }
+
+  AC_BuildResult result = {
+    .data = 0,
+    .offset = section_offset,
+    .size = section_size,
+    .count = 0,
+  };
+  return result;
 }
 
 // @Todo: Test with gltf files with several materials, textures, images
@@ -830,23 +935,30 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
   cgltf_data *gltf = ac_parse_gltf(gltf_path);
   if (gltf) {
     Arena *scratch = arena_get_scratch(0,0);
-    AC_PrimitiveArray primitives = ac_flatten_gltf(scratch, gltf);
-
-    // @Todo: Build header placeholder, then fill out within each statics (pass header to them).
-
-    // @Todo: Probably don't even need this shitty "AC_Builder" abstraction. Just incrementally push to arena out here, pass returned
-    //  pointer to each build function. E.g. ac_build_material_table should write out to a passed AC_MaterialEntry array allocated from
-    // the builder arena.
 
     AC_Header *hdr = (AC_Header *)ac_push(builder, sizeof(AC_Header), 1);
-    (void *)hdr;
+    char magic[] = "DEEZ";
+    MemoryCopy(&hdr->magic, magic, sizeof(U32));
+    hdr->version = 1u;
 
-    AC_MeshEntry *mesh_table = ac_build_mesh_table(builder, primitives, gltf);
-    ac_build_geometry_payload(builder, primitives, mesh_table);
+    AC_BuildResult build = {};
 
-    AC_MaterialEntry *mtl_table = ac_build_material_table(builder, gltf);
-    ac_build_texture_table(builder, gltf);
-    ac_build_image_table_and_payload(builder, gltf, mtl_table);
+    AC_PrimitiveArray primitives = ac_flatten_gltf(scratch, gltf);
+    build = ac_build_mesh_table(builder, primitives, gltf);
+    build = ac_build_geometry_vertices(builder, primitives, (AC_MeshEntry *)build.data);
+    build = ac_build_geometry_indices(builder, primitives, (AC_MeshEntry *)build.data);
+
+    AC_MaterialEntry *mtl_table;
+    AC_ImageEntry *img_table;
+
+    build = ac_build_material_table(builder, gltf);
+    mtl_table = (AC_MaterialEntry *)build.data;
+
+    build = ac_build_texture_table(builder, gltf);
+    build = ac_build_image_table(builder, gltf);
+    img_table = (AC_ImageEntry *)build.data;
+
+    build = ac_build_images(builder, gltf, mtl_table, img_table);
 
     ac_free_gltf(gltf);
 
@@ -857,4 +969,16 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
   }
 
   return res;
+}
+
+static void
+ac_cache_model_blob(AC_Blob blob)
+{
+  char *path = "../assets/cache/models/BoxTextured.mb"; // @Note: Temporary.
+  // @Todo: os_file_write().
+  FILE *f = fopen(path, "wb+");
+  if (f) {
+    fwrite(blob.data, blob.size, 1, f);
+    fclose(f);
+  }
 }
