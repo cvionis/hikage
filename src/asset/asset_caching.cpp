@@ -612,8 +612,8 @@ struct AC_CompressedImageHeader {
   U32 height;
   U32 mip_count;
 
-  U32 data_offset;
-  U32 data_size;
+  U64 data_offset;
+  U64 data_size;
 };
 
 static AC_ImageFormat
@@ -685,6 +685,24 @@ ac_img_load(Arena *arena, cgltf_image *img)
   return result;
 }
 
+static DXGI_FORMAT
+ac_dxgi_from_img_fmt(AC_ImageFormat fmt)
+{
+  DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
+
+  switch (fmt) {
+    // @Todo: Rename yours to signify that they're UNORM
+    case AC_ImageFormat_BC1:  result = DXGI_FORMAT_BC1_UNORM;
+    case AC_ImageFormat_BC3:  result = DXGI_FORMAT_BC3_UNORM;
+    case AC_ImageFormat_BC4:  result = DXGI_FORMAT_BC4_UNORM;
+    case AC_ImageFormat_BC5:  result = DXGI_FORMAT_BC5_UNORM;
+    case AC_ImageFormat_BC6H: result = DXGI_FORMAT_BC6H_UF16;
+    case AC_ImageFormat_BC7:  result = DXGI_FORMAT_BC7_UNORM;
+  }
+
+  return result;
+}
+
 static void
 ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_table)
 {
@@ -707,13 +725,16 @@ ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_Mater
   U32 *img_usage_flags = ArenaPushArray(scratch, U32, gltf->images_count);
   ac_image_usage_from_materials(img_usage_flags, gltf, mtl_table);
 
-  AC_CompressedImageHeader *img_headers = ArenaPushArray(scratch, AC_CompressedImageHeader, gltf->images_count);
+  AC_CompressedImageHeader *compressed_img_metadata = ArenaPushArray(scratch, AC_CompressedImageHeader, gltf->images_count);
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
-    img_headers[img_idx].fmt = ac_image_fmt_from_usage(img_usage_flags[img_idx]);
+    compressed_img_metadata[img_idx].fmt = ac_image_fmt_from_usage(img_usage_flags[img_idx]);
   }
 
   // Load, decode, build mips, compress image data
 
+  U64 compressed_data_offset = 0;
+
+  // @Todo: Make sure to handle sRGB data correctly.
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
     cgltf_image *image = &gltf->images[img_idx];
     AC_ImageLoad img = ac_img_load(scratch, image);
@@ -721,22 +742,64 @@ ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_Mater
     S32 img_width = 0, img_height = 0, img_channels = 0;
     U8 *img_data_decoded = stbi_load_from_memory(img.data, (S32)img.size, &img_width, &img_height, &img_channels, 4);
     if (img_data_decoded) {
-      int x;
-      (void)x;
+      DirectX::Image src = {
+        .width      = (size_t)img_width,
+        .height     = (size_t)img_height,
+        .format     = DXGI_FORMAT_R8G8B8A8_UNORM,
+        .rowPitch   = (size_t)img_width * 4,
+        .slicePitch = src.rowPitch * img_height,
+        .pixels     = img_data_decoded,
+      };
 
-      #if 0
-      S32 mip_count = 0;
-      U32 fmt = img_headers[img_idx].fmt;
-      AC_ImageCompress comp = ac_img_compress_and_push(builder->arena, img_data_decoded, fmt);
+      // Generate a mip chain for the decoded image
+      DirectX::ScratchImage mip_chain;
+      HRESULT hr = DirectX::GenerateMipMaps(
+        src,
+        DirectX::TEX_FILTER_DEFAULT,
+        0,
+        mip_chain
+      );
 
-      AC_ImageEntry *img_entry = &img_table[img_idx];
-      img_entry->fmt = fmt;
-      img_entry->width = img_width; // @Todo: Not sure whether to put compressed or uncompressed sizes.
-      img_entry->height = img_height;
-      img_entry->mip_count = mip_count;
-      img_entry->data_offset_bytes = comp.off;
-      img_entry->data_offset_bytes = comp.size;
-      #endif
+      stbi_image_free(img_data_decoded);
+
+      if (hr == S_OK) {
+        // Compress zeh mips
+        AC_ImageFormat fmt = compressed_img_metadata[img_idx].fmt;
+        DXGI_FORMAT dxgi_fmt = ac_dxgi_from_img_fmt(fmt);
+        if (dxgi_fmt != DXGI_FORMAT_UNKNOWN) {
+          DirectX::ScratchImage compressed;
+          hr = DirectX::Compress(
+            mip_chain.GetImages(),
+            mip_chain.GetImageCount(),
+            mip_chain.GetMetadata(),
+            dxgi_fmt,
+            DirectX::TEX_COMPRESS_DEFAULT |
+            DirectX::TEX_COMPRESS_PARALLEL,
+            1.0f,
+            compressed
+          );
+
+          // Fill out image metadata
+          const DirectX::TexMetadata &meta = compressed.GetMetadata();
+          const DirectX::Image *images = compressed.GetImages();
+
+          // Metadata
+          compressed_img_metadata[img_idx].mip_count = (U32)meta.mipLevels;
+          compressed_img_metadata[img_idx].width     = (U32)meta.width;
+          compressed_img_metadata[img_idx].height    = (U32)meta.height;
+
+          // Compute total compressed size (no getter exists)
+          U64 total_size = 0;
+          for (U32 mip = 0; mip < meta.mipLevels; ++mip) {
+            total_size += images[mip].slicePitch;
+          }
+
+          compressed_img_metadata[img_idx].data_size   = total_size;
+          compressed_img_metadata[img_idx].data_offset = compressed_data_offset;
+
+          compressed_data_offset += total_size;
+        }
+      }
     }
   }
 }

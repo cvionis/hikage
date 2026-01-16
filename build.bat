@@ -63,7 +63,7 @@ set includes=%includes% /I %cgltf%
 set includes=%includes% /I %DirectXTex%\include
 
 :: -- Linker flags --------------------------------------------------------
-set linker_flags=/link %freetype%\build\freetype.lib winmm.lib shell32.lib %raylib%\build\raylib.lib %DirectXTex%\build\x64\Debug\DirectXTex.lib /ignore:4099 /INCREMENTAL:no
+set linker_flags=/link %freetype%\build\freetype.lib winmm.lib shell32.lib %raylib%\build\raylib.lib ole32.lib %DirectXTex%\build\x64\Release\DirectXTex.lib /ignore:4099 /INCREMENTAL:no
 
 :: --- Build targets ------------------------------------------------------
 set targets=
