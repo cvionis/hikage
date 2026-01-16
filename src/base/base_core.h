@@ -20,7 +20,6 @@ typedef uint32_t B32;
 typedef float    F32;
 typedef double   F64;
 
-#define function static
 #define global   static
 
 #if COMPILER_MSVC

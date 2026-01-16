@@ -52,6 +52,7 @@ set stb="%root%\src\third_party\stb"
 set freetype="%root%\src\third_party\freetype-2.11.1"
 set raylib="%root%\src\third_party\raylib-5.0"
 set cgltf="%root%\src\third_party\cgltf"
+set DirectXTex="%root%\src\third_party\DirectXTex"
 
 set includes=
 set includes=%includes% /FI %freetype%\include\ft2build.h
@@ -59,9 +60,10 @@ set includes=%includes% /I %freetype%\include
 set includes=%includes% /I %stb%
 set includes=%includes% /I %raylib%\include
 set includes=%includes% /I %cgltf%
+set includes=%includes% /I %DirectXTex%\include
 
 :: -- Linker flags --------------------------------------------------------
-set linker_flags=/link %freetype%\build\freetype.lib winmm.lib shell32.lib %raylib%\build\raylib.lib /ignore:4099 /INCREMENTAL:no
+set linker_flags=/link %freetype%\build\freetype.lib winmm.lib shell32.lib %raylib%\build\raylib.lib %DirectXTex%\build\x64\Debug\DirectXTex.lib /ignore:4099 /INCREMENTAL:no
 
 :: --- Build targets ------------------------------------------------------
 set targets=

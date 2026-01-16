@@ -1119,8 +1119,8 @@ STBIDEF void stbi_set_flip_vertically_on_load(int flag_true_if_should_flip)
 #ifndef STBI_THREAD_LOCAL
 #define stbi__vertically_flip_on_load  stbi__vertically_flip_on_load_global
 #else
-// Note(Chance): this being thread local was causing a crash upon accessing stbi__vertically_flip_on_load_global. 
-// I don't know if commenting this out is the best solution; it might have been a problem on my end. 
+// Note(Chance): this being thread local was causing a crash upon accessing stbi__vertically_flip_on_load_global.
+// I don't know if commenting this out is the best solution; it might have been a problem on my end.
 // I really want to just move on from this annoying bug.
 
 //static STBI_THREAD_LOCAL int stbi__vertically_flip_on_load_local, stbi__vertically_flip_on_load_set;
@@ -7920,7 +7920,7 @@ STBIDEF int stbi_is_16_bit_from_callbacks(stbi_io_callbacks const *c, void *user
       1.03    bugfixes to STBI_NO_STDIO, STBI_NO_HDR
       1.02    support for (subset of) HDR files, float interface for preferred access to them
       1.01    fix bug: possible bug in handling right-side up bmps... not sure
-              fix bug: the stbi__bmp_load() and stbi__tga_load() functions didn't work at all
+              fix bug: the stbi__bmp_load() and stbi__tga_load() s didn't work at all
       1.00    interface to zlib that skips zlib header
       0.99    correct handling of alpha in palette
       0.98    TGA loader by lonesock; dynamically add loaders (untested)

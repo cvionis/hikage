@@ -21,19 +21,19 @@ struct Arena {
 
 threadlocal Arena *scratch_arena_pool[ARENA_SCRATCH_POOL_COUNT] = {0};
 
-function Arena *arena_alloc(U64 size);
-function Arena *arena_alloc_default(void);
-function void arena_release(Arena *arena);
+static Arena *arena_alloc(U64 size);
+static Arena *arena_alloc_default(void);
+static void arena_release(Arena *arena);
 
-function void *arena_push_nozero(Arena *arena, U64 size);
-function void *arena_push(Arena *arena, U64 size);
-function void *arena_push_align(Arena *arena, U64 alignment);
+static void *arena_push_nozero(Arena *arena, U64 size);
+static void *arena_push(Arena *arena, U64 size);
+static void *arena_push_align(Arena *arena, U64 alignment);
 
-function void arena_pop(Arena *arena, U64 size);
-function void arena_pop_to(Arena *arena, U64 pos);
-function void arena_clear(Arena *arena);
+static void arena_pop(Arena *arena, U64 size);
+static void arena_pop_to(Arena *arena, U64 pos);
+static void arena_clear(Arena *arena);
 
-function void arena_set_align(Arena *arena, U64 align);
+static void arena_set_align(Arena *arena, U64 align);
 
 #define ArenaPushStruct(arena, type) \
 (type *)arena_push((arena), sizeof(type))
@@ -55,13 +55,13 @@ struct TempArena {
   U64 initial_pos;
 };
 
-function TempArena arena_temp_begin(Arena *arena);
-function void arena_temp_end(TempArena temp);
+static TempArena arena_temp_begin(Arena *arena);
+static void arena_temp_end(TempArena temp);
 
 //
 // Scratch arenas
 //
 
-function Arena *arena_get_scratch(Arena **conflict_array, U32 count);
-function TempArena arena_scratch_begin(Arena **conflict_array, U32 count);
-function void arena_scratch_end(TempArena scratch);
+static Arena *arena_get_scratch(Arena **conflict_array, U32 count);
+static TempArena arena_scratch_begin(Arena **conflict_array, U32 count);
+static void arena_scratch_end(TempArena scratch);

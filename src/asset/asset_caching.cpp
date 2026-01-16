@@ -127,7 +127,7 @@ ac_collect_primitives_from_node(Arena *arena, cgltf_node *node, Mat4x4 parent_wo
 
 // @Todo: ChatGPT: i -> idx; remove ternaries; ++ -> += 1;
 // @Todo: Test with more files.
-function AC_PrimitiveArray
+static AC_PrimitiveArray
 ac_flatten_gltf(Arena *arena, cgltf_data *gltf)
 {
   AC_PrimitiveArray result = {};
@@ -752,10 +752,10 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
     TempArena scratch = arena_scratch_begin(0,0);
     AC_PrimitiveArray primitives = ac_flatten_gltf(scratch.arena, gltf);
 
-    // @Todo: Build header placeholder, then fill out within each functions (pass header to them).
+    // @Todo: Build header placeholder, then fill out within each statics (pass header to them).
 
     // @Todo: Probably don't even need this shitty "AC_Builder" abstraction. Just incrementally push to array, pass that pointer
-    // to each build function. E.g. ac_build_material_table should write out to a passed AC_MaterialEntry array allocated from the builder
+    // to each build static. E.g. ac_build_material_table should write out to a passed AC_MaterialEntry array allocated from the builder
     // arena.
 
     AC_MeshEntry *mesh_table = ac_build_mesh_table(builder, primitives, gltf);

@@ -1,4 +1,4 @@
-function String 
+static String
 OS_ReadFile(Arena *arena, String path)
 {
   U8 *data     = 0;
