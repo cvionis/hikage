@@ -835,20 +835,16 @@ ac_img_load(AC_Builder *builder, Arena *arena, cgltf_image *img)
   }
 
   else if (img->uri) {
-    TempArena tmp = arena_temp_begin(arena);
-    {
-      // @Todo: Need to save full path when loading model and build uri path here.
-      String8 img_dir = dir_from_path(builder->model_path);
-      String8 img_filename = str8((U8 *)img->uri, cstr_count(img->uri));
-      String8 img_path = str8_cat(tmp.arena, img_dir, img_filename);
-      String8 file_read = os_file_read(tmp.arena, img_path);
-      if (file_read.count > 0) {
-        out_data = ArenaPushArray(arena, U8, file_read.count);
-        MemoryCopy(out_data, file_read.data, file_read.count);
-        out_size = file_read.count;
-      }
+    // @Todo: Need to save full path when loading model and build uri path here.
+    String8 img_dir = dir_from_path(builder->model_path);
+    String8 img_filename = str8((U8 *)img->uri, cstr_count(img->uri));
+    String8 img_path = str8_cat(arena, img_dir, img_filename);
+    String8 file_read = os_file_read(arena, img_path);
+    if (file_read.count > 0) {
+      out_data = ArenaPushArray(arena, U8, file_read.count);
+      MemoryCopy(out_data, file_read.data, file_read.count);
+      out_size = file_read.count;
     }
-    arena_temp_end(tmp);
   }
 
   result.data = out_data;
@@ -864,12 +860,12 @@ ac_dxgi_from_img_fmt(AC_ImageFormat fmt)
 
   switch (fmt) {
     // @Todo: Rename yours to signify that they're UNORM
-    case AC_ImageFormat_BC1:  result = DXGI_FORMAT_BC1_UNORM;
-    case AC_ImageFormat_BC3:  result = DXGI_FORMAT_BC3_UNORM;
-    case AC_ImageFormat_BC4:  result = DXGI_FORMAT_BC4_UNORM;
-    case AC_ImageFormat_BC5:  result = DXGI_FORMAT_BC5_UNORM;
-    case AC_ImageFormat_BC6H: result = DXGI_FORMAT_BC6H_UF16;
-    case AC_ImageFormat_BC7:  result = DXGI_FORMAT_BC7_UNORM;
+    case AC_ImageFormat_BC1:  { result = DXGI_FORMAT_BC1_UNORM; }break;
+    case AC_ImageFormat_BC3:  { result = DXGI_FORMAT_BC3_UNORM; }break;
+    case AC_ImageFormat_BC4:  { result = DXGI_FORMAT_BC4_UNORM; }break;
+    case AC_ImageFormat_BC5:  { result = DXGI_FORMAT_BC5_UNORM; }break;
+    case AC_ImageFormat_BC6H: { result = DXGI_FORMAT_BC6H_UF16; }break;
+    case AC_ImageFormat_BC7:  { result = DXGI_FORMAT_BC7_UNORM; }break;
   }
 
   return result;
