@@ -30,8 +30,8 @@ entry_point(void)
 
   AC_Builder ac = ac_make();
   {
-    AC_Blob blob = ac_blob_from_gltf(&ac, S8("../assets/models/BoxTextured/BoxTextured.gltf"));
-    ac_cache_model_blob(blob);
+    AC_Blob blob = ac_blob_from_gltf(&ac, S8("R:/KageEngine/assets/models/CommercialRefrigerator/CommercialRefrigerator.gltf"));
+    ac_cache_model_blob(&ac, blob);
   }
   ac_release(&ac);
 

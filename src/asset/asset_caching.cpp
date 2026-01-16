@@ -1,3 +1,90 @@
+// @Todo: deez nuts!
+static String8
+str8_cat(Arena *arena, String8 a, String8 b)
+{
+  String8 result = {};
+
+  if (a.data && b.data) {
+    U64 count = a.count + b.count;
+    U8 *data = ArenaPushArray(arena, U8, count + 1);
+
+    MemoryCopy(data, a.data, a.count);
+    MemoryCopy(data + a.count, b.data, b.count);
+
+    data[count] = 0;
+
+    result.data = data;
+    result.count = count;
+  }
+
+  return result;
+}
+
+// @Todo: Deez nuts!
+static String8
+dir_from_path(String8 path)
+{
+  String8 result = {};
+
+  if (path.count > 0) {
+    U64 dir_count = path.count;
+    for (U64 idx = path.count-1; idx > 0; idx -= 1) {
+      if (path.data[idx] == '/' || path.data[idx] == '\\') {
+        break;
+      }
+      dir_count -= 1;
+    }
+
+    result.data = path.data;
+    result.count = dir_count;
+  }
+
+  return result;
+}
+
+// @Todo: Yo mama!
+static String8
+filename_from_path(String8 path)
+{
+  String8 result = {};
+
+  if (path.count > 0) {
+    U64 filename_start = 0;
+
+    for (U64 idx = path.count-1; idx > 0; idx -= 1) {
+      if (path.data[idx] == '/' || path.data[idx] == '\\') {
+        filename_start = idx + 1;
+        break;
+      }
+    }
+    result.data = path.data + filename_start;
+    result.count = path.count - filename_start;
+  }
+
+  return result;
+}
+
+static String8
+remove_extension_from_path(String8 path)
+{
+  String8 result = {};
+
+  if (path.count > 0) {
+    U64 new_count = path.count;
+    for (U64 idx = path.count-1; idx > 0; idx -= 1) {
+      new_count -= 1;
+      if (path.data[idx] == '.') {
+        break;
+      }
+    }
+
+    result.data = path.data;
+    result.count = new_count;
+  }
+
+  return result;
+}
+
 // @Todo: Replace ChatGPT's U32's with S32's.
 
 static AC_Builder
@@ -34,8 +121,12 @@ ac_parse_gltf(String8 gltf_path)
   cgltf_result cgltf_res = {};
   cgltf_options options = {};
   cgltf_res = cgltf_parse_file(&options, chr_from_str8(gltf_path), &data);
-  cgltf_res = cgltf_load_buffers(&options, data, chr_from_str8(gltf_path));
-  cgltf_res = cgltf_validate(data);
+  if (cgltf_res == cgltf_result_success) {
+    cgltf_res = cgltf_load_buffers(&options, data, chr_from_str8(gltf_path));
+    if (cgltf_res == cgltf_result_success) {
+      cgltf_res = cgltf_validate(data);
+    }
+  }
 
   return data;
 }
@@ -727,7 +818,7 @@ struct AC_ImageLoad {
 };
 
 static AC_ImageLoad
-ac_img_load(Arena *arena, cgltf_image *img)
+ac_img_load(AC_Builder *builder, Arena *arena, cgltf_image *img)
 {
   AC_ImageLoad result = {};
 
@@ -746,9 +837,11 @@ ac_img_load(Arena *arena, cgltf_image *img)
   else if (img->uri) {
     TempArena tmp = arena_temp_begin(arena);
     {
-      String8 img_path = str8((U8 *)img->uri, 256); // @Note: Length isn't even used in file_read so who cares.
       // @Todo: Need to save full path when loading model and build uri path here.
-      String8 file_read = os_file_read(tmp.arena, S8("../assets/models/BoxTextured/CesiumLogoFlat.png"));
+      String8 img_dir = dir_from_path(builder->model_path);
+      String8 img_filename = str8((U8 *)img->uri, cstr_count(img->uri));
+      String8 img_path = str8_cat(tmp.arena, img_dir, img_filename);
+      String8 file_read = os_file_read(tmp.arena, img_path);
       if (file_read.count > 0) {
         out_data = ArenaPushArray(arena, U8, file_read.count);
         MemoryCopy(out_data, file_read.data, file_read.count);
@@ -828,8 +921,9 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_tab
 
   // @Todo: Make sure to handle sRGB data correctly.
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
+    TempArena tmp = arena_temp_begin(scratch);
     cgltf_image *image = &gltf->images[img_idx];
-    AC_ImageLoad img = ac_img_load(scratch, image);
+    AC_ImageLoad img = ac_img_load(builder, tmp.arena, image);
 
     S32 img_width = 0, img_height = 0, img_channels = 0;
     U8 *img_data_decoded = stbi_load_from_memory(img.data, (S32)img.size, &img_width, &img_height, &img_channels, 4);
@@ -905,6 +999,8 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_tab
         }
       }
     }
+
+    arena_temp_end(tmp);
   }
 
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
@@ -930,6 +1026,8 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_tab
 static AC_Blob
 ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
 {
+  builder->model_path = gltf_path;
+
   AC_Blob res = {};
 
   cgltf_data *gltf = ac_parse_gltf(gltf_path);
@@ -942,6 +1040,7 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
     hdr->version = 1u;
 
     AC_BuildResult build;
+    AC_MeshEntry *mesh_table;
     AC_MaterialEntry *mtl_table;
     AC_ImageEntry *img_table;
 
@@ -949,14 +1048,15 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
     build = ac_build_mesh_table(builder, primitives, gltf);
     hdr->mesh_count = build.count;
     hdr->mesh_table_off = build.offset;
+    mesh_table = (AC_MeshEntry *)build.data;
 
-    build = ac_build_geometry_vertices(builder, primitives, (AC_MeshEntry *)build.data);
+    build = ac_build_geometry_vertices(builder, primitives, mesh_table);
     hdr->vb_bytes_off = build.offset;
     hdr->vb_bytes_size = build.size;
 
-    build = ac_build_geometry_indices(builder, primitives, (AC_MeshEntry *)build.data);
+    build = ac_build_geometry_indices(builder, primitives, mesh_table);
     hdr->ib_bytes_off = build.offset;
-    hdr->ib_bytes_off = build.size;
+    hdr->ib_bytes_size = build.size;
 
     build = ac_build_material_table(builder, gltf);
     hdr->material_count = build.count;
@@ -988,13 +1088,23 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
 }
 
 static void
-ac_cache_model_blob(AC_Blob blob)
+ac_cache_model_blob(AC_Builder *builder, AC_Blob blob)
 {
-  char *path = "../assets/cache/models/BoxTextured.mb"; // @Note: Temporary.
+  TempArena scratch = arena_scratch_begin(0,0);
+
+  String8 model_filename = filename_from_path(builder->model_path);
+  String8 model_filename_stripped = remove_extension_from_path(model_filename);
+  String8 cached_model_dir = S8("../assets/cache/models/");
+  String8 cached_model_ext = S8(".mb");
+
+  String8 cached_model_path = str8_cat(scratch.arena, cached_model_dir, model_filename_stripped);
+  cached_model_path = str8_cat(scratch.arena, cached_model_path, cached_model_ext);
   // @Todo: os_file_write().
-  FILE *f = fopen(path, "wb+");
+  FILE *f = fopen(chr_from_str8(cached_model_path), "wb+");
   if (f) {
     fwrite(blob.data, blob.size, 1, f);
     fclose(f);
   }
+
+  arena_scratch_end(scratch);
 }

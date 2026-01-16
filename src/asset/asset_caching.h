@@ -6,13 +6,6 @@
 #define AC_TEXTURE_NONE 0xFFFFFFFFu
 
 /*
- * TODO:
- *  Align vb_bytes_off and ib_bytes_off to 256 bytes.
- *  Align each texture payload start to 256 bytes (simplifies upload staging).
- *  Align tables to 16 bytes.
-*/
-
-/*
  * Format:
     [Header]
 
@@ -134,6 +127,7 @@ struct AC_Builder {
   Arena *arena;
   U8 *data;
   U64 size;
+  String8 model_path;
 };
 
 // @Todo: AC_ModelBlob, or AC_PackedModelData
@@ -165,7 +159,6 @@ struct AC_BuildResult {
   U32 size;
   U32 count; // entry count, for table builders
 };
-
 
 // Public API
 static AC_Builder ac_make(void);
