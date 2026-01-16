@@ -81,8 +81,8 @@ struct AC_Header {
   U32 ib_bytes_off;     // contiguous index buffer bytes (typically u32 or u16)
   U32 ib_bytes_size;
 
-  U32 img_bytes_off;    // contiguous compressed image bytes (all mips in order)
-  U32 img_bytes_size;
+  U32 image_bytes_off;    // contiguous compressed image bytes (all mips in order)
+  U32 image_bytes_size;
 };
 
 struct AC_MeshEntry {

@@ -941,24 +941,40 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
     MemoryCopy(&hdr->magic, magic, sizeof(U32));
     hdr->version = 1u;
 
-    AC_BuildResult build = {};
-
-    AC_PrimitiveArray primitives = ac_flatten_gltf(scratch, gltf);
-    build = ac_build_mesh_table(builder, primitives, gltf);
-    build = ac_build_geometry_vertices(builder, primitives, (AC_MeshEntry *)build.data);
-    build = ac_build_geometry_indices(builder, primitives, (AC_MeshEntry *)build.data);
-
+    AC_BuildResult build;
     AC_MaterialEntry *mtl_table;
     AC_ImageEntry *img_table;
 
+    AC_PrimitiveArray primitives = ac_flatten_gltf(scratch, gltf);
+    build = ac_build_mesh_table(builder, primitives, gltf);
+    hdr->mesh_count = build.count;
+    hdr->mesh_table_off = build.offset;
+
+    build = ac_build_geometry_vertices(builder, primitives, (AC_MeshEntry *)build.data);
+    hdr->vb_bytes_off = build.offset;
+    hdr->vb_bytes_size = build.size;
+
+    build = ac_build_geometry_indices(builder, primitives, (AC_MeshEntry *)build.data);
+    hdr->ib_bytes_off = build.offset;
+    hdr->ib_bytes_off = build.size;
+
     build = ac_build_material_table(builder, gltf);
+    hdr->material_count = build.count;
+    hdr->material_table_off = build.offset;
     mtl_table = (AC_MaterialEntry *)build.data;
 
     build = ac_build_texture_table(builder, gltf);
+    hdr->texture_count = build.count;
+    hdr->texture_table_off = build.offset;
+
     build = ac_build_image_table(builder, gltf);
+    hdr->image_count = build.count;
+    hdr->image_table_off = build.offset;
     img_table = (AC_ImageEntry *)build.data;
 
     build = ac_build_images(builder, gltf, mtl_table, img_table);
+    hdr->image_bytes_off = build.offset;
+    hdr->image_bytes_size = build.size;
 
     ac_free_gltf(gltf);
 
