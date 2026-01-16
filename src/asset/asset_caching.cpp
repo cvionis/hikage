@@ -612,8 +612,8 @@ struct AC_CompressedImageHeader {
   U32 height;
   U32 mip_count;
 
-  U64 data_offset;
-  U64 data_size;
+  U32 data_offset;
+  U32 data_size;
 };
 
 static AC_ImageFormat
@@ -725,14 +725,14 @@ ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_Mater
   U32 *img_usage_flags = ArenaPushArray(scratch, U32, gltf->images_count);
   ac_image_usage_from_materials(img_usage_flags, gltf, mtl_table);
 
-  AC_CompressedImageHeader *compressed_img_metadata = ArenaPushArray(scratch, AC_CompressedImageHeader, gltf->images_count);
+  AC_CompressedImageHeader *img_metadata = ArenaPushArray(scratch, AC_CompressedImageHeader, gltf->images_count);
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
-    compressed_img_metadata[img_idx].fmt = ac_image_fmt_from_usage(img_usage_flags[img_idx]);
+    img_metadata[img_idx].fmt = ac_image_fmt_from_usage(img_usage_flags[img_idx]);
   }
 
   // Load, decode, build mips, compress image data
 
-  U64 compressed_data_offset = 0;
+  U32 compressed_data_offset = 0;
 
   // @Todo: Make sure to handle sRGB data correctly.
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
@@ -764,7 +764,7 @@ ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_Mater
 
       if (hr == S_OK) {
         // Compress zeh mips
-        AC_ImageFormat fmt = compressed_img_metadata[img_idx].fmt;
+        AC_ImageFormat fmt = img_metadata[img_idx].fmt;
         DXGI_FORMAT dxgi_fmt = ac_dxgi_from_img_fmt(fmt);
         if (dxgi_fmt != DXGI_FORMAT_UNKNOWN) {
           DirectX::ScratchImage compressed;
@@ -779,28 +779,45 @@ ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_Mater
             compressed
           );
 
-          // Fill out image metadata
+          // Save image metadata
           const DirectX::TexMetadata &meta = compressed.GetMetadata();
           const DirectX::Image *images = compressed.GetImages();
 
-          // Metadata
-          compressed_img_metadata[img_idx].mip_count = (U32)meta.mipLevels;
-          compressed_img_metadata[img_idx].width     = (U32)meta.width;
-          compressed_img_metadata[img_idx].height    = (U32)meta.height;
+          img_metadata[img_idx].mip_count = (U32)meta.mipLevels;
+          img_metadata[img_idx].width     = (U32)meta.width;
+          img_metadata[img_idx].height    = (U32)meta.height;
 
-          // Compute total compressed size (no getter exists)
-          U64 total_size = 0;
+          // Copy compressed image data to output
+          U32 compressed_size = 0;
           for (U32 mip = 0; mip < meta.mipLevels; ++mip) {
-            total_size += images[mip].slicePitch;
+            compressed_size += (U32)images[mip].slicePitch;
           }
+          img_metadata[img_idx].data_size = compressed_size;
+          img_metadata[img_idx].data_offset = compressed_data_offset; // @Todo: Alignment
+          compressed_data_offset += compressed_size;
 
-          compressed_img_metadata[img_idx].data_size   = total_size;
-          compressed_img_metadata[img_idx].data_offset = compressed_data_offset;
-
-          compressed_data_offset += total_size;
+          {
+            U32 image_count = (U32)compressed.GetImageCount();
+            U8 *compressed_mips = (U8 *)ac_push(builder, compressed_size, 16);
+            U32 pos = 0;
+            for (U32 i = 0; i < image_count; ++i) {
+              U32 sz = (U32)images[i].slicePitch;
+              MemoryCopy(compressed_mips + pos, images[i].pixels, sz);
+              pos += sz;
+            }
+          }
         }
       }
     }
+  }
+
+  for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
+    img_table[img_idx].format = img_metadata[img_idx].fmt;
+    img_table[img_idx].width = img_metadata[img_idx].width;
+    img_table[img_idx].height = img_metadata[img_idx].height;
+    img_table[img_idx].mip_count = img_metadata[img_idx].mip_count;
+    img_table[img_idx].data_offset_bytes = img_metadata[img_idx].data_offset; // @Todo: Alignment
+    img_table[img_idx].data_size_bytes = img_metadata[img_idx].data_size;
   }
 }
 
@@ -812,27 +829,25 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
 
   cgltf_data *gltf = ac_parse_gltf(gltf_path);
   if (gltf) {
-    TempArena scratch = arena_scratch_begin(0,0);
-    AC_PrimitiveArray primitives = ac_flatten_gltf(scratch.arena, gltf);
+    Arena *scratch = arena_get_scratch(0,0);
+    AC_PrimitiveArray primitives = ac_flatten_gltf(scratch, gltf);
 
     // @Todo: Build header placeholder, then fill out within each statics (pass header to them).
 
-    // @Todo: Probably don't even need this shitty "AC_Builder" abstraction. Just incrementally push to array, pass that pointer
-    // to each build static. E.g. ac_build_material_table should write out to a passed AC_MaterialEntry array allocated from the builder
-    // arena.
+    // @Todo: Probably don't even need this shitty "AC_Builder" abstraction. Just incrementally push to arena out here, pass returned
+    //  pointer to each build function. E.g. ac_build_material_table should write out to a passed AC_MaterialEntry array allocated from
+    // the builder arena.
+
+    AC_Header *hdr = (AC_Header *)ac_push(builder, sizeof(AC_Header), 1);
+    (void *)hdr;
 
     AC_MeshEntry *mesh_table = ac_build_mesh_table(builder, primitives, gltf);
     ac_build_geometry_payload(builder, primitives, mesh_table);
 
     AC_MaterialEntry *mtl_table = ac_build_material_table(builder, gltf);
-    // @Todo: Copy image indices from gltf using ptr arithmetic; worry about copy sampling state later.
     ac_build_texture_table(builder, gltf);
-    // @Todo: Compress images, storing each result's metadeta in one array of metadata structs and pushing the actual image data onto
-    // a separate arena. Then use the former to populate image table entries; finally, copy compressed image data onto builder arena.
-
     ac_build_image_table_and_payload(builder, gltf, mtl_table);
 
-    arena_scratch_end(scratch);
     ac_free_gltf(gltf);
 
     res = {
