@@ -458,7 +458,7 @@ ac_texture_index_from_view(cgltf_data *gltf, cgltf_texture_view *view)
   return (U32)(view->texture - gltf->textures);
 }
 
-static void
+static AC_MaterialEntry *
 ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
 {
   AC_MaterialEntry *mtl_table = (AC_MaterialEntry *)ac_push(
@@ -472,7 +472,7 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
     AC_MaterialEntry *dst    = &mtl_table[mat_idx];
 
     // ---- Defaults ----
-    dst->flags      = AC_MaterialFlag_None;
+    dst->flags = AC_MaterialFlag_None;
 
     dst->base_color.x = 1.0f;
     dst->base_color.y = 1.0f;
@@ -548,9 +548,200 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
       dst->flags |= AC_MaterialFlag_Emissive;
     }
   }
+
+  return mtl_table;
 }
 
+static U32
+ac_image_index_from_image(cgltf_data *gltf, cgltf_image *image)
+{
+  if (!image) {
+    return (U32)-1; // @Note: Temp
+  }
 
+  return (U32)(image - gltf->images);
+}
+
+static void
+ac_build_texture_table(AC_Builder *builder, cgltf_data *gltf)
+{
+  AC_TextureEntry *tex_table = (AC_TextureEntry *)ac_push(
+    builder,
+    sizeof(AC_TextureEntry) * gltf->textures_count,
+    1
+  );
+
+  for (S32 tex_idx = 0; tex_idx < gltf->textures_count; tex_idx += 1) {
+    tex_table[tex_idx].img_index = ac_image_index_from_image(gltf, gltf->textures[tex_idx].image);
+  }
+}
+
+static void
+mark_image_usage_using_mtl_texture(cgltf_data *gltf, U32 *image_flags, U32 mtl_flags, U32 tex_idx)
+{
+  if (tex_idx != AC_TEXTURE_NONE) {
+    cgltf_texture *tex = &gltf->textures[tex_idx];
+    U32 img_idx = ac_image_index_from_image(gltf, tex->image);
+    if (img_idx != AC_TEXTURE_NONE) { // @Todo: no
+      image_flags[img_idx] |= mtl_flags;
+    }
+  }
+}
+
+static void
+ac_image_usage_from_materials(U32 *image_flags, cgltf_data *gltf, AC_MaterialEntry *mtl_table)
+{
+  for (U32 i = 0; i < gltf->images_count; ++i) {
+    image_flags[i] = AC_MaterialFlag_None;
+  }
+
+  for (U32 mtl_idx = 0; mtl_idx < gltf->materials_count; mtl_idx += 1) {
+    AC_MaterialEntry *m = &mtl_table[mtl_idx];
+
+    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->base_color_tex);
+    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->normal_tex);
+    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->metallic_roughness_tex);
+    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->occlusion_tex);
+    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->emissive_tex);
+  }
+}
+
+struct AC_CompressedImageHeader {
+  AC_ImageFormat fmt;
+  U32 width;
+  U32 height;
+  U32 mip_count;
+
+  U32 data_offset;
+  U32 data_size;
+};
+
+static AC_ImageFormat
+ac_image_fmt_from_usage(U32 usage)
+{
+  // From low to high priority
+
+  // Default: base color / albedo
+  AC_ImageFormat res = AC_ImageFormat_BC7;
+
+  // Emissive often benefits from alpha (and is usually LDR)
+  if (usage & AC_MaterialFlag_Emissive) {
+    res = AC_ImageFormat_BC3;
+  }
+
+  // Packed scalar data (R, or RG masks)
+  if (usage & (AC_MaterialFlag_MetalRough |
+               AC_MaterialFlag_Occlusion)) {
+    res = AC_ImageFormat_BC4;
+  }
+
+  if (usage & AC_MaterialFlag_Normal) {
+    res = AC_ImageFormat_BC5;
+  }
+
+  return res;
+}
+
+struct AC_ImageLoad {
+  U8 *data;
+  U64 size;
+};
+
+static AC_ImageLoad
+ac_img_load(Arena *arena, cgltf_image *img)
+{
+  AC_ImageLoad result = {};
+
+  U8 *out_data = 0;
+  U64 out_size = 0;
+
+  if (img->buffer_view) {
+    cgltf_buffer_view *view = img->buffer_view;
+    cgltf_buffer *buffer = view->buffer;
+
+    out_data = ArenaPushArray(arena, U8, view->size);
+    MemoryCopy(out_data, buffer, view->size);
+    out_size = (U64)view->size;
+  }
+
+  else if (img->uri) {
+    TempArena tmp = arena_temp_begin(arena);
+    {
+      String8 img_path = str8((U8 *)img->uri, 256); // @Note: Length isn't even used in file_read so who cares.
+      // @Todo: Need to save full path when loading model and build uri path here.
+      String8 file_read = os_file_read(tmp.arena, S8("../assets/models/BoxTextured/CesiumLogoFlat.png"));
+      if (file_read.count > 0) {
+        out_data = ArenaPushArray(arena, U8, file_read.count);
+        MemoryCopy(out_data, file_read.data, file_read.count);
+        out_size = file_read.count;
+      }
+    }
+    arena_temp_end(tmp);
+  }
+
+  result.data = out_data;
+  result.size = out_size;
+
+  return result;
+}
+
+static void
+ac_build_image_table_and_payload(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_table)
+{
+  AC_ImageEntry *img_table = (AC_ImageEntry *)ac_push(
+    builder,
+    sizeof(AC_ImageEntry) * gltf->images_count,
+    1
+  );
+
+  // * Decide compression format for each image
+  // * Use that to create a set of compressed images, and an array of image metadata
+  //   - For each gltf image: load into memory, decode into raw pixel data using stbi,
+  //                          gen mipmaps, feed result into a compressor, return compressed data
+  //
+
+  Arena *scratch = arena_get_scratch(0,0);
+
+  // Preliminary work: Prepare compressed image metadata
+
+  U32 *img_usage_flags = ArenaPushArray(scratch, U32, gltf->images_count);
+  ac_image_usage_from_materials(img_usage_flags, gltf, mtl_table);
+
+  AC_CompressedImageHeader *img_headers = ArenaPushArray(scratch, AC_CompressedImageHeader, gltf->images_count);
+  for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
+    img_headers[img_idx].fmt = ac_image_fmt_from_usage(img_usage_flags[img_idx]);
+  }
+
+  // Load, decode, build mips, compress image data
+
+  for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
+    cgltf_image *image = &gltf->images[img_idx];
+    AC_ImageLoad img = ac_img_load(scratch, image);
+
+    S32 img_width = 0, img_height = 0, img_channels = 0;
+    U8 *img_data_decoded = stbi_load_from_memory(img.data, (S32)img.size, &img_width, &img_height, &img_channels, 4);
+    if (img_data_decoded) {
+      int x;
+      (void)x;
+
+      #if 0
+      S32 mip_count = 0;
+      U32 fmt = img_headers[img_idx].fmt;
+      AC_ImageCompress comp = ac_img_compress_and_push(builder->arena, img_data_decoded, fmt);
+
+      AC_ImageEntry *img_entry = &img_table[img_idx];
+      img_entry->fmt = fmt;
+      img_entry->width = img_width; // @Todo: Not sure whether to put compressed or uncompressed sizes.
+      img_entry->height = img_height;
+      img_entry->mip_count = mip_count;
+      img_entry->data_offset_bytes = comp.off;
+      img_entry->data_offset_bytes = comp.size;
+      #endif
+    }
+  }
+}
+
+// @Todo: Test with gltf files with several materials, textures, images
 static AC_Blob
 ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
 {
@@ -570,16 +761,13 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
     AC_MeshEntry *mesh_table = ac_build_mesh_table(builder, primitives, gltf);
     ac_build_geometry_payload(builder, primitives, mesh_table);
 
-    ac_build_material_table(builder, gltf);
+    AC_MaterialEntry *mtl_table = ac_build_material_table(builder, gltf);
     // @Todo: Copy image indices from gltf using ptr arithmetic; worry about copy sampling state later.
     ac_build_texture_table(builder, gltf);
     // @Todo: Compress images, storing each result's metadeta in one array of metadata structs and pushing the actual image data onto
     // a separate arena. Then use the former to populate image table entries; finally, copy compressed image data onto builder arena.
-    ac_build_image_table_and_payload(builder, gltf);
 
-    #if 0
-    ac_build_texture_payload(builder, primitives);
-    #endif
+    ac_build_image_table_and_payload(builder, gltf, mtl_table);
 
     arena_scratch_end(scratch);
     ac_free_gltf(gltf);

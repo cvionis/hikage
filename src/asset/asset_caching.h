@@ -25,6 +25,7 @@
     [Image data]
  */
 
+ // @Todo: Distinguish between sided/unsigned variants
 enum AC_ImageFormat {
   AC_ImageFormat_BC1,
   AC_ImageFormat_BC3,

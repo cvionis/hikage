@@ -48,6 +48,7 @@ if "%asan%"=="1" (
 set compiler_flags=%cl_common% %cl_optimize_flags% %cl_build_flags% %cl_warning_flags% /MD
 
 :: --- Includes -----------------------------------------------------------
+set stb="%root%\src\third_party\stb"
 set freetype="%root%\src\third_party\freetype-2.11.1"
 set raylib="%root%\src\third_party\raylib-5.0"
 set cgltf="%root%\src\third_party\cgltf"
@@ -55,7 +56,7 @@ set cgltf="%root%\src\third_party\cgltf"
 set includes=
 set includes=%includes% /FI %freetype%\include\ft2build.h
 set includes=%includes% /I %freetype%\include
-set includes=%includes% /I ..\src\third_party\stb
+set includes=%includes% /I %stb%
 set includes=%includes% /I %raylib%\include
 set includes=%includes% /I %cgltf%
 
