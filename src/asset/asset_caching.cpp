@@ -91,7 +91,7 @@ static AC_Builder
 ac_make(void)
 {
   AC_Builder result = {};
-  result.arena = arena_alloc_default();
+  result.arena = arena_alloc(MiB(128));
   result.data = (U8 *)result.arena + ARENA_HEADER_SIZE;
   return result;
 }
