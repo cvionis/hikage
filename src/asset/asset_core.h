@@ -19,6 +19,7 @@ struct Material {
   R_Handle tex_rough;
   // ... etc.
   // ... numeric values.
+  // @Todo
 };
 
 struct Model {

@@ -870,7 +870,7 @@ ac_build_image_table(AC_Builder *builder, cgltf_data *gltf)
 }
 
 static AC_BuildResult
-ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_table, AC_ImageEntry *img_table)
+ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
 {
   U32 section_offset = (U32)builder->size;
   section_offset = AlignPow2(section_offset, 256);
@@ -993,9 +993,31 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_tab
   return result;
 }
 
-// @Todo: Test with gltf files with several materials, textures, images
+// @Note: This would eventually just take the name of the model and form
+// the full path of the cached file.
 static AC_Blob
-ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
+ac_load_model_blob_cached(Arena *arena, String8 path)
+{
+  AC_Blob result = {};
+
+  TempArena scratch = arena_scratch_begin(&arena, 1);
+  {
+    String8 file_read = os_file_read(scratch.arena, path);
+    if (file_read.count > 0) {
+      U8 *data = ArenaPushArray(arena, U8, file_read.count);
+      MemoryCopy(data, file_read.data, file_read.count);
+
+      result.data = data;
+      result.size = file_read.count;
+    }
+  }
+  arena_scratch_end(scratch);
+  return result;
+}
+
+// @Todo: Test with broken or unconvential gltf files
+static AC_Blob
+ac_load_model_blob_gltf(AC_Builder *builder, String8 gltf_path)
 {
   builder->model_path = gltf_path;
 
@@ -1043,7 +1065,7 @@ ac_blob_from_gltf(AC_Builder *builder, String8 gltf_path)
     hdr->image_table_off = build.offset;
     img_table = (AC_ImageEntry *)build.data;
 
-    build = ac_build_images(builder, gltf, mtl_table, img_table);
+    build = ac_build_images(builder, gltf, img_table);
     hdr->image_bytes_off = build.offset;
     hdr->image_bytes_size = build.size;
 
