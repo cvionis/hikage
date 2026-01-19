@@ -123,11 +123,23 @@ struct AC_ImageEntry {
   U32 data_size_bytes;        // total bytes for all mips
 };
 
+enum AC_ImageUsage {
+  AC_ImageUsage_None,
+  AC_ImageUsage_BaseColor,
+  AC_ImageUsage_Normal,
+  AC_ImageUsage_MetalRough,
+  AC_ImageUsage_Occlusion,
+  AC_ImageUsage_Emissive,
+  AC_ImageUsage_COUNT,
+};
+
+#define AC_IMAGES_MAX 512
 struct AC_Builder {
   Arena *arena;
   U8 *data;
   U64 size;
   String8 model_path;
+  AC_ImageUsage img_usages[512];
 };
 
 // @Todo: AC_ModelBlob, or AC_PackedModelData

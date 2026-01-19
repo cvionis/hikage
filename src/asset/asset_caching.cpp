@@ -606,6 +606,16 @@ ac_texture_index_from_view(cgltf_data *gltf, cgltf_texture_view *view)
   return (U32)(view->texture - gltf->textures);
 }
 
+static U32
+ac_image_index_from_image(cgltf_data *gltf, cgltf_image *image)
+{
+  if (!image) {
+    return (U32)-1; // @Note: Temp
+  }
+
+  return (U32)(image - gltf->images);
+}
+
 static AC_BuildResult
 ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
 {
@@ -618,7 +628,7 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
     1
   );
 
-  for (U32 mat_idx = 0; mat_idx < mtl_count; ++mat_idx) {
+  for (U32 mat_idx = 0; mat_idx < mtl_count; mat_idx += 1) {
     cgltf_material *gltf_mat = &gltf->materials[mat_idx];
     AC_MaterialEntry *dst    = &mtl_table[mat_idx];
 
@@ -657,34 +667,46 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
       dst->roughness = pbr->roughness_factor;
 
       if (pbr->base_color_texture.texture) {
-        dst->base_color_tex =
-          ac_texture_index_from_view(gltf,
-            &pbr->base_color_texture);
+        U32 tex = ac_texture_index_from_view(gltf, &pbr->base_color_texture);
+        dst->base_color_tex = tex;
         dst->flags |= AC_MaterialFlag_BaseColor;
+
+        U32 img = ac_image_index_from_image(
+          gltf, pbr->base_color_texture.texture->image);
+        builder->img_usages[img] = AC_ImageUsage_BaseColor;
       }
 
       if (pbr->metallic_roughness_texture.texture) {
-        dst->metallic_roughness_tex =
-          ac_texture_index_from_view(gltf,
-            &pbr->metallic_roughness_texture);
+        U32 tex = ac_texture_index_from_view(gltf, &pbr->metallic_roughness_texture);
+        dst->metallic_roughness_tex = tex;
         dst->flags |= AC_MaterialFlag_MetalRough;
+
+        U32 img = ac_image_index_from_image(
+          gltf, pbr->metallic_roughness_texture.texture->image);
+        builder->img_usages[img] = AC_ImageUsage_MetalRough;
       }
     }
 
     // ---- Normal map ----
     if (gltf_mat->normal_texture.texture) {
-      dst->normal_tex =
-        ac_texture_index_from_view(gltf,
-          &gltf_mat->normal_texture);
+      U32 tex = ac_texture_index_from_view(gltf, &gltf_mat->normal_texture);
+      dst->normal_tex = tex;
       dst->flags |= AC_MaterialFlag_Normal;
+
+      U32 img = ac_image_index_from_image(
+        gltf, gltf_mat->normal_texture.texture->image);
+      builder->img_usages[img] = AC_ImageUsage_Normal;
     }
 
     // ---- Occlusion map ----
     if (gltf_mat->occlusion_texture.texture) {
-      dst->occlusion_tex =
-        ac_texture_index_from_view(gltf,
-          &gltf_mat->occlusion_texture);
+      U32 tex = ac_texture_index_from_view(gltf, &gltf_mat->occlusion_texture);
+      dst->occlusion_tex = tex;
       dst->flags |= AC_MaterialFlag_Occlusion;
+
+      U32 img = ac_image_index_from_image(
+        gltf, gltf_mat->occlusion_texture.texture->image);
+      builder->img_usages[img] = AC_ImageUsage_Occlusion;
     }
 
     // ---- Emissive ----
@@ -693,10 +715,13 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
     dst->emissive.z = gltf_mat->emissive_factor[2];
 
     if (gltf_mat->emissive_texture.texture) {
-      dst->emissive_tex =
-        ac_texture_index_from_view(gltf,
-          &gltf_mat->emissive_texture);
+      U32 tex = ac_texture_index_from_view(gltf, &gltf_mat->emissive_texture);
+      dst->emissive_tex = tex;
       dst->flags |= AC_MaterialFlag_Emissive;
+
+      U32 img = ac_image_index_from_image(
+        gltf, gltf_mat->emissive_texture.texture->image);
+      builder->img_usages[img] = AC_ImageUsage_Emissive;
     }
   }
 
@@ -708,16 +733,6 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
   };
 
   return result;
-}
-
-static U32
-ac_image_index_from_image(cgltf_data *gltf, cgltf_image *image)
-{
-  if (!image) {
-    return (U32)-1; // @Note: Temp
-  }
-
-  return (U32)(image - gltf->images);
 }
 
 static AC_BuildResult
@@ -746,36 +761,6 @@ ac_build_texture_table(AC_Builder *builder, cgltf_data *gltf)
   return result;
 }
 
-static void
-mark_image_usage_using_mtl_texture(cgltf_data *gltf, U32 *image_flags, U32 mtl_flags, U32 tex_idx)
-{
-  if (tex_idx != AC_TEXTURE_NONE) {
-    cgltf_texture *tex = &gltf->textures[tex_idx];
-    U32 img_idx = ac_image_index_from_image(gltf, tex->image);
-    if (img_idx != AC_TEXTURE_NONE) { // @Todo: no
-      image_flags[img_idx] |= mtl_flags;
-    }
-  }
-}
-
-static void
-ac_image_usage_from_materials(U32 *image_flags, cgltf_data *gltf, AC_MaterialEntry *mtl_table)
-{
-  for (U32 i = 0; i < gltf->images_count; ++i) {
-    image_flags[i] = AC_MaterialFlag_None;
-  }
-
-  for (U32 mtl_idx = 0; mtl_idx < gltf->materials_count; mtl_idx += 1) {
-    AC_MaterialEntry *m = &mtl_table[mtl_idx];
-
-    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->base_color_tex);
-    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->normal_tex);
-    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->metallic_roughness_tex);
-    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->occlusion_tex);
-    mark_image_usage_using_mtl_texture(gltf, image_flags, m->flags, m->emissive_tex);
-  }
-}
-
 struct AC_ImageMetadata {
   AC_ImageFormat fmt;
   U32 width;
@@ -790,26 +775,16 @@ static AC_ImageFormat
 ac_image_fmt_from_usage(U32 usage)
 {
   // From low to high priority
-
-  // Default: base color / albedo
-  AC_ImageFormat res = AC_ImageFormat_BC7;
-
-  // Emissive often benefits from alpha (and is usually LDR)
-  if (usage & AC_MaterialFlag_Emissive) {
-    res = AC_ImageFormat_BC3;
+  //AC_ImageFormat result = AC_ImageFormat_BC7;
+  AC_ImageFormat result = AC_ImageFormat_BC3;
+  switch (usage) {
+    case AC_ImageUsage_Emissive:   { result = AC_ImageFormat_BC3; }break;
+    case AC_ImageUsage_MetalRough: { result = AC_ImageFormat_BC4; }break;
+    case AC_ImageUsage_Occlusion:  { result = AC_ImageFormat_BC4; }break;
+    case AC_ImageUsage_Normal:     { result = AC_ImageFormat_BC5; }break;
   }
 
-  // Packed scalar data (R, or RG masks)
-  if (usage & (AC_MaterialFlag_MetalRough |
-               AC_MaterialFlag_Occlusion)) {
-    res = AC_ImageFormat_BC4;
-  }
-
-  if (usage & AC_MaterialFlag_Normal) {
-    res = AC_ImageFormat_BC5;
-  }
-
-  return res;
+  return result;
 }
 
 struct AC_ImageLoad {
@@ -903,12 +878,11 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_tab
 
   // Preliminary work: Prepare compressed image metadata
   Arena *scratch = arena_get_scratch(0,0);
-  U32 *img_usage_flags = ArenaPushArray(scratch, U32, gltf->images_count);
-  ac_image_usage_from_materials(img_usage_flags, gltf, mtl_table);
 
   AC_ImageMetadata *img_metadata = ArenaPushArray(scratch, AC_ImageMetadata, gltf->images_count);
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
-    img_metadata[img_idx].fmt = ac_image_fmt_from_usage(img_usage_flags[img_idx]);
+    AC_ImageUsage img_usage = builder->img_usages[img_idx];
+    img_metadata[img_idx].fmt = ac_image_fmt_from_usage(img_usage);
   }
 
   // Load, decode, build mips, compress image data
@@ -918,6 +892,7 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_MaterialEntry *mtl_tab
   // @Todo: Make sure to handle sRGB data correctly.
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
     TempArena tmp = arena_temp_begin(scratch);
+
     cgltf_image *image = &gltf->images[img_idx];
     AC_ImageLoad img = ac_img_load(builder, tmp.arena, image);
 
