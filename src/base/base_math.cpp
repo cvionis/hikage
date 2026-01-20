@@ -743,6 +743,7 @@ scale_m4x4(V3F32 s)
   return m;
 }
 
+#if 0
 static Mat4x4
 lookat_m4x4(V3F32 eye, V3F32 target, V3F32 up)
 {
@@ -763,7 +764,30 @@ lookat_m4x4(V3F32 eye, V3F32 target, V3F32 up)
 
   return m;
 }
+#endif
 
+static Mat4x4
+lookat_m4x4(V3F32 eye, V3F32 target, V3F32 up)
+{
+  V3F32 f = v3f32_normalize(v3f32_sub(target, eye));
+  V3F32 r = v3f32_normalize(v3f32_cross(up, f));
+  V3F32 u = v3f32_cross(f, r);
+
+  F32 tx = -v3f32_dot(r, eye);
+  F32 ty = -v3f32_dot(u, eye);
+  F32 tz = -v3f32_dot(f, eye);
+
+  Mat4x4 m = {
+    r.x,r.y,r.z,tx,
+    u.x,u.y,u.z,ty,
+    f.x,f.y,f.z,tz,
+    0,0,0,1,
+  };
+
+  return m;
+}
+
+#if 0
 static Mat4x4
 orthographic_m4x4(F32 l, F32 r, F32 b, F32 t, F32 n, F32 f)
 {
@@ -784,7 +808,28 @@ orthographic_m4x4(F32 l, F32 r, F32 b, F32 t, F32 n, F32 f)
 
   return m;
 }
+#endif
 
+static Mat4x4
+orthographic_m4x4(F32 l, F32 r, F32 b, F32 t, F32 n, F32 f)
+{
+  F32 sx =  2.f / (r - l);
+  F32 sy =  2.f / (t - b);
+  F32 sz =  1.f / (f - n);
+  F32 tx = -(r + l) / (r - l);
+  F32 ty = -(t + b) / (t - b);
+  F32 tz = -n / (f - n);
+
+  Mat4x4 m = {
+    sx,0, 0, tx,
+    0, sy,0, ty,
+    0, 0, sz,tz,
+    0, 0, 0, 1,
+  };
+  return m;
+}
+
+#if 0
 static Mat4x4
 perspective_m4x4(F32 fov, F32 aspect, F32 n, F32 f)
 {
@@ -802,6 +847,28 @@ perspective_m4x4(F32 fov, F32 aspect, F32 n, F32 f)
     0,py,0,0,
     0,0, a,b,
     0,0, 1,0,
+  };
+
+  return m;
+}
+#endif
+
+static Mat4x4
+perspective_m4x4(F32 fov, F32 aspect, F32 n, F32 f)
+{
+  F32 htf = tanf32(0.5f * fov);
+  F32 py  = 1.f / htf;
+  F32 px  = 1.f / (aspect * htf);
+
+  F32 zr = f - n;
+  F32 a  = f / zr;
+  F32 b  = (-f * n) / zr;
+
+  Mat4x4 m = {
+    px,0, 0, 0,
+    0, py,0, 0,
+    0, 0, a, b,
+    0, 0, 1, 0,
   };
 
   return m;

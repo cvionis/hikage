@@ -7,6 +7,30 @@
 #define SCENE_MODELS_COUNT 256
 #define SCENE_MATERIALS_COUNT 256
 
+static void
+r_d3d12_wait_for_previous_frame(void)
+{
+  R_Context *ctx = &r_ctx;
+
+  // Signal GPU to mark current work complete using this fence value.
+  U64 fence_to_signal = ctx->fence_values[ctx->frame_idx];
+  HRESULT hr = ctx->command_queue->Signal(ctx->fence, fence_to_signal);
+  Assert(SUCCEEDED(hr));
+
+  // Advance to the next back buffer index.
+  ctx->frame_idx = ctx->swapchain->GetCurrentBackBufferIndex();
+
+  // If the GPU hasnâ€™t finished processing this frame yet, wait for the fence event.
+  if (ctx->fence->GetCompletedValue() < ctx->fence_values[ctx->frame_idx]) {
+    hr = ctx->fence->SetEventOnCompletion(ctx->fence_values[ctx->frame_idx], ctx->fence_event);
+    Assert(SUCCEEDED(hr));
+    WaitForSingleObjectEx(ctx->fence_event, INFINITE, FALSE);
+  }
+
+  // Prepare fence value for the next frame.
+  ctx->fence_values[ctx->frame_idx] = fence_to_signal + 1;
+}
+
 static IDXGIAdapter1 *
 r_d3d12_get_hardware_adapter(IDXGIFactory1 *factory)
 {
@@ -114,7 +138,7 @@ r_init(OS_Handle window)
 
   // RTV heap
   D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
-  rtv_heap_desc.NumDescriptors = R_D3D12_FRAME_COUNT + 1; // +1 for MSAA RT
+  rtv_heap_desc.NumDescriptors = R_D3D12_FRAME_COUNT + 1;
   rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
   hr = ctx->device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&ctx->rtv_heap));
   Assert(SUCCEEDED(hr));
@@ -157,7 +181,6 @@ r_init(OS_Handle window)
     color_desc.MipLevels = 1;
     color_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 
-    // Non-MSAA
     color_desc.SampleDesc.Count = 1;
     color_desc.SampleDesc.Quality = 0;
 
@@ -198,7 +221,6 @@ r_init(OS_Handle window)
     ctx->rtv_handle = rtv;
   }
 
-
   // Depth buffer
   CD3DX12_RESOURCE_DESC depth_desc =
     CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, ctx->width, ctx->height, 1, 1,
@@ -219,12 +241,12 @@ r_init(OS_Handle window)
   // table0: b0 (CameraCB)
   // table1: b1 (ModelCB)
   // table2: b2 (MaterialCB)
-  CD3DX12_DESCRIPTOR_RANGE ranges[5];
+  CD3DX12_DESCRIPTOR_RANGE ranges[3];
   ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0);
   ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0);
   ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2, 0);
 
-  CD3DX12_ROOT_PARAMETER params[5];
+  CD3DX12_ROOT_PARAMETER params[3];
   params[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
   params[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_VERTEX);
   params[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
@@ -240,13 +262,14 @@ r_init(OS_Handle window)
   static_sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
   CD3DX12_ROOT_SIGNATURE_DESC root_sig_desc;
-  root_sig_desc.Init(ArrayCount(params), params, 1, &static_sampler, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+  root_sig_desc.Init(ArrayCount(params), params, 1, &static_sampler,
+    D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
   ID3DBlob *sig_blob = 0;
   ID3DBlob *err_blob = 0;
   D3D12SerializeRootSignature(&root_sig_desc, D3D_ROOT_SIGNATURE_VERSION_1, &sig_blob, &err_blob);
   ctx->device->CreateRootSignature(0, sig_blob->GetBufferPointer(), sig_blob->GetBufferSize(),
-                                   IID_PPV_ARGS(&ctx->root_signature));
+    IID_PPV_ARGS(&ctx->root_signature));
   sig_blob->Release();
   if (err_blob) {
     err_blob->Release();
@@ -256,6 +279,7 @@ r_init(OS_Handle window)
 
   ID3DBlob *vs_blob = 0;
   ID3DBlob *ps_blob = 0;
+  err_blob = 0;
 
 #if BUILD_DEBUG
   UINT compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -263,8 +287,23 @@ r_init(OS_Handle window)
   UINT compile_flags = 0;
 #endif
 
-  D3DCompileFromFile(L"render/shaders/main.hlsl", 0, 0, "vs_main", "vs_5_0", compile_flags, 0, &vs_blob, 0);
-  D3DCompileFromFile(L"render/shaders/main.hlsl", 0, 0, "ps_main", "ps_5_0", compile_flags, 0, &ps_blob, 0);
+  hr = D3DCompileFromFile(L"../src/render/shaders/forward_basic.hlsl", 0, 0, "vs_main", "vs_5_0", compile_flags, 0, &vs_blob, &err_blob);
+  if (FAILED(hr)) {
+    if (err_blob) {
+      OutputDebugStringA((char *)err_blob->GetBufferPointer());
+      err_blob->Release();
+    }
+    Assert(SUCCEEDED(hr));
+  }
+
+  hr = D3DCompileFromFile(L"../src/render/shaders/forward_basic.hlsl", 0, 0, "ps_main", "ps_5_0", compile_flags, 0, &ps_blob, &err_blob);
+  if (FAILED(hr)) {
+    if (err_blob) {
+      OutputDebugStringA((char *)err_blob->GetBufferPointer());
+      err_blob->Release();
+    }
+    Assert(SUCCEEDED(hr));
+  }
 
   // Pipeline state object
   // @Todo: Tangent, UV; remove color.
@@ -459,25 +498,155 @@ r_init(OS_Handle window)
 }
 
 static void
-r_d3d12_wait_for_previous_frame(void)
+r_shutdown(void)
+{
+}
+
+static void
+r_render_forward(Camera *camera, ModelTmp *models)
 {
   R_Context *ctx = &r_ctx;
 
-  // Signal GPU to mark current work complete using this fence value.
-  U64 fence_to_signal = ctx->fence_values[ctx->frame_idx];
-  HRESULT hr = ctx->command_queue->Signal(ctx->fence, fence_to_signal);
-  Assert(SUCCEEDED(hr));
+  // Write camera uniforms
+  R_CameraCB cb = {
+    .viewproj = camera->viewproj,
+    .camera_ws = v4f32(camera->position.x, camera->position.y, camera->position.z, 0.f),
+    .view = camera->view,
+  };
+  MemoryCopy(ctx->camera_cb_mapped, &cb, sizeof(cb));
 
-  // Advance to the next back buffer index.
-  ctx->frame_idx = ctx->swapchain->GetCurrentBackBufferIndex();
+  // Command list setup
+  CD3DX12_VIEWPORT viewport(0.f, 0.f, (F32)ctx->width, (F32)ctx->height);
+  CD3DX12_RECT scissor_rect(0, 0, ctx->width, ctx->height);
 
-  // If the GPU hasnâ€™t finished processing this frame yet, wait for the fence event.
-  if (ctx->fence->GetCompletedValue() < ctx->fence_values[ctx->frame_idx]) {
-    hr = ctx->fence->SetEventOnCompletion(ctx->fence_values[ctx->frame_idx], ctx->fence_event);
-    Assert(SUCCEEDED(hr));
-    WaitForSingleObjectEx(ctx->fence_event, INFINITE, FALSE);
+  ctx->command_list->SetPipelineState(ctx->pipeline_state);
+  ctx->command_list->SetGraphicsRootSignature(ctx->root_signature);
+  ctx->command_list->RSSetViewports(1, &viewport);
+  ctx->command_list->RSSetScissorRects(1, &scissor_rect);
+
+  // Prepare current framebuffer for writing by transitioning from presenting state
+  CD3DX12_RESOURCE_BARRIER barrier_to_rtv = CD3DX12_RESOURCE_BARRIER::Transition(
+    ctx->render_targets[ctx->frame_idx],
+    D3D12_RESOURCE_STATE_PRESENT,
+    D3D12_RESOURCE_STATE_RENDER_TARGET
+  );
+  ctx->command_list->ResourceBarrier(1, &barrier_to_rtv);
+
+  // @Todo: Not sure why I decided to cache the rtv handle inside the render context but not the dsv handle...
+  CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart(),
+    ctx->frame_idx, ctx->rtv_descriptor_size);
+  CD3DX12_CPU_DESCRIPTOR_HANDLE dsv_handle(ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart());
+  ctx->command_list->OMSetRenderTargets(1, &ctx->rtv_handle, FALSE, &dsv_handle);
+
+  F32 clear_color[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+  ctx->command_list->ClearRenderTargetView(ctx->rtv_handle, clear_color, 0, 0);
+  ctx->command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, 0);
+
+  // Bind CBV heap for drawing
+  ctx->command_list->SetDescriptorHeaps(1, &ctx->cbv_heap);
+
+  // Descriptor handles
+  CD3DX12_GPU_DESCRIPTOR_HANDLE cbv_gpu_base(ctx->cbv_heap->GetGPUDescriptorHandleForHeapStart());
+  D3D12_GPU_DESCRIPTOR_HANDLE gpu_cam = cbv_gpu_base;
+
+  // Root table 0 -> CameraCB (b0), bound once per frame
+  ctx->command_list->SetGraphicsRootDescriptorTable(0, gpu_cam);
+
+  // Input Assembler setup
+  ctx->command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  ctx->command_list->IASetVertexBuffers(0, 1, &ctx->vertex_buffer_view);
+  ctx->command_list->IASetIndexBuffer(&ctx->index_buffer_view);
+
+  // Simple material initialization
+  {
+    for (S32 idx = 0; idx < SCENE_MATERIALS_COUNT; idx += 1) {
+      R_MaterialCB mtl = {
+        .base_color = v3f32(1,1,1),
+      };
+      U64 off = (U64)ctx->material_cb_stride * (U64)idx;
+      MemoryCopy(ctx->material_cb_mapped + off, &mtl, sizeof(mtl));
+    }
   }
 
-  // Prepare fence value for the next frame.
-  ctx->fence_values[ctx->frame_idx] = fence_to_signal + 1;
+  // Draw the scene's models
+  for (S32 model_idx = 0; model_idx < SCENE_MODELS_COUNT; model_idx += 1) {
+    ModelTmp *m = &models[model_idx];
+
+    Mat4x4 tr = translation_m4x4(m->position);
+    Mat4x4 sc = scale_m4x4(m->scale);
+    Mat4x4 model = m4x4_mul(sc, tr);
+
+    Mat4x4 inverse = m4x4_inverse(model);
+    Mat4x4 normal_matrix = m4x4_transpose(inverse);
+
+    U64 model_off = (U64)ctx->model_cb_stride * (U64)model_idx;
+    MemoryCopy(ctx->model_cb_mapped + model_off, &model, sizeof(model));
+    MemoryCopy(ctx->model_cb_mapped + model_off + sizeof(model), &normal_matrix, sizeof(normal_matrix));
+
+    S32 model_slice_index = ctx->model_cbv_base + model_idx;
+    CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_model(cbv_gpu_base, model_slice_index, ctx->cbv_descriptor_size);
+    ctx->command_list->SetGraphicsRootDescriptorTable(1, gpu_model);
+
+    S32 mat_idx = 0; // Just use the first material.
+    S32 mat_slice_index = ctx->material_cbv_base + mat_idx;
+    CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_mat(cbv_gpu_base, mat_slice_index, ctx->cbv_descriptor_size);
+    ctx->command_list->SetGraphicsRootDescriptorTable(2, gpu_mat);
+
+    ctx->command_list->DrawIndexedInstanced(36, 1, 0, 0, 0);
+  }
+
+  CD3DX12_RESOURCE_BARRIER barrier_to_present = CD3DX12_RESOURCE_BARRIER::Transition(
+      ctx->render_targets[ctx->frame_idx],
+      D3D12_RESOURCE_STATE_RENDER_TARGET,
+      D3D12_RESOURCE_STATE_PRESENT
+  );
+  ctx->command_list->ResourceBarrier(1, &barrier_to_present);
 }
+
+// @Note: Temporary. These don't belong in here.
+
+// ----------------------------------------------------------------------------------------------------------------
+
+static void
+camera_update_position_aspect(Camera *camera, V3F32 delta, F32 aspect, F32 delta_time)
+{
+  F32 near_z = 0.1f; // @Todo: Don't hardcode this. Make it member of Camera.
+  F32 far_z = 100.f;
+
+  V3F32 up = v3f32(0,1,0);
+  V3F32 right = v3f32_normalize(v3f32_cross(up, camera->direction));
+
+  F32 tightness = 12.f;
+  camera->position_target = v3f32_add(camera->position_target, v3f32_scale(camera->direction, delta.z));
+  camera->position_target = v3f32_add(camera->position_target, v3f32_scale(right, delta.x));
+  camera->position_target = v3f32_add(camera->position_target, v3f32_scale(up, delta.y));
+
+  V3F32 dist = v3f32_sub(camera->position_target, camera->position);
+  camera->position = v3f32_add(camera->position, v3f32_scale(dist, tightness * delta_time));
+
+  V3F32 lookat_target = v3f32_add(camera->position, camera->direction);
+  camera->view = lookat_m4x4(camera->position, lookat_target, up);
+  camera->proj = perspective_m4x4(camera->fov, aspect, near_z, far_z);
+  camera->viewproj = m4x4_mul(camera->proj, camera->view);
+}
+
+static void
+camera_update_direction(Camera *camera, F32 yaw_delta, F32 pitch_delta, F32 delta_time)
+{
+  camera->yaw_target += yaw_delta;
+  camera->pitch_target += pitch_delta;
+
+  F32 tightness = 12.f;
+  camera->yaw   += (camera->yaw_target   - camera->yaw)   * tightness * delta_time;
+  camera->pitch += (camera->pitch_target - camera->pitch) * tightness * delta_time;
+
+  V3F32 new_direction = {
+    .x = cosf32(camera->pitch)*sinf32(camera->yaw),
+    .y = sinf32(camera->pitch),
+    .z = cosf32(camera->pitch)*cosf32(camera->yaw),
+  };
+
+  camera->direction = v3f32_normalize(new_direction);
+}
+
+// ----------------------------------------------------------------------------------------------------------------

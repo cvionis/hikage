@@ -79,3 +79,41 @@ struct R_Context {
 };
 
 global R_Context r_ctx;
+
+struct R_CameraCB {
+  Mat4x4 viewproj;
+  V4F32 camera_ws;
+  Mat4x4 view;
+};
+
+struct R_MaterialCB {
+  V3F32 base_color;
+};
+
+// @Note: Temporary
+
+struct Camera {
+  Mat4x4 view;
+  Mat4x4 proj;
+  Mat4x4 viewproj;
+
+  V3F32 position;
+  V3F32 position_target;
+
+  V3F32 direction;
+  F32 yaw;
+  F32 pitch;
+  F32 yaw_target;
+  F32 pitch_target;
+
+  F32 fov;
+  B32 ortho;
+};
+
+struct ModelTmp {
+  V3F32 position;
+  V3F32 scale;
+};
+
+static void camera_update_position_aspect(Camera *camera, V3F32 delta, F32 aspect, F32 delta_time);
+static void camera_update_direction(Camera *camera, F32 yaw_delta, F32 pitch_delta, F32 delta_time);
