@@ -8,7 +8,7 @@
 #define SCENE_MATERIALS_COUNT 256
 
 static void
-r_d3d12_wait_for_previous_frame(void)
+r_wait_for_previous_frame(void)
 {
   R_Context *ctx = &r_ctx;
 
@@ -170,7 +170,7 @@ r_init(OS_Handle window)
     hr = ctx->device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&ctx->command_allocators[n]));
   }
 
-  // Color buffer (no MSAA)
+  // Color buffer
   {
     D3D12_RESOURCE_DESC color_desc = {};
     color_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -218,7 +218,6 @@ r_init(OS_Handle window)
     rtv_desc.Texture2D.PlaneSlice = 0;
 
     ctx->device->CreateRenderTargetView(ctx->color_buffer, &rtv_desc, rtv);
-    ctx->rtv_handle = rtv;
   }
 
   // Depth buffer
@@ -532,14 +531,13 @@ r_render_forward(Camera *camera, ModelTmp *models)
   );
   ctx->command_list->ResourceBarrier(1, &barrier_to_rtv);
 
-  // @Todo: Not sure why I decided to cache the rtv handle inside the render context but not the dsv handle...
   CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart(),
     ctx->frame_idx, ctx->rtv_descriptor_size);
   CD3DX12_CPU_DESCRIPTOR_HANDLE dsv_handle(ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart());
-  ctx->command_list->OMSetRenderTargets(1, &ctx->rtv_handle, FALSE, &dsv_handle);
+  ctx->command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
 
   F32 clear_color[] = { 0.0f, 0.2f, 0.4f, 1.0f };
-  ctx->command_list->ClearRenderTargetView(ctx->rtv_handle, clear_color, 0, 0);
+  ctx->command_list->ClearRenderTargetView(rtv_handle, clear_color, 0, 0);
   ctx->command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, 0);
 
   // Bind CBV heap for drawing

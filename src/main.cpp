@@ -276,7 +276,7 @@ entry_point(void)
         ID3D12CommandList *lists[] = { ctx->command_list };
         ctx->command_queue->ExecuteCommandLists(1, lists);
         ctx->swapchain->Present(1, 0);
-        r_d3d12_wait_for_previous_frame();
+        r_wait_for_previous_frame();
       }
     }
   }

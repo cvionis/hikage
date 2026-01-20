@@ -87,5 +87,5 @@ float4 ps_main(PS_Input input) : SV_TARGET
   color = pow(color, 1.0 / 2.2);
   color = saturate(color);
 
-  return float4(color, 1.0);
+  return float4(1.0,1.0,1.0,1.0);
 }

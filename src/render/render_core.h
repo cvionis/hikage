@@ -38,7 +38,6 @@ struct R_Context {
 
   // Color buffer
   ID3D12Resource *color_buffer;
-  D3D12_CPU_DESCRIPTOR_HANDLE rtv_handle;
 
   // Cached for shader reload
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc;
