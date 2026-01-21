@@ -7,4 +7,4 @@
 #pragma warning(pop)
 
 #include "asset/asset_caching.cpp"
-#include "asset/asset_core.cpp"
+#include "asset/asset_storage.cpp"

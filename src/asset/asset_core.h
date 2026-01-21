@@ -1,101 +1,33 @@
-#define ASSETS_MODELS_MAX    64
-#define ASSETS_MATERIALS_MAX 128
-#define ASSETS_TEXTURES_MAX  512
+#pragma once
 
-struct R_Handle {
-  S32 dummy;
+enum A_ImageFormat {
+  A_ImageFormat_BC1,
+  A_ImageFormat_BC3,
+  A_ImageFormat_BC4,
+  A_ImageFormat_BC5,
+  A_ImageFormat_BC6H,
+  A_ImageFormat_BC7,
 };
 
-struct Mesh {
-  S32 vb_off;
-  S32 vb_count;
-  S32 ib_off;
-  S32 ib_count;
-
-  S32 material_index;
+enum A_IndexKind {
+  A_IndexKind_U16,
+  A_IndexKind_U32,
 };
 
-struct Texture {
-  R_Handle tex;
-  // fmt;
-  U32 width;
-  U32 height;
-  U32 mip_count;
+enum A_MaterialFlags {
+  A_MaterialFlag_None = 0,
+  A_MaterialFlag_BaseColor = (1 << 0),
+  A_MaterialFlag_Normal = (1 << 1),
+  A_MaterialFlag_MetalRough = (1 << 2),
+  A_MaterialFlag_Occlusion = (1 << 3),
+  A_MaterialFlag_Emissive = (1 << 4),
 };
 
-struct Material {
-  V4F32 base_color;
-  V3F32 emissive;
-
-  F32 metallic;
-  F32 roughness;
-
-  U32 flags;
-
-  S32 tex_base_color;
-  S32 tex_normal;
-  S32 tex_metal_rough;
-  S32 tex_occlusion;
-  S32 tex_emissive;
+struct A_Vertex {
+  V3F32 position;
+  V3F32 normal;
+  V4F32 tangent;
+  V2F32 uv;
 };
 
-struct Model {
-  R_Handle vertex_buffer;
-  R_Handle index_buffer;
-
-  S32 meshes_count;
-  Mesh *meshes;
-};
-
-enum AssetStatus {
-  AssetStatus_None,
-  AssetStatus_Requested,
-  AssetStatus_Loading,
-  AssetStatus_Failed,
-  AssetStatus_Completed,
-};
-
-enum AssetKind {
-  AssetKind_Model,
-  AssetKind_Material,
-  AssetKind_Texture,
-};
-
-struct AssetHandle {
-  S32 idx;
-  S32 gen;
-};
-
-struct Asset {
-  String8 name;
-  AssetStatus status;
-  AssetKind kind;
-  union {
-    Model model;
-    Material material;
-    Texture texture;
-  }v;
-};
-
-struct AssetContext {
-  Arena *arena;
-  String8 root_path;
-
-  Asset models[ASSETS_MODELS_MAX];
-  Asset materials[ASSETS_MATERIALS_MAX];
-  Asset textures[ASSETS_TEXTURES_MAX];
-
-  S32 models_count;
-  S32 materials_count;
-  S32 textures_count;
-};
-
-// Internal helpers
-static B32 asset_cached(AssetContext *ctx, String8 path);
-static AssetHandle alloc_asset_handle(AssetContext *ctx, AssetKind kind);
-
-// Public API
-static AssetContext assets_make(void);
-static void assets_release(AssetContext *ctx);
-static void assets_set_root_path(AssetContext *ctx, String8 path);
-static AssetHandle assets_load_model(AssetContext *ctx, String8 name);
+#define A_VERTEX_STRIDE sizeof(A_Vertex)

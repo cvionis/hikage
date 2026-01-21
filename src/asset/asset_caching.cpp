@@ -174,7 +174,7 @@ ac_node_local_matrix(cgltf_node *node)
 }
 
 static U32
-ac_vertex_count_from_primitive(cgltf_primitive *prim)
+A_Vertex_count_from_primitive(cgltf_primitive *prim)
 {
   U32 result = 0;
   for (U32 i = 0; i < prim->attributes_count; ++i) {
@@ -206,7 +206,7 @@ ac_collect_primitives_from_node(Arena *arena, cgltf_node *node, Mat4x4 parent_wo
         .gltf_primitive = &mesh->primitives[p],
         .gltf_material  = mesh->primitives[p].material,
         .world_transform = world,
-        .vertex_count   = ac_vertex_count_from_primitive(&mesh->primitives[p]),
+        .vertex_count   = A_Vertex_count_from_primitive(&mesh->primitives[p]),
         .index_count    = ac_index_count_from_primitive(&mesh->primitives[p]),
       };
     }
@@ -289,10 +289,10 @@ ac_build_mesh_table(AC_Builder *builder, AC_PrimitiveArray prims, cgltf_data *gl
     *m = {
       .vertex_offset_bytes = 0, // filled during geometry build
       .vertex_count        = p->vertex_count,
-      .vertex_stride       = AC_VERTEX_STRIDE,
+      .vertex_stride       = A_VERTEX_STRIDE,
       .index_offset_bytes  = 0, // filled during geometry build
       .index_count         = p->index_count,
-      .index_kind          = (p->vertex_count <= 65535) ? AC_IndexKind_U16 : AC_IndexKind_U32,
+      .index_kind          = (p->vertex_count <= 65535) ? A_IndexKind_U16 : A_IndexKind_U32,
       .material_index      = (U32)(p->gltf_primitive->material - gltf->materials), // @Todo: Make sure material isn't null first.
     };
   }
@@ -324,7 +324,7 @@ ac_transform_vector(Mat4x4 m, V3F32 v)
 }
 
 static void
-ac_emit_vertices(AC_Vertex *dst, AC_Primitive *prim)
+ac_emit_vertices(A_Vertex *dst, AC_Primitive *prim)
 {
   cgltf_primitive *p = prim->gltf_primitive;
 
@@ -370,7 +370,7 @@ ac_emit_vertices(AC_Vertex *dst, AC_Primitive *prim)
   //---------------------------------------------------------------------------
 
   for (U32 i = 0; i < count; ++i) {
-    AC_Vertex *v = &dst[i];
+    A_Vertex *v = &dst[i];
 
     // --- position ---
     {
@@ -525,8 +525,8 @@ ac_build_geometry_vertices(AC_Builder *builder, AC_PrimitiveArray prims, AC_Mesh
 
     m->vertex_offset_bytes = entry_offset;
 
-    U32 vertices_size = sizeof(AC_Vertex) * p->vertex_count;
-    AC_Vertex *vertices = (AC_Vertex *)ac_push(
+    U32 vertices_size = sizeof(A_Vertex) * p->vertex_count;
+    A_Vertex *vertices = (A_Vertex *)ac_push(
       builder,
       vertices_size,
       16
@@ -563,7 +563,7 @@ ac_build_geometry_indices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshE
 
     U32 indices_size = 0;
 
-    if (m->index_kind == AC_IndexKind_U16) {
+    if (m->index_kind == A_IndexKind_U16) {
       indices_size = sizeof(U16) * p->index_count;
       U16 *indices = (U16 *)ac_push(
         builder,
@@ -633,7 +633,7 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
     AC_MaterialEntry *dst    = &mtl_table[mat_idx];
 
     // ---- Defaults ----
-    dst->flags = AC_MaterialFlag_None;
+    dst->flags = A_MaterialFlag_None;
 
     dst->base_color.x = 1.0f;
     dst->base_color.y = 1.0f;
@@ -669,7 +669,7 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
       if (pbr->base_color_texture.texture) {
         U32 tex = ac_texture_index_from_view(gltf, &pbr->base_color_texture);
         dst->base_color_tex = tex;
-        dst->flags |= AC_MaterialFlag_BaseColor;
+        dst->flags |= A_MaterialFlag_BaseColor;
 
         U32 img = ac_image_index_from_image(
           gltf, pbr->base_color_texture.texture->image);
@@ -679,7 +679,7 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
       if (pbr->metallic_roughness_texture.texture) {
         U32 tex = ac_texture_index_from_view(gltf, &pbr->metallic_roughness_texture);
         dst->metallic_roughness_tex = tex;
-        dst->flags |= AC_MaterialFlag_MetalRough;
+        dst->flags |= A_MaterialFlag_MetalRough;
 
         U32 img = ac_image_index_from_image(
           gltf, pbr->metallic_roughness_texture.texture->image);
@@ -691,7 +691,7 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
     if (gltf_mat->normal_texture.texture) {
       U32 tex = ac_texture_index_from_view(gltf, &gltf_mat->normal_texture);
       dst->normal_tex = tex;
-      dst->flags |= AC_MaterialFlag_Normal;
+      dst->flags |= A_MaterialFlag_Normal;
 
       U32 img = ac_image_index_from_image(
         gltf, gltf_mat->normal_texture.texture->image);
@@ -702,7 +702,7 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
     if (gltf_mat->occlusion_texture.texture) {
       U32 tex = ac_texture_index_from_view(gltf, &gltf_mat->occlusion_texture);
       dst->occlusion_tex = tex;
-      dst->flags |= AC_MaterialFlag_Occlusion;
+      dst->flags |= A_MaterialFlag_Occlusion;
 
       U32 img = ac_image_index_from_image(
         gltf, gltf_mat->occlusion_texture.texture->image);
@@ -717,7 +717,7 @@ ac_build_material_table(AC_Builder *builder, cgltf_data *gltf)
     if (gltf_mat->emissive_texture.texture) {
       U32 tex = ac_texture_index_from_view(gltf, &gltf_mat->emissive_texture);
       dst->emissive_tex = tex;
-      dst->flags |= AC_MaterialFlag_Emissive;
+      dst->flags |= A_MaterialFlag_Emissive;
 
       U32 img = ac_image_index_from_image(
         gltf, gltf_mat->emissive_texture.texture->image);
@@ -762,7 +762,7 @@ ac_build_texture_table(AC_Builder *builder, cgltf_data *gltf)
 }
 
 struct AC_ImageMetadata {
-  AC_ImageFormat fmt;
+  A_ImageFormat fmt;
   U32 width;
   U32 height;
   U32 mip_count;
@@ -771,17 +771,17 @@ struct AC_ImageMetadata {
   U32 data_size;
 };
 
-static AC_ImageFormat
+static A_ImageFormat
 ac_image_fmt_from_usage(U32 usage)
 {
   // From low to high priority
-  //AC_ImageFormat result = AC_ImageFormat_BC7;
-  AC_ImageFormat result = AC_ImageFormat_BC3;
+  //A_ImageFormat result = A_ImageFormat_BC7;
+  A_ImageFormat result = A_ImageFormat_BC3;
   switch (usage) {
-    case AC_ImageUsage_Emissive:   { result = AC_ImageFormat_BC3; }break;
-    case AC_ImageUsage_MetalRough: { result = AC_ImageFormat_BC4; }break;
-    case AC_ImageUsage_Occlusion:  { result = AC_ImageFormat_BC4; }break;
-    case AC_ImageUsage_Normal:     { result = AC_ImageFormat_BC5; }break;
+    case AC_ImageUsage_Emissive:   { result = A_ImageFormat_BC3; }break;
+    case AC_ImageUsage_MetalRough: { result = A_ImageFormat_BC4; }break;
+    case AC_ImageUsage_Occlusion:  { result = A_ImageFormat_BC4; }break;
+    case AC_ImageUsage_Normal:     { result = A_ImageFormat_BC5; }break;
   }
 
   return result;
@@ -829,18 +829,18 @@ ac_img_load(AC_Builder *builder, Arena *arena, cgltf_image *img)
 }
 
 static DXGI_FORMAT
-ac_dxgi_from_img_fmt(AC_ImageFormat fmt)
+ac_dxgi_from_img_fmt(A_ImageFormat fmt)
 {
   DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 
   switch (fmt) {
     // @Todo: Rename yours to signify that they're UNORM
-    case AC_ImageFormat_BC1:  { result = DXGI_FORMAT_BC1_UNORM; }break;
-    case AC_ImageFormat_BC3:  { result = DXGI_FORMAT_BC3_UNORM; }break;
-    case AC_ImageFormat_BC4:  { result = DXGI_FORMAT_BC4_UNORM; }break;
-    case AC_ImageFormat_BC5:  { result = DXGI_FORMAT_BC5_UNORM; }break;
-    case AC_ImageFormat_BC6H: { result = DXGI_FORMAT_BC6H_UF16; }break;
-    case AC_ImageFormat_BC7:  { result = DXGI_FORMAT_BC7_UNORM; }break;
+    case A_ImageFormat_BC1:  { result = DXGI_FORMAT_BC1_UNORM; }break;
+    case A_ImageFormat_BC3:  { result = DXGI_FORMAT_BC3_UNORM; }break;
+    case A_ImageFormat_BC4:  { result = DXGI_FORMAT_BC4_UNORM; }break;
+    case A_ImageFormat_BC5:  { result = DXGI_FORMAT_BC5_UNORM; }break;
+    case A_ImageFormat_BC6H: { result = DXGI_FORMAT_BC6H_UF16; }break;
+    case A_ImageFormat_BC7:  { result = DXGI_FORMAT_BC7_UNORM; }break;
   }
 
   return result;
@@ -921,7 +921,7 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
 
       if (SUCCEEDED(hr)) {
         // Compress zeh mips
-        AC_ImageFormat fmt = img_metadata[img_idx].fmt;
+        A_ImageFormat fmt = img_metadata[img_idx].fmt;
         DXGI_FORMAT dxgi_fmt = ac_dxgi_from_img_fmt(fmt);
         if (dxgi_fmt != DXGI_FORMAT_UNKNOWN) {
           DirectX::ScratchImage compressed;

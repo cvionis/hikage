@@ -1,6 +1,8 @@
+#pragma once
+
 // Packed CPU-side format for models
 
-#define AC_MAGIC 0x4C444F4D  // 'MODL'
+#define AC_MAGIC 0x0 // @Todo: Define a magic number to put at beginning of file
 #define AC_VERSION 1
 
 #define AC_TEXTURE_NONE 0xFFFFFFFFu
@@ -17,39 +19,6 @@
     [Texture table]
     [Image data]
  */
-
- // @Todo: Distinguish between sided/unsigned variants
-enum AC_ImageFormat {
-  AC_ImageFormat_BC1,
-  AC_ImageFormat_BC3,
-  AC_ImageFormat_BC4,
-  AC_ImageFormat_BC5,
-  AC_ImageFormat_BC6H,
-  AC_ImageFormat_BC7,
-};
-
-enum AC_IndexKind {
-  AC_IndexKind_U16,
-  AC_IndexKind_U32,
-};
-
-enum AC_MaterialFlags {
-  AC_MaterialFlag_None = 0,
-  AC_MaterialFlag_BaseColor = (1 << 0),
-  AC_MaterialFlag_Normal = (1 << 1),
-  AC_MaterialFlag_MetalRough = (1 << 2),
-  AC_MaterialFlag_Occlusion = (1 << 3),
-  AC_MaterialFlag_Emissive = (1 << 4),
-};
-
-struct AC_Vertex {
-  V3F32 position;
-  V3F32 normal;
-  V4F32 tangent;
-  V2F32 uv;
-};
-
-#define AC_VERTEX_STRIDE sizeof(AC_Vertex)
 
 struct AC_Header {
   U32 magic;
@@ -85,7 +54,7 @@ struct AC_MeshEntry {
 
   U32 index_offset_bytes;    // into ib section
   U32 index_count;
-  AC_IndexKind index_kind;
+  A_IndexKind index_kind;
 
   U32 material_index;        // into material table
 };
@@ -112,7 +81,7 @@ struct AC_TextureEntry {
 };
 
 struct AC_ImageEntry {
-  AC_ImageFormat format;
+  A_ImageFormat format;
   U32 width;
   U32 height;
   U32 mip_count;
