@@ -996,13 +996,18 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
 // @Note: This would eventually just take the name of the model and form
 // the full path of the cached file.
 static AC_Blob
-ac_load_model_blob_cached(Arena *arena, String8 path)
+ac_load_model_blob_cached(Arena *arena, String8 name)
 {
   AC_Blob result = {};
 
   TempArena scratch = arena_scratch_begin(&arena, 1);
   {
-    String8 file_read = os_file_read(scratch.arena, path);
+    String8 cached_model_dir = S8("R:/KageEngine/assets/cache/models/"); // @Note: Temporary
+    String8 cache_path;
+    cache_path = str8_cat(scratch.arena, cached_model_dir, name);
+    cache_path = str8_cat(scratch.arena, cache_path, S8(".mb"));
+
+    String8 file_read = os_file_read(scratch.arena, cache_path);
     if (file_read.count > 0) {
       U8 *data = ArenaPushArray(arena, U8, file_read.count);
       MemoryCopy(data, file_read.data, file_read.count);
@@ -1017,7 +1022,7 @@ ac_load_model_blob_cached(Arena *arena, String8 path)
 
 // @Todo: Test with broken or unconvential gltf files
 static AC_Blob
-ac_load_model_blob_gltf(AC_Builder *builder, String8 gltf_path)
+ac_load_model_blob_gltf(Arena *arena, AC_Builder *builder, String8 gltf_path)
 {
   builder->model_path = gltf_path;
 
@@ -1071,9 +1076,14 @@ ac_load_model_blob_gltf(AC_Builder *builder, String8 gltf_path)
 
     ac_free_gltf(gltf);
 
+    // @Note: Temporary
+    U64 blob_size = builder->size;
+    U8 *blob_data = ArenaPushArray(arena, U8, blob_size);
+    MemoryCopy(blob_data, builder->data, blob_size);
+
     res = {
-      .data = builder->data,
-      .size = builder->size,
+      .data = blob_data,
+      .size = blob_size,
     };
   }
 
@@ -1087,7 +1097,7 @@ ac_cache_model_blob(AC_Builder *builder, AC_Blob blob)
 
   String8 model_filename = filename_from_path(builder->model_path);
   String8 model_filename_stripped = remove_extension_from_path(model_filename);
-  String8 cached_model_dir = S8("../assets/cache/models/");
+  String8 cached_model_dir = S8("R:/KageEngine/assets/cache/models/"); // @Note: Temporary
   String8 cached_model_ext = S8(".mb");
 
   String8 cached_model_path = str8_cat(scratch.arena, cached_model_dir, model_filename_stripped);

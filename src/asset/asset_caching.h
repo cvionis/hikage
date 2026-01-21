@@ -97,8 +97,6 @@ struct AC_MaterialEntry {
   F32 metallic;
   F32 roughness;
 
-  // @Todo: Should probably have a flag that determines which of these are used, instead of defaulting to non-zero AC_TEXTURE_NONE.
-
   U32 flags;
 
   U32 base_color_tex;         // index into texture table or AC_TEXTURE_NONE

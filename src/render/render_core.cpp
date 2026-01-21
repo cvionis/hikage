@@ -189,9 +189,9 @@ r_init(OS_Handle window)
 
     D3D12_CLEAR_VALUE clear_value = {};
     clear_value.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    clear_value.Color[0] = 0.0f;
-    clear_value.Color[1] = 0.2f;
-    clear_value.Color[2] = 0.4f;
+    clear_value.Color[0] = 0.95f;
+    clear_value.Color[1] = 0.9f;
+    clear_value.Color[2] = 0.9f;
     clear_value.Color[3] = 1.0f;
 
     CD3DX12_HEAP_PROPERTIES heap_props(D3D12_HEAP_TYPE_DEFAULT);
@@ -536,7 +536,7 @@ r_render_forward(Camera *camera, ModelTmp *models)
   CD3DX12_CPU_DESCRIPTOR_HANDLE dsv_handle(ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart());
   ctx->command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
 
-  F32 clear_color[] = { 0.0f, 0.2f, 0.4f, 1.0f };
+  F32 clear_color[] = { 0.95f, 0.9f, 0.9f, 1.0f };
   ctx->command_list->ClearRenderTargetView(rtv_handle, clear_color, 0, 0);
   ctx->command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, 0);
 
@@ -585,7 +585,7 @@ r_render_forward(Camera *camera, ModelTmp *models)
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_model(cbv_gpu_base, model_slice_index, ctx->cbv_descriptor_size);
     ctx->command_list->SetGraphicsRootDescriptorTable(1, gpu_model);
 
-    S32 mat_idx = 0; // Just use the first material.
+    S32 mat_idx = model_idx % SCENE_MATERIALS_COUNT; // Just use the first material.
     S32 mat_slice_index = ctx->material_cbv_base + mat_idx;
     CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_mat(cbv_gpu_base, mat_slice_index, ctx->cbv_descriptor_size);
     ctx->command_list->SetGraphicsRootDescriptorTable(2, gpu_mat);

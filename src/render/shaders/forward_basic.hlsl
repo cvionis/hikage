@@ -63,11 +63,11 @@ PS_Input vs_main(VS_Input input)
 
 float4 ps_main(PS_Input input) : SV_TARGET
 {
-  float3 light_dir_ws = float3(0.9, 0.2, 0.4);
+  float3 lig = float3(0.9, 0.2, 0.4);
 
   float3 N = normalize(input.world_norm);
   float3 V = normalize(camera_ws - input.world_pos);
-  float3 L = normalize(-light_dir_ws);
+  float3 L = normalize(lig);
   float3 H = normalize(L + V);
 
   float NoL = saturate(dot(N, L));
@@ -75,17 +75,19 @@ float4 ps_main(PS_Input input) : SV_TARGET
   float NoH = saturate(dot(N, H));
   float VoH = saturate(dot(V, H));
 
-  float3 diff = base_color * NoL;
+  float3 diff = NoL;
 
   float3 lit = float3(0.,0.,0.);
   lit += float3(1.1,0.6,0.4)*diff;
 
   // Tone map + gamma
-  float3 color = lit;
-  float exposure = 0.25;
-  color = tonemap_aces(color * exposure);
+  float3 color = base_color;
+  color = color * lit;
+
+  //float exposure = 0.25;
+  //color = tonemap_aces(color * exposure);
   color = pow(color, 1.0 / 2.2);
   color = saturate(color);
 
-  return float4(1.0,1.0,1.0,1.0);
+  return float4(color,1.0);
 }

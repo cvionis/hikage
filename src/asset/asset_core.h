@@ -1,4 +1,6 @@
-#define ASSETS_MAX 512
+#define ASSETS_MODELS_MAX    64
+#define ASSETS_MATERIALS_MAX 128
+#define ASSETS_TEXTURES_MAX  512
 
 struct R_Handle {
   S32 dummy;
@@ -10,21 +12,37 @@ struct Mesh {
   S32 ib_off;
   S32 ib_count;
 
-  S32 material;
+  S32 material_index;
+};
+
+struct Texture {
+  R_Handle tex;
+  // fmt;
+  U32 width;
+  U32 height;
+  U32 mip_count;
 };
 
 struct Material {
-  R_Handle tex_base;
-  R_Handle text_metal;
-  R_Handle tex_rough;
-  // ... etc.
-  // ... numeric values.
-  // @Todo
+  V4F32 base_color;
+  V3F32 emissive;
+
+  F32 metallic;
+  F32 roughness;
+
+  U32 flags;
+
+  S32 tex_base_color;
+  S32 tex_normal;
+  S32 tex_metal_rough;
+  S32 tex_occlusion;
+  S32 tex_emissive;
 };
 
 struct Model {
   R_Handle vertex_buffer;
   R_Handle index_buffer;
+
   S32 meshes_count;
   Mesh *meshes;
 };
@@ -40,6 +58,7 @@ enum AssetStatus {
 enum AssetKind {
   AssetKind_Model,
   AssetKind_Material,
+  AssetKind_Texture,
 };
 
 struct AssetHandle {
@@ -48,23 +67,27 @@ struct AssetHandle {
 };
 
 struct Asset {
-  String8 path;
+  String8 name;
   AssetStatus status;
   AssetKind kind;
   union {
     Model model;
     Material material;
+    Texture texture;
   }v;
 };
 
 struct AssetContext {
   Arena *arena;
-
   String8 root_path;
 
-  // @Todo: Each entry should be a slot with a list in case hash collisions occur.
-  Asset assets[ASSETS_MAX];
-  S32 assets_count;
+  Asset models[ASSETS_MODELS_MAX];
+  Asset materials[ASSETS_MATERIALS_MAX];
+  Asset textures[ASSETS_TEXTURES_MAX];
+
+  S32 models_count;
+  S32 materials_count;
+  S32 textures_count;
 };
 
 // Internal helpers
@@ -75,4 +98,4 @@ static AssetHandle alloc_asset_handle(AssetContext *ctx, AssetKind kind);
 static AssetContext assets_make(void);
 static void assets_release(AssetContext *ctx);
 static void assets_set_root_path(AssetContext *ctx, String8 path);
-static AssetHandle assets_load_model(AssetContext *ctx, String8 path);
+static AssetHandle assets_load_model(AssetContext *ctx, String8 name);

@@ -190,6 +190,10 @@ entry_point(void)
     .window = os_window_open(S8("Kage"), screen_w, screen_h),
   };
 
+  AssetContext assets = assets_make();
+  assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
+  AssetHandle a = assets_load_model(&assets, S8("DamagedHelmet"));
+
   Input input = {};
 
   Camera camera = {
