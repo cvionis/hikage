@@ -1,3 +1,5 @@
+#pragma once
+
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -12,11 +14,6 @@
 #pragma warning(pop, 0)
 
 #define R_D3D12_FRAME_COUNT 2
-
-struct R_Handle {
-  S32 idx;
-  S32 gen;
-};
 
 struct R_Context {
   // Window

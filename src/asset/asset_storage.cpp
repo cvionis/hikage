@@ -130,14 +130,8 @@ assets_load_model(AssetContext *ctx, String8 name)
         U32 off = img_data_off; + img->data_offset_bytes;
         U32 size = img->data_size_bytes;
         U8 *data = img_data + off;
-        r_create_texture(data)
-
+        dst->tex = r_create_texture(...);
         #endif
-        // @Todo:
-        // U32 img_data_off = img->
-        // U32 img_data_size = ...
-        // U8 *data = img_data + img_data_off;
-        // dst->tex = r_create_texture(data, ...);
 
         ctx->textures_count += 1;
       }

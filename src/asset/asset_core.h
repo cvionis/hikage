@@ -1,5 +1,6 @@
 #pragma once
 
+// @Todo: Naming needs to be more specific; unorm or uint? signed or unsigned (for BC6h)?
 enum A_ImageFormat {
   A_ImageFormat_BC1,
   A_ImageFormat_BC3,
