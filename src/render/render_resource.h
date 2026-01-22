@@ -5,6 +5,33 @@
 // ================================================== //
 
 //
+// CPU-side resource storage
+//
+
+#define R_RESOURCE_SLOTS_MAX 1024
+
+enum R_ResourceKind {
+  R_ResourceKind_Texture,
+  R_ResourceKind_Buffer,
+};
+
+// @Todo: Will probably need "alive" state
+struct R_ResourceSlot {
+  R_ResourceKind kind;
+  S32 descriptor_idx; // The specific heap we index into depends on .kind
+  S32 gen;
+
+  void *backend_rsrc;
+};
+
+struct R_ResourceTable {
+  R_ResourceSlot slots[R_RESOURCE_SLOTS_MAX];
+  S32 count;
+};
+
+global R_ResourceTable r_resource_table; // @Todo: Store in r_ctx
+
+//
 // Textures
 //
 
