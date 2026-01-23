@@ -10,6 +10,11 @@
 
 #define R_RESOURCE_SLOTS_MAX 1024
 
+struct R_Handle {
+  S32 idx;
+  S32 gen;
+};
+
 enum R_ResourceKind {
   R_ResourceKind_Texture,
   R_ResourceKind_Buffer,
@@ -34,17 +39,6 @@ global R_ResourceTable r_resource_table; // @Todo: Store in r_ctx
 //
 // Textures
 //
-
-struct R_Handle {
-  S32 idx;
-  S32 gen;
-};
-
-struct R_TextureData {
-  void *data;
-  S32 row_pitch;
-  S32 slice_pitch;
-};
 
 enum R_TextureFmt {
   // Uncompressed
@@ -77,6 +71,12 @@ enum R_TextureKind {
   R_TextureKind_Cube_Array,
 };
 
+struct R_TextureInitData {
+  void *data;
+  S32 row_pitch;
+  S32 slice_pitch;
+};
+
 /* @Note:
    Will need to enforce these:
    * (kind == 2D) --> depth == 1
@@ -95,13 +95,14 @@ struct R_TextureDesc {
   R_TextureKind kind;
 };
 
-static R_Handle r_create_texture(R_TextureData *init, R_TextureDesc desc);
+// @Todo: init_count might be redundant as desc already contains `mips_count`.
+static R_Handle r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc);
 
 //
 // Buffers
 //
 
-struct R_BufferData {
+struct R_BufferInitData {
   void *data;
 };
 
@@ -125,4 +126,4 @@ struct R_BufferDesc {
   R_BufferMemory memory;
 };
 
-static R_Handle r_create_buffer(R_BufferData *init, R_BufferDesc desc);
+static R_Handle r_create_buffer(R_BufferInitData *init, R_BufferDesc desc);

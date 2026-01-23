@@ -21,7 +21,7 @@ r_alloc_descriptor_idx(R_ResourceKind kind)
 // of textures that you can index into within the shader.
 
 static void *
-r_create_texture_impl(R_TextureData *init, R_TextureDesc desc)
+r_create_texture_impl(R_TextureInitData *init, R_TextureDesc desc)
 {
   return 0;
 }

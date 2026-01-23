@@ -870,7 +870,35 @@ ac_build_image_table(AC_Builder *builder, cgltf_data *gltf)
 }
 
 static AC_BuildResult
-ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
+ac_build_mip_table(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
+{
+  U32 img_count = (U32)gltf->images_count;
+  U32 mip_count = 0;
+  for (U32 img_idx = 0; img_idx < img_count; img_idx += 1) {
+    AC_ImageEntry *img = &img_table[img_idx];
+    mip_count += img->mip_count;
+  }
+
+  U32 mip_table_size = sizeof(AC_MipEntry) * mip_count;
+  U32 mip_table_offset = (U32)builder->size;
+  AC_MipEntry *mip_table = (AC_MipEntry *)ac_push(
+    builder,
+    mip_table_size,
+    1
+  );
+
+  AC_BuildResult result = {
+    .data = (void *)mip_table,
+    .offset = mip_table_offset,
+    .size = mip_table_size,
+    .count = mip_count,
+  };
+
+  return result;
+}
+
+static AC_BuildResult
+ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_table, cgltf_data *gltf)
 {
   U32 section_offset = (U32)builder->size;
   section_offset = AlignPow2(section_offset, 256);
@@ -879,6 +907,7 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
   // Preliminary work: Prepare compressed image metadata
   Arena *scratch = arena_get_scratch(0,0);
 
+  // @Todo: This is retarded. Just fill img_table entries as you go thru each image and compress it...
   AC_ImageMetadata *img_metadata = ArenaPushArray(scratch, AC_ImageMetadata, gltf->images_count);
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
     AC_ImageUsage img_usage = builder->img_usages[img_idx];
@@ -888,6 +917,7 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
   // Load, decode, build mips, compress image data
 
   U32 compressed_data_offset = 0; // From start of compressed image data, not file.
+  U32 running_mip_count = 0;
 
   // @Todo: Make sure to handle sRGB data correctly.
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
@@ -930,8 +960,7 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
             mip_chain.GetImageCount(),
             mip_chain.GetMetadata(),
             dxgi_fmt,
-            DirectX::TEX_COMPRESS_DEFAULT |
-            DirectX::TEX_COMPRESS_PARALLEL,
+            DirectX::TEX_COMPRESS_DEFAULT | DirectX::TEX_COMPRESS_PARALLEL,
             1.0f,
             compressed
           );
@@ -945,10 +974,28 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
             img_metadata[img_idx].height    = (U32)meta.height;
 
             U32 compressed_size = 0;
-            for (U32 mip = 0; mip < meta.mipLevels; ++mip) {
-              compressed_size += (U32)images[mip].slicePitch;
+            for (U32 mip_idx = 0; mip_idx < meta.mipLevels; mip_idx += 1) {
+              compressed_size += (U32)images[mip_idx].slicePitch;
             }
 
+            // Fill mip table entries
+            U32 mips_begin = running_mip_count;
+            U32 mips_end = mips_begin + meta.mipLevels;
+            U32 mip_img_offset = 0;
+            running_mip_count += meta.mipLevels;
+
+            for (U32 mip_idx = mips_begin; mip_idx < mips_end; mip_idx += 1) {
+              AC_MipEntry *mip = &mip_table[mip_idx];
+              mip->width = images[mip_idx].width;
+              mip->height = images[mip_idx].height;
+              mip->row_pitch = images[mip_idx].rowPitch;
+              mip->slice_pitch = images[mip_idx].slicePitch;
+
+              mip->image_offset_bytes = mip_img_offset;
+              mip_img_offset += images[mip_idx].slicePitch;
+            }
+
+            // Calculate aligned offset in output
             compressed_data_offset = AlignPow2(compressed_data_offset, 256);
             img_metadata[img_idx].data_offset = compressed_data_offset;
             img_metadata[img_idx].data_size = compressed_size;
@@ -956,15 +1003,13 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
             section_size += compressed_size;
 
             // Copy compressed image data to output
-            {
-              U32 image_count = (U32)compressed.GetImageCount();
-              U8 *compressed_mips = (U8 *)ac_push(builder, compressed_size, 256);
-              U32 pos = 0;
-              for (U32 i = 0; i < image_count; ++i) {
-                U32 sz = (U32)images[i].slicePitch;
-                MemoryCopy(compressed_mips + pos, images[i].pixels, sz);
-                pos += sz;
-              }
+            U32 image_count = (U32)compressed.GetImageCount();
+            U8 *compressed_mips = (U8 *)ac_push(builder, compressed_size, 256);
+            U32 pos = 0;
+            for (U32 mip_idx = 0; mip_idx < image_count; mip_idx += 1) {
+              U32 copy_size = (U32)images[mip_idx].slicePitch;
+              MemoryCopy(compressed_mips + pos, images[mip_idx].pixels, copy_size);
+              pos += copy_size;
             }
           }
         }
@@ -974,6 +1019,7 @@ ac_build_images(AC_Builder *builder, cgltf_data *gltf, AC_ImageEntry *img_table)
     arena_temp_end(tmp);
   }
 
+  // Fill img table entries (@Todo: Move this inside the fucking loop...)
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
     AC_ImageMetadata *metadata = &img_metadata[img_idx];
     img_table[img_idx].format = metadata->fmt;
@@ -1041,6 +1087,7 @@ ac_load_model_blob_gltf(Arena *arena, AC_Builder *builder, String8 gltf_path)
     AC_MeshEntry *mesh_table;
     AC_MaterialEntry *mtl_table;
     AC_ImageEntry *img_table;
+    AC_MipEntry *mip_table;
 
     AC_PrimitiveArray primitives = ac_flatten_gltf(scratch, gltf);
     build = ac_build_mesh_table(builder, primitives, gltf);
@@ -1070,7 +1117,12 @@ ac_load_model_blob_gltf(Arena *arena, AC_Builder *builder, String8 gltf_path)
     hdr->image_table_off = build.offset;
     img_table = (AC_ImageEntry *)build.data;
 
-    build = ac_build_images(builder, gltf, img_table);
+    build = ac_build_mip_table(builder, img_table, gltf);
+    hdr->mip_count = build.count;
+    hdr->mip_table_off = build.offset;
+    mip_table = (AC_MipEntry *)build.data;
+
+    build = ac_build_images(builder, img_table, mip_table, gltf);
     hdr->image_bytes_off = build.offset;
     hdr->image_bytes_size = build.size;
 

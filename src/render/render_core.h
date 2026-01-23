@@ -81,6 +81,7 @@ struct R_Context {
 
 global R_Context r_ctx;
 
+// @Todo: These definitely wouldn't be defined in render_core.h
 struct R_CameraCB {
   Mat4x4 viewproj;
   V4F32 camera_ws;
@@ -91,7 +92,7 @@ struct R_MaterialCB {
   V3F32 base_color;
 };
 
-// @Note: Temporary
+// @Todo: Move somewhere more permanent
 
 struct Camera {
   Mat4x4 view;

@@ -27,11 +27,6 @@ assets_load_model(AssetContext *ctx, String8 name)
 {
   AssetHandle result = {};
 
-  // @Todo: Might want to pass an arena onto which to allocate the blob data, or give each blob its own arena.
-  // If you call ac_release before you're completely done using the blob, the blob's memory is gonezo -- something
-  // not immediately made clear in the API.
-  // Don't even need this ridiculous, overengineered "AC_Builder" API probably.
-
   if (ctx) {
     TempArena scratch = arena_scratch_begin(0,0);
 
@@ -41,6 +36,8 @@ assets_load_model(AssetContext *ctx, String8 name)
 
       String8 gltf_path;
       gltf_path = str8_cat(scratch.arena, ctx->root_path, name);
+      gltf_path = str8_cat(scratch.arena, gltf_path, S8("/"));
+      gltf_path = str8_cat(scratch.arena, gltf_path, name);
       gltf_path = str8_cat(scratch.arena, gltf_path, S8(".gltf"));
 
       blob = ac_load_model_blob_gltf(scratch.arena, &ac, gltf_path);
@@ -119,23 +116,44 @@ assets_load_model(AssetContext *ctx, String8 name)
 
         U32 img_idx = src->img_index;
         AC_ImageEntry *img = &img_table[img_idx];
-
-        // @Todo: store row pitch, slice pitch in images.
-        //AC_ImageFormat format;
+        //dst->fmt = img->fmt;
         dst->width = img->width;
         dst->height = img->height;
         dst->mip_count = img->mip_count;
 
         #if 0
-        U32 off = img_data_off; + img->data_offset_bytes;
-        U32 size = img->data_size_bytes;
-        U8 *data = img_data + off;
-        dst->tex = r_create_texture(...);
+        R_TextureDesc desc = {
+          .width = img->width,
+          .height = img->height,
+          .depth = 1,
+          .mips_count = img->mip_count,
+          // blah blah blah...
+        };
+
+        R_TextureInitData *init = ArenaPushArray(scratch.arena, R_TextureInitData, img->mip_count);
+        U32 init_idx = 0;
+        for (U32 mip_idx = img->mip_start; mip_idx < img->mip_end; mip_idx += 1) {
+          AC_MipEntry *mip = &mip_table[mip_idx];
+          U32 img_base_off = img_data_off + img->data_offset_bytes;
+          U32 mip_off = img_base_off + mip->image_offset_bytes;
+
+          init[init_idx] = {
+            .data = mip_data,
+            .slice_pitch = mip->slice_pitch,
+            .row_pitch = mip->row_pitch,
+          };
+          init_idx += 1;
+        }
+
+        dst->tex = r_create_texture(init, img->mip_count, desc);
         #endif
 
         ctx->textures_count += 1;
       }
 
+      // @Todo: I want to store materials on the GPU so I can expose them to the shader
+      // as a structured buffer that I can index into inside the shader using the material id,
+      //  which would be a per-draw/per-model constant.
       for (U32 mtl_idx = 0; mtl_idx < mtl_count; mtl_idx += 1) {
         Material *dst = &ctx->materials[mtl_idx].v.material;
         AC_MaterialEntry *src = &mtl_table[mtl_idx];

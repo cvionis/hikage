@@ -30,12 +30,14 @@ struct AC_Header {
   U32 material_count;
   U32 texture_count;
   U32 image_count;
+  U32 mip_count;
 
   // Offsets (bytes) from start of blob
   U32 mesh_table_off;
   U32 material_table_off;
   U32 texture_table_off;
   U32 image_table_off;
+  U32 mip_table_off;
 
   U32 vb_bytes_off;     // contiguous vertex buffer bytes
   U32 vb_bytes_size;
@@ -68,18 +70,20 @@ struct AC_MaterialEntry {
 
   U32 flags;
 
-  U32 base_color_tex;         // index into texture table or AC_TEXTURE_NONE
+  U32 base_color_tex;        // Indices into the file's texture table
   U32 normal_tex;
   U32 metallic_roughness_tex;
   U32 occlusion_tex;
   U32 emissive_tex;
+
+  U32 sampler_idx; // @Todo
 };
 
 struct AC_TextureEntry {
   U32 img_index;
-  // @Todo: Store sampler state.
 };
 
+#if 0
 struct AC_ImageEntry {
   A_ImageFormat format;
   U32 width;
@@ -88,6 +92,29 @@ struct AC_ImageEntry {
 
   U32 data_offset_bytes;      // into img_bytes section
   U32 data_size_bytes;        // total bytes for all mips
+};
+#endif
+
+struct AC_ImageEntry {
+  A_ImageFormat format;
+  U32 width;
+  U32 height;
+
+  U32 mip_count;
+  U32 mips_begin;             // indices into mip table
+  U32 mips_end;
+
+  U32 data_offset_bytes;      // into img_bytes section
+  U32 data_size_bytes;        // total bytes for all mips
+};
+
+struct AC_MipEntry {
+  U32 width;
+  U32 height;
+  U32 slice_pitch;
+  U32 row_pitch;
+
+  U32 image_offset_bytes;    // from beginning of this mip's image's data section
 };
 
 enum AC_ImageUsage {

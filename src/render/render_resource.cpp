@@ -8,7 +8,7 @@ r_alloc_resource_slot(void)
 }
 
 static R_Handle
-r_create_texture(R_TextureData *init, R_TextureDesc desc)
+r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
 {
   S32 slot_idx = r_alloc_resource_slot();
   R_ResourceSlot *slot = &r_resource_table.slots[slot_idx];
@@ -17,10 +17,17 @@ r_create_texture(R_TextureData *init, R_TextureDesc desc)
   slot->kind = R_ResourceKind_Texture;
   slot->descriptor_idx = r_alloc_descriptor_idx(slot->kind);
 
-  // @Note: Temporary; will eventually push a create_texture() command to a resource work queue.
-  // Will probably just have to pass this pointer to the job, and it will fill it out when the work is completed,
-  // rather than returning this from a function.
-  slot->backend_rsrc = r_create_texture_impl(init, desc);
+  if (init_count && init) {
+    // @Note: Temporary; will eventually push a create_texture() command to a resource work queue.
+    // Will probably just have to pass this pointer to the job, and it will fill it out when the work is completed,
+    // rather than returning this from a function.
+
+    // @!!Todo: Maybe instead of just not giving this slot a backend_rsrc pointer, you should still give it such a pointer,
+    // just to a texture without any initial data. After all, if you don't pass initial data, you DO still want to create a texture in
+    // the backend -- just without data. Also, you want to create a descriptor for it in the descriptor table at position `slot->descriptor_idx`!
+    // That means not (checking init_count && init) in here, but in r_create_texture_impl.
+    slot->backend_rsrc = r_create_texture_impl(init, desc);
+  }
 
   R_Handle result = {
     .idx = slot_idx,
