@@ -20,12 +20,14 @@ enum R_ResourceKind {
   R_ResourceKind_Buffer,
 };
 
-// @Todo: Will probably need "alive" state
 struct R_ResourceSlot {
   R_ResourceKind kind;
-  S32 descriptor_idx; // The specific heap we index into depends on .kind
-  S32 gen;
 
+  S32 gen;
+  B32 alive;
+
+  S32 descriptor_idx;
+  S32 fence_value;
   void *backend_rsrc;
 };
 

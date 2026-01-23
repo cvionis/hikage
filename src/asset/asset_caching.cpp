@@ -870,14 +870,11 @@ ac_build_image_table(AC_Builder *builder, cgltf_data *gltf)
 }
 
 static AC_BuildResult
-ac_build_mip_table(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
+ac_build_mip_table(AC_Builder *builder, cgltf_data *gltf)
 {
   U32 img_count = (U32)gltf->images_count;
   U32 mip_count = 0;
-  for (U32 img_idx = 0; img_idx < img_count; img_idx += 1) {
-    AC_ImageEntry *img = &img_table[img_idx];
-    mip_count += img->mip_count;
-  }
+  // @Note: Temporary
 
   U32 mip_table_size = sizeof(AC_MipEntry) * mip_count;
   U32 mip_table_offset = (U32)builder->size;
@@ -1034,7 +1031,7 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_
     .data = 0,
     .offset = section_offset,
     .size = section_size,
-    .count = 0,
+    .count = running_mip_count,
   };
   return result;
 }
@@ -1117,14 +1114,15 @@ ac_load_model_blob_gltf(Arena *arena, AC_Builder *builder, String8 gltf_path)
     hdr->image_table_off = build.offset;
     img_table = (AC_ImageEntry *)build.data;
 
-    build = ac_build_mip_table(builder, img_table, gltf);
-    hdr->mip_count = build.count;
+    build = ac_build_mip_table(builder, gltf);
+    // hdr->mip_count = build.count;  @Note: Can't know this at this point because images haven't been decoded and gltf doesn't provide counts.
     hdr->mip_table_off = build.offset;
     mip_table = (AC_MipEntry *)build.data;
 
     build = ac_build_images(builder, img_table, mip_table, gltf);
     hdr->image_bytes_off = build.offset;
     hdr->image_bytes_size = build.size;
+    hdr->mip_count = build.count; // @Note: Temporary gross solution.
 
     ac_free_gltf(gltf);
 

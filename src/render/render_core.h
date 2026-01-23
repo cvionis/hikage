@@ -15,6 +15,7 @@
 
 #define R_D3D12_FRAME_COUNT 2
 
+// @Todo: -> R_D3D12_Context, move to backend/d3d12/render_context_d3d12.h
 struct R_Context {
   // Window
   OS_Handle window;
@@ -24,18 +25,18 @@ struct R_Context {
   // Core pipeline objects
   IDXGISwapChain3 *swapchain;
   ID3D12Device *device;
+
   ID3D12Resource *render_targets[R_D3D12_FRAME_COUNT];
+  S32 rtv_descriptor_size; // @Todo: Why is this here?
+
+  ID3D12PipelineState *pipeline_state;
+
   ID3D12CommandAllocator *command_allocators[R_D3D12_FRAME_COUNT];
   ID3D12CommandQueue *command_queue;
-  ID3D12RootSignature *root_signature;
-  ID3D12DescriptorHeap *rtv_heap;
-  ID3D12PipelineState *pipeline_state;
   ID3D12GraphicsCommandList *command_list;
-
-  S32 rtv_descriptor_size;
+  ID3D12RootSignature *root_signature;
 
   // Depth/stencil buffers
-  ID3D12DescriptorHeap *dsv_heap;
   ID3D12Resource *depth_buffer;
 
   // Color buffer
@@ -51,6 +52,7 @@ struct R_Context {
   ID3D12Resource *index_buffer;
   D3D12_INDEX_BUFFER_VIEW index_buffer_view;
 
+  //!! @Todo: Deprecate !!//
   // Uniform descriptor heap (shared by all uniforms)
   ID3D12DescriptorHeap *cbv_heap;
   S32 cbv_descriptor_size;
@@ -77,6 +79,18 @@ struct R_Context {
   HANDLE fence_event;
   ID3D12Fence *fence;
   U64 fence_values[R_D3D12_FRAME_COUNT];
+
+  //                                         //
+  // ============ NEW STUFF ================ //
+  //                                         //
+
+  ID3D12DescriptorHeap *dsv_heap;
+  ID3D12DescriptorHeap *rtv_heap;
+  ID3D12DescriptorHeap *srv_cbv_uav_heap; // Per-frame and per-draw data, texture table, material table
+  ID3D12DescriptorHeap *sampler_heap;
+
+  // @Todo: Separate command list and allocator for resource uploads.
+  // @Todo: srv_cbv_uav descriptor idx free list.
 };
 
 global R_Context r_ctx;
