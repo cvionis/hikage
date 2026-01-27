@@ -177,6 +177,7 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
         }
       }
       else {
+        // @Note: Untested
         U32 rows = layouts[i].Footprint.Height;
         U32 src_row_bytes = (U32)init[i].row_pitch;
 
@@ -235,7 +236,10 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
   );
 }
 
-static R_CreateResource r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc desc, S32 descriptor_idx)
+// @Todo: Test; error-checking.
+// @Todo: Limited to 2D sampled textures right now.
+static R_CreateResource
+r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc desc, S32 descriptor_idx)
 {
   R_Context *ctx = &r_ctx;
   R_CreateResource result = {};

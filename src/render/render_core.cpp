@@ -7,6 +7,21 @@
 #define SCENE_MODELS_COUNT 256
 #define SCENE_MATERIALS_COUNT 256
 
+// Descriptor heap layout:
+//   [0 .. R_D3D12_FRAME_CBV_COUNT-1]  = per-frame CBVs (currently just b0)
+//   [R_D3D12_TEXTURE_TABLE_BASE .. ]  = bindless texture SRVs (t0[])
+#define R_D3D12_FRAME_CBV_COUNT 1
+#define R_D3D12_DRAW_CBV_COUNT  1
+
+#define R_D3D12_CBV_COUNT       (R_D3D12_FRAME_CBV_COUNT + R_D3D12_DRAW_CBV_COUNT)
+
+#define R_D3D12_TEXTURE_MAX     1024
+#define R_D3D12_SRV_HEAP_SIZE   (R_D3D12_CBV_COUNT + R_D3D12_TEXTURE_MAX)
+
+#define R_D3D12_FRAME_CBV_SLOT  0
+#define R_D3D12_DRAW_CBV_SLOT   1
+#define R_D3D12_TEXTURE_TABLE_BASE R_D3D12_CBV_COUNT
+
 static void
 r_wait_for_previous_frame(void)
 {
@@ -83,6 +98,16 @@ r_d3d12_get_hardware_adapter(IDXGIFactory1 *factory)
   return adapter;
 }
 
+struct R_FrameCB {
+  Mat4x4 viewproj;
+  V4F32  camera_ws;
+};
+
+struct R_DrawCB {
+  Mat4x4 model;
+  Mat4x4 normal;
+};
+
 static void
 r_init(OS_Handle window)
 {
@@ -99,11 +124,13 @@ r_init(OS_Handle window)
   UINT dxgi_factory_flags = 0;
 
 #if BUILD_DEBUG
-  ID3D12Debug *debug_controller = 0;
-  if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller)))) {
-    debug_controller->EnableDebugLayer();
-    dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
-    debug_controller->Release();
+  {
+    ID3D12Debug *debug_controller = 0;
+    if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug_controller)))) {
+      debug_controller->EnableDebugLayer();
+      dxgi_factory_flags |= DXGI_CREATE_FACTORY_DEBUG;
+      debug_controller->Release();
+    }
   }
 #endif
 
@@ -139,40 +166,43 @@ r_init(OS_Handle window)
   ctx->frame_idx = ctx->swapchain->GetCurrentBackBufferIndex();
 
   // RTV heap
-  D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
-  rtv_heap_desc.NumDescriptors = R_D3D12_FRAME_COUNT + 1;
-  rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-  hr = ctx->device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&ctx->rtv_heap));
-  Assert(SUCCEEDED(hr));
-  ctx->rtv_descriptor_size = ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
-  // DSV heap
-  D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
-  dsv_heap_desc.NumDescriptors = 1;
-  dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-  hr = ctx->device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&ctx->dsv_heap));
-  Assert(SUCCEEDED(hr));
-
-  // Uniform descriptor heap: camera + models + materials
-  ctx->cbv_count =  1 + SCENE_MODELS_COUNT + SCENE_MATERIALS_COUNT;
-  D3D12_DESCRIPTOR_HEAP_DESC cbv_heap_desc = {};
-  cbv_heap_desc.NumDescriptors = ctx->cbv_count;
-  cbv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  cbv_heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE; // @Todo: Should probably specify in name whether or not heap is GPU visible.
-  hr = ctx->device->CreateDescriptorHeap(&cbv_heap_desc, IID_PPV_ARGS(&ctx->cbv_heap));
-  Assert(SUCCEEDED(hr));
-  ctx->cbv_descriptor_size = ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-
-  // Back buffers and command allocators
-  CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart());
-  for (UINT n = 0; n < R_D3D12_FRAME_COUNT; n += 1) {
-    hr = ctx->swapchain->GetBuffer(n, IID_PPV_ARGS(&ctx->render_targets[n]));
-    ctx->device->CreateRenderTargetView(ctx->render_targets[n], 0, rtv_handle);
-    rtv_handle.Offset(1, ctx->rtv_descriptor_size);
-    hr = ctx->device->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&ctx->command_allocators[n]));
+  {
+    D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
+    rtv_heap_desc.NumDescriptors = R_D3D12_FRAME_COUNT + 1;
+    rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+    hr = ctx->device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&ctx->rtv_heap));
+    Assert(SUCCEEDED(hr));
+    ctx->rtv_descriptor_size =
+      ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
   }
 
-  // Color buffer
+  // DSV heap
+  {
+    D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
+    dsv_heap_desc.NumDescriptors = 1;
+    dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+    hr = ctx->device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&ctx->dsv_heap));
+    Assert(SUCCEEDED(hr));
+  }
+
+  // Back buffers and command allocators
+  {
+    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart());
+    for (UINT n = 0; n < R_D3D12_FRAME_COUNT; n += 1) {
+      hr = ctx->swapchain->GetBuffer(n, IID_PPV_ARGS(&ctx->render_targets[n]));
+      Assert(SUCCEEDED(hr));
+      ctx->device->CreateRenderTargetView(ctx->render_targets[n], 0, rtv_handle);
+      rtv_handle.Offset(1, ctx->rtv_descriptor_size);
+
+      hr = ctx->device->CreateCommandAllocator(
+        D3D12_COMMAND_LIST_TYPE_DIRECT,
+        IID_PPV_ARGS(&ctx->command_allocators[n])
+      );
+      Assert(SUCCEEDED(hr));
+    }
+  }
+
+  // Color buffer (kept as-is; not used by r_render_forward currently)
   {
     D3D12_RESOURCE_DESC color_desc = {};
     color_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -182,10 +212,8 @@ r_init(OS_Handle window)
     color_desc.DepthOrArraySize = 1;
     color_desc.MipLevels = 1;
     color_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-
     color_desc.SampleDesc.Count = 1;
     color_desc.SampleDesc.Quality = 0;
-
     color_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
     color_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
@@ -223,64 +251,163 @@ r_init(OS_Handle window)
   }
 
   // Depth buffer
-  CD3DX12_RESOURCE_DESC depth_desc =
-    CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, ctx->width, ctx->height, 1, 1,
-      1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-  D3D12_CLEAR_VALUE depth_clear = {};
-  depth_clear.Format = DXGI_FORMAT_D32_FLOAT;
-  depth_clear.DepthStencil.Depth = 1.0f;
-  CD3DX12_HEAP_PROPERTIES heap_props(D3D12_HEAP_TYPE_DEFAULT);
-  hr = ctx->device->CreateCommittedResource(
-                                            &heap_props, D3D12_HEAP_FLAG_NONE, &depth_desc,
-                                            D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_clear,
-                                            IID_PPV_ARGS(&ctx->depth_buffer));
-  Assert(SUCCEEDED(hr));
-  ctx->device->CreateDepthStencilView(ctx->depth_buffer, 0,
-                                      ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart());
+  {
+    CD3DX12_RESOURCE_DESC depth_desc =
+      CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, ctx->width, ctx->height, 1, 1,
+        1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
 
-  // Root signature with three descriptor tables
-  // table0: b0 (CameraCB)
-  // table1: b1 (ModelCB)
-  // table2: b2 (MaterialCB)
-  CD3DX12_DESCRIPTOR_RANGE ranges[3];
-  ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0, 0);
-  ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1, 0);
-  ranges[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 2, 0);
+    D3D12_CLEAR_VALUE depth_clear = {};
+    depth_clear.Format = DXGI_FORMAT_D32_FLOAT;
+    depth_clear.DepthStencil.Depth = 1.0f;
 
-  CD3DX12_ROOT_PARAMETER params[3];
-  params[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
-  params[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_VERTEX);
-  params[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
+    CD3DX12_HEAP_PROPERTIES heap_props(D3D12_HEAP_TYPE_DEFAULT);
+    hr = ctx->device->CreateCommittedResource(
+      &heap_props, D3D12_HEAP_FLAG_NONE, &depth_desc,
+      D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_clear,
+      IID_PPV_ARGS(&ctx->depth_buffer)
+    );
+    Assert(SUCCEEDED(hr));
 
-  D3D12_STATIC_SAMPLER_DESC static_sampler = {};
-  static_sampler.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
-  static_sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-  static_sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-  static_sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-  static_sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-  static_sampler.BorderColor = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
-  static_sampler.ShaderRegister = 0; // s0
-  static_sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-
-  CD3DX12_ROOT_SIGNATURE_DESC root_sig_desc;
-  root_sig_desc.Init(ArrayCount(params), params, 1, &static_sampler,
-    D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
-
-  ID3DBlob *sig_blob = 0;
-  ID3DBlob *err_blob = 0;
-  D3D12SerializeRootSignature(&root_sig_desc, D3D_ROOT_SIGNATURE_VERSION_1, &sig_blob, &err_blob);
-  ctx->device->CreateRootSignature(0, sig_blob->GetBufferPointer(), sig_blob->GetBufferSize(),
-    IID_PPV_ARGS(&ctx->root_signature));
-  sig_blob->Release();
-  if (err_blob) {
-    err_blob->Release();
+    ctx->device->CreateDepthStencilView(
+      ctx->depth_buffer, 0,
+      ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart()
+    );
   }
 
-  // Compile shaders
+  // Unified shader-visible heap: [frame CBVs] + [bindless textures]
+  {
+    D3D12_DESCRIPTOR_HEAP_DESC heap_desc = {};
+    heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+    heap_desc.NumDescriptors = R_D3D12_SRV_HEAP_SIZE;
+    heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+    heap_desc.NodeMask = 0;
 
+    hr = ctx->device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&ctx->srv_heap));
+    Assert(SUCCEEDED(hr));
+
+    ctx->srv_descriptor_size =
+      ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+    ctx->srv_next_idx = R_D3D12_TEXTURE_TABLE_BASE;
+  }
+
+  // Per-frame constant buffer (b0) stored in slot 0 of srv_heap
+  {
+    CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(256);
+
+    hr = ctx->device->CreateCommittedResource(
+      &heap, D3D12_HEAP_FLAG_NONE, &desc,
+      D3D12_RESOURCE_STATE_GENERIC_READ, 0,
+      IID_PPV_ARGS(&ctx->frame_cb)
+    );
+    Assert(SUCCEEDED(hr));
+
+    hr = ctx->frame_cb->Map(0, 0, (void **)&ctx->frame_cb_mapped);
+    Assert(SUCCEEDED(hr));
+
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbv = {};
+    cbv.BufferLocation = ctx->frame_cb->GetGPUVirtualAddress();
+    cbv.SizeInBytes = 256;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE h(
+      ctx->srv_heap->GetCPUDescriptorHandleForHeapStart(),
+      R_D3D12_FRAME_CBV_SLOT,
+      ctx->srv_descriptor_size
+    );
+    ctx->device->CreateConstantBufferView(&cbv, h);
+  }
+
+  // Per-draw constant buffer (b1) stored in slot 1 of srv_heap
+  {
+    CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(256);
+
+   hr = ctx->device->CreateCommittedResource(
+      &heap,
+      D3D12_HEAP_FLAG_NONE,
+      &desc,
+      D3D12_RESOURCE_STATE_GENERIC_READ,
+      0,
+      IID_PPV_ARGS(&ctx->draw_cb)
+    );
+    Assert(SUCCEEDED(hr));
+
+    hr = ctx->draw_cb->Map(0, 0, (void **)&ctx->draw_cb_mapped);
+    Assert(SUCCEEDED(hr));
+
+    D3D12_CONSTANT_BUFFER_VIEW_DESC cbv = {};
+    cbv.BufferLocation = ctx->draw_cb->GetGPUVirtualAddress();
+    cbv.SizeInBytes = 256;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE h(
+      ctx->srv_heap->GetCPUDescriptorHandleForHeapStart(),
+      R_D3D12_DRAW_CBV_SLOT,
+      ctx->srv_descriptor_size
+    );
+    ctx->device->CreateConstantBufferView(&cbv, h);
+  }
+
+  // Root signature
+  {
+    CD3DX12_DESCRIPTOR_RANGE ranges[3];
+    // b0: frame
+    ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+    // b1: per-draw
+    ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
+    // t0[]: textures
+    ranges[2].Init(
+      D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+      R_D3D12_TEXTURE_MAX,
+      0,
+      0,
+      R_D3D12_TEXTURE_TABLE_BASE
+    );
+
+    CD3DX12_ROOT_PARAMETER params[3];
+    params[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
+    params[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_VERTEX);
+    params[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
+
+    D3D12_STATIC_SAMPLER_DESC static_sampler = {};
+    static_sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+    static_sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    static_sampler.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    static_sampler.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+    static_sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+    static_sampler.ShaderRegister = 0; // s0
+    static_sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+
+    CD3DX12_ROOT_SIGNATURE_DESC root_sig_desc;
+    root_sig_desc.Init(ArrayCount(params), params, 1, &static_sampler,
+      D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+    ID3DBlob *sig_blob = 0;
+    ID3DBlob *err_blob = 0;
+    hr = D3D12SerializeRootSignature(
+      &root_sig_desc,
+      D3D_ROOT_SIGNATURE_VERSION_1,
+      &sig_blob,
+      &err_blob
+    );
+    Assert(SUCCEEDED(hr));
+
+    hr = ctx->device->CreateRootSignature(
+      0,
+      sig_blob->GetBufferPointer(),
+      sig_blob->GetBufferSize(),
+      IID_PPV_ARGS(&ctx->root_signature)
+    );
+    Assert(SUCCEEDED(hr));
+
+    sig_blob->Release();
+    if (err_blob) err_blob->Release();
+  }
+
+  // Compile shaders (unchanged)
   ID3DBlob *vs_blob = 0;
   ID3DBlob *ps_blob = 0;
-  err_blob = 0;
+  ID3DBlob *err_blob = 0;
 
 #if BUILD_DEBUG
   UINT compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
@@ -306,8 +433,7 @@ r_init(OS_Handle window)
     Assert(SUCCEEDED(hr));
   }
 
-  // Pipeline state object
-  // @Todo: Tangent, UV; remove color.
+  // Pipeline state object (kept as-is)
   U32 input_count = 3;
   ctx->input_desc[0] = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
   ctx->input_desc[1] = {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
@@ -333,50 +459,49 @@ r_init(OS_Handle window)
   rs.MultisampleEnable = TRUE;
   pso_desc->RasterizerState = rs;
 
-  ctx->device->CreateGraphicsPipelineState(pso_desc, IID_PPV_ARGS(&ctx->pipeline_state));
+  hr = ctx->device->CreateGraphicsPipelineState(pso_desc, IID_PPV_ARGS(&ctx->pipeline_state));
+  Assert(SUCCEEDED(hr));
   vs_blob->Release();
   ps_blob->Release();
 
-  ctx->device->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
-                                 ctx->command_allocators[ctx->frame_idx], ctx->pipeline_state,
-                                 IID_PPV_ARGS(&ctx->command_list));
+  // Main command list
+  hr = ctx->device->CreateCommandList(
+    0, D3D12_COMMAND_LIST_TYPE_DIRECT,
+    ctx->command_allocators[ctx->frame_idx], ctx->pipeline_state,
+    IID_PPV_ARGS(&ctx->command_list)
+  );
+  Assert(SUCCEEDED(hr));
   ctx->command_list->Close();
 
-  // Cube geometry
+  // Cube geometry (unchanged)
   struct Vertex { V3F32 pos; V4F32 color; V3F32 normal; };
 
   Vertex cube_vertices[] = {
-    // -Z face
     {{-0.5f,-0.5f,-0.5f},{1,0,0,1},{ 0, 0,-1}},
     {{-0.5f, 0.5f,-0.5f},{0,1,0,1},{ 0, 0,-1}},
     {{ 0.5f, 0.5f,-0.5f},{0,0,1,1},{ 0, 0,-1}},
     {{ 0.5f,-0.5f,-0.5f},{1,1,0,1},{ 0, 0,-1}},
 
-    // +Z
     {{-0.5f,-0.5f, 0.5f},{1,0,1,1},{ 0, 0, 1}},
     {{-0.5f, 0.5f, 0.5f},{0,1,1,1},{ 0, 0, 1}},
     {{ 0.5f, 0.5f, 0.5f},{1,1,1,1},{ 0, 0, 1}},
     {{ 0.5f,-0.5f, 0.5f},{0.2f,0.2f,0.2f},{ 0, 0, 1}},
 
-    // -X
     {{-0.5f,-0.5f,-0.5f},{1,0,0,1},{-1, 0, 0}},
     {{-0.5f,-0.5f, 0.5f},{1,0,1,1},{-1, 0, 0}},
     {{-0.5f, 0.5f, 0.5f},{0,1,1,1},{-1, 0, 0}},
     {{-0.5f, 0.5f,-0.5f},{0,1,0,1},{-1, 0, 0}},
 
-    // +X
     {{ 0.5f,-0.5f,-0.5f},{1,1,0,1},{ 1, 0, 0}},
     {{ 0.5f,-0.5f, 0.5f},{0.2f,0.2f,0.2f},{ 1, 0, 0}},
     {{ 0.5f, 0.5f, 0.5f},{1,1,1,1},{ 1, 0, 0}},
     {{ 0.5f, 0.5f,-0.5f},{0,0,1,1},{ 1, 0, 0}},
 
-    // -Y
     {{-0.5f,-0.5f,-0.5f},{1,0,0,1},{ 0,-1, 0}},
     {{ 0.5f,-0.5f,-0.5f},{1,1,0,1},{ 0,-1, 0}},
     {{ 0.5f,-0.5f, 0.5f},{0.2f,0.2f,0.2f},{ 0,-1, 0}},
     {{-0.5f,-0.5f, 0.5f},{1,0,1,1},{ 0,-1, 0}},
 
-    // +Y
     {{-0.5f, 0.5f,-0.5f},{0,1,0,1},{ 0, 1, 0}},
     {{ 0.5f, 0.5f,-0.5f},{0,0,1,1},{ 0, 1, 0}},
     {{ 0.5f, 0.5f, 0.5f},{1,1,1,1},{ 0, 1, 0}},
@@ -396,110 +521,54 @@ r_init(OS_Handle window)
   UINT ib_size = sizeof(cube_indices);
 
   // Vertex buffer
-  CD3DX12_HEAP_PROPERTIES vb_heap(D3D12_HEAP_TYPE_UPLOAD);
-  CD3DX12_RESOURCE_DESC vb_desc = CD3DX12_RESOURCE_DESC::Buffer(vb_size);
-  ctx->device->CreateCommittedResource(&vb_heap, D3D12_HEAP_FLAG_NONE, &vb_desc,
-                                       D3D12_RESOURCE_STATE_GENERIC_READ, 0,
-                                       IID_PPV_ARGS(&ctx->vertex_buffer));
-  void *vtx_data;
-  ctx->vertex_buffer->Map(0, 0, &vtx_data);
-  MemoryCopy(vtx_data, cube_vertices, vb_size);
-  ctx->vertex_buffer->Unmap(0, 0);
-  ctx->vertex_buffer_view.BufferLocation = ctx->vertex_buffer->GetGPUVirtualAddress();
-  ctx->vertex_buffer_view.SizeInBytes   = vb_size;
-  ctx->vertex_buffer_view.StrideInBytes = sizeof(Vertex);
+  {
+    CD3DX12_HEAP_PROPERTIES vb_heap(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC vb_desc = CD3DX12_RESOURCE_DESC::Buffer(vb_size);
+    hr = ctx->device->CreateCommittedResource(
+      &vb_heap, D3D12_HEAP_FLAG_NONE, &vb_desc,
+      D3D12_RESOURCE_STATE_GENERIC_READ, 0,
+      IID_PPV_ARGS(&ctx->vertex_buffer)
+    );
+    Assert(SUCCEEDED(hr));
+
+    void *vtx_data = 0;
+    ctx->vertex_buffer->Map(0, 0, &vtx_data);
+    MemoryCopy(vtx_data, cube_vertices, vb_size);
+    ctx->vertex_buffer->Unmap(0, 0);
+
+    ctx->vertex_buffer_view.BufferLocation = ctx->vertex_buffer->GetGPUVirtualAddress();
+    ctx->vertex_buffer_view.SizeInBytes = vb_size;
+    ctx->vertex_buffer_view.StrideInBytes = sizeof(Vertex);
+  }
 
   // Index buffer
-  CD3DX12_HEAP_PROPERTIES ib_heap(D3D12_HEAP_TYPE_UPLOAD);
-  CD3DX12_RESOURCE_DESC ib_desc = CD3DX12_RESOURCE_DESC::Buffer(ib_size);
-  ctx->device->CreateCommittedResource(&ib_heap, D3D12_HEAP_FLAG_NONE, &ib_desc,
-                                       D3D12_RESOURCE_STATE_GENERIC_READ, 0,
-                                       IID_PPV_ARGS(&ctx->index_buffer));
-  void *idx_data;
-  ctx->index_buffer->Map(0, 0, &idx_data);
-  MemoryCopy(idx_data, cube_indices, ib_size);
-  ctx->index_buffer->Unmap(0, 0);
-  ctx->index_buffer_view.BufferLocation = ctx->index_buffer->GetGPUVirtualAddress();
-  ctx->index_buffer_view.Format = DXGI_FORMAT_R16_UINT;
-  ctx->index_buffer_view.SizeInBytes = ib_size;
+  {
+    CD3DX12_HEAP_PROPERTIES ib_heap(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC ib_desc = CD3DX12_RESOURCE_DESC::Buffer(ib_size);
+    hr = ctx->device->CreateCommittedResource(
+      &ib_heap, D3D12_HEAP_FLAG_NONE, &ib_desc,
+      D3D12_RESOURCE_STATE_GENERIC_READ, 0,
+      IID_PPV_ARGS(&ctx->index_buffer)
+    );
+    Assert(SUCCEEDED(hr));
 
-  // Constant buffers: separate resources
-  ctx->model_cb_stride = 256;
-  ctx->material_cb_stride = 256;
+    void *idx_data = 0;
+    ctx->index_buffer->Map(0, 0, &idx_data);
+    MemoryCopy(idx_data, cube_indices, ib_size);
+    ctx->index_buffer->Unmap(0, 0);
 
-  // Uniform data backing buffer: camera
-  {
-    CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(256);
-    ctx->device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc,
-                                         D3D12_RESOURCE_STATE_GENERIC_READ, 0,
-                                         IID_PPV_ARGS(&ctx->camera_cb));
-    ctx->camera_cb->Map(0, 0, (void**)(&ctx->camera_cb_mapped));
-  }
-  // Uniform data backing buffer: model transforms
-  {
-    U64 bytes = (U64)ctx->model_cb_stride * (U64)SCENE_MODELS_COUNT;
-    CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(bytes);
-    ctx->device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc,
-                                         D3D12_RESOURCE_STATE_GENERIC_READ, 0,
-                                         IID_PPV_ARGS(&ctx->model_cb));
-    ctx->model_cb->Map(0, 0, (void**)(&ctx->model_cb_mapped));
-  }
-  // Uniform data backing buffer: materials
-  {
-    U64 bytes = (U64)ctx->material_cb_stride * (U64)SCENE_MATERIALS_COUNT;
-    CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(bytes);
-    ctx->device->CreateCommittedResource(&heap, D3D12_HEAP_FLAG_NONE, &desc,
-                                         D3D12_RESOURCE_STATE_GENERIC_READ, 0,
-                                         IID_PPV_ARGS(&ctx->material_cb));
-    ctx->material_cb->Map(0, 0, (void**)(&ctx->material_cb_mapped));
+    ctx->index_buffer_view.BufferLocation = ctx->index_buffer->GetGPUVirtualAddress();
+    ctx->index_buffer_view.Format = DXGI_FORMAT_R16_UINT;
+    ctx->index_buffer_view.SizeInBytes = ib_size;
   }
 
-  // Allocate uniform descriptors from a single heap: [0]=camera, [1..N]=models, [base..]=materials
-  {
-    ctx->model_cbv_base = 1;
-    ctx->material_cbv_base = 1 + SCENE_MODELS_COUNT;
-
-    CD3DX12_CPU_DESCRIPTOR_HANDLE h(ctx->cbv_heap->GetCPUDescriptorHandleForHeapStart());
-
-    // Camera
-    {
-      D3D12_CONSTANT_BUFFER_VIEW_DESC d = {};
-      d.BufferLocation = ctx->camera_cb->GetGPUVirtualAddress();
-      d.SizeInBytes = 256;
-      ctx->device->CreateConstantBufferView(&d, h);
-      h.Offset(1, ctx->cbv_descriptor_size);
-    }
-    // Model transform slices
-    for (S32 idx = 0; idx < SCENE_MODELS_COUNT; idx += 1) {
-      D3D12_CONSTANT_BUFFER_VIEW_DESC d = {};
-      d.BufferLocation = ctx->model_cb->GetGPUVirtualAddress() + (U64)ctx->model_cb_stride * (U64)idx;
-      d.SizeInBytes = ctx->model_cb_stride;
-      ctx->device->CreateConstantBufferView(&d, h);
-      h.Offset(1, ctx->cbv_descriptor_size);
-    }
-    // Material slices
-    for (S32 idx = 0; idx < SCENE_MATERIALS_COUNT; idx += 1) {
-      D3D12_CONSTANT_BUFFER_VIEW_DESC d = {};
-      d.BufferLocation = ctx->material_cb->GetGPUVirtualAddress() + (U64)ctx->material_cb_stride * (U64)idx;
-      d.SizeInBytes = ctx->material_cb_stride;
-      ctx->device->CreateConstantBufferView(&d, h);
-      h.Offset(1, ctx->cbv_descriptor_size);
-    }
-  }
-
-  // Create synchronization primitives
+  // Create synchronization primitives (frame fence)
   ctx->device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&ctx->fence));
   ctx->fence_event = CreateEvent(0, FALSE, FALSE, 0);
   for (S32 idx = 0; idx < R_D3D12_FRAME_COUNT; idx += 1) ctx->fence_values[idx] = 0;
   ctx->fence_values[ctx->frame_idx] = 1;
-  factory->Release();
 
-  //                                         //
-  // ============ NEW STUFF ================ //
-  //                                         //
+  factory->Release();
 
   // Resource copy command allocator
   hr = ctx->device->CreateCommandAllocator(
@@ -527,26 +596,7 @@ r_init(OS_Handle window)
   );
   Assert(SUCCEEDED(hr));
   ctx->copy_fence_value = 0;
-
   ctx->copy_fence_event = CreateEventA(0, FALSE, FALSE, 0);
-
-  // Bindless SRV/CBV/UAV descriptor heap
-  D3D12_DESCRIPTOR_HEAP_DESC heap_desc = {};
-  heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-  heap_desc.NumDescriptors = R_RESOURCE_SLOTS_MAX;
-  heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-  heap_desc.NodeMask = 0;
-
-  hr = ctx->device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&ctx->srv_heap));
-  Assert(SUCCEEDED(hr));
-
-  ctx->srv_descriptor_size =
-    ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-}
-
-static void
-r_shutdown(void)
-{
 }
 
 static void
@@ -554,13 +604,14 @@ r_render_forward(Camera *camera, ModelTmp *models)
 {
   R_Context *ctx = &r_ctx;
 
-  // Write camera uniforms
-  R_CameraCB cb = {
-    .viewproj = camera->viewproj,
-    .camera_ws = v4f32(camera->position.x, camera->position.y, camera->position.z, 0.f),
-    .view = camera->view,
-  };
-  MemoryCopy(ctx->camera_cb_mapped, &cb, sizeof(cb));
+  // Update per-frame CB (b0)
+  {
+    R_FrameCB cb = {
+      .viewproj = camera->viewproj,
+      .camera_ws = v4f32(camera->position.x, camera->position.y, camera->position.z, 0.f),
+    };
+    MemoryCopy(ctx->frame_cb_mapped, &cb, sizeof(cb));
+  }
 
   // Command list setup
   CD3DX12_VIEWPORT viewport(0.f, 0.f, (F32)ctx->width, (F32)ctx->height);
@@ -571,16 +622,44 @@ r_render_forward(Camera *camera, ModelTmp *models)
   ctx->command_list->RSSetViewports(1, &viewport);
   ctx->command_list->RSSetScissorRects(1, &scissor_rect);
 
-  // Prepare current framebuffer for writing by transitioning from presenting state
-  CD3DX12_RESOURCE_BARRIER barrier_to_rtv = CD3DX12_RESOURCE_BARRIER::Transition(
-    ctx->render_targets[ctx->frame_idx],
-    D3D12_RESOURCE_STATE_PRESENT,
-    D3D12_RESOURCE_STATE_RENDER_TARGET
-  );
-  ctx->command_list->ResourceBarrier(1, &barrier_to_rtv);
+  // Bind unified descriptor heap
+  {
+    ID3D12DescriptorHeap *heaps[] = { ctx->srv_heap };
+    ctx->command_list->SetDescriptorHeaps(1, heaps);
 
-  CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart(),
-    ctx->frame_idx, ctx->rtv_descriptor_size);
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_base =
+      ctx->srv_heap->GetGPUDescriptorHandleForHeapStart();
+
+    // Root param 0: per-frame constant buffer
+    ctx->command_list->SetGraphicsRootDescriptorTable(0, gpu_base);
+
+    // Root param 1: per-draw constant buffer
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_draw =
+      CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_base, R_D3D12_DRAW_CBV_SLOT, ctx->srv_descriptor_size);
+    ctx->command_list->SetGraphicsRootDescriptorTable(1, gpu_draw);
+
+    // Root param 2: texture table
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex = gpu_base;
+    gpu_tex.ptr +=
+      (U64)R_D3D12_TEXTURE_TABLE_BASE * (U64)ctx->srv_descriptor_size;
+    ctx->command_list->SetGraphicsRootDescriptorTable(2, gpu_tex);
+  }
+
+  // Prepare current framebuffer for writing by transitioning from presenting state
+  {
+    CD3DX12_RESOURCE_BARRIER barrier_to_rtv = CD3DX12_RESOURCE_BARRIER::Transition(
+      ctx->render_targets[ctx->frame_idx],
+      D3D12_RESOURCE_STATE_PRESENT,
+      D3D12_RESOURCE_STATE_RENDER_TARGET
+    );
+    ctx->command_list->ResourceBarrier(1, &barrier_to_rtv);
+  }
+
+  CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(
+    ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart(),
+    ctx->frame_idx,
+    ctx->rtv_descriptor_size
+  );
   CD3DX12_CPU_DESCRIPTOR_HANDLE dsv_handle(ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart());
   ctx->command_list->OMSetRenderTargets(1, &rtv_handle, FALSE, &dsv_handle);
 
@@ -588,33 +667,12 @@ r_render_forward(Camera *camera, ModelTmp *models)
   ctx->command_list->ClearRenderTargetView(rtv_handle, clear_color, 0, 0);
   ctx->command_list->ClearDepthStencilView(dsv_handle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, 0);
 
-  // Bind CBV heap for drawing
-  ctx->command_list->SetDescriptorHeaps(1, &ctx->cbv_heap);
-
-  // Descriptor handles
-  CD3DX12_GPU_DESCRIPTOR_HANDLE cbv_gpu_base(ctx->cbv_heap->GetGPUDescriptorHandleForHeapStart());
-  D3D12_GPU_DESCRIPTOR_HANDLE gpu_cam = cbv_gpu_base;
-
-  // Root table 0 -> CameraCB (b0), bound once per frame
-  ctx->command_list->SetGraphicsRootDescriptorTable(0, gpu_cam);
-
   // Input Assembler setup
   ctx->command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   ctx->command_list->IASetVertexBuffers(0, 1, &ctx->vertex_buffer_view);
   ctx->command_list->IASetIndexBuffer(&ctx->index_buffer_view);
 
-  // Simple material initialization
-  {
-    for (S32 idx = 0; idx < SCENE_MATERIALS_COUNT; idx += 1) {
-      R_MaterialCB mtl = {
-        .base_color = v3f32(1,1,1),
-      };
-      U64 off = (U64)ctx->material_cb_stride * (U64)idx;
-      MemoryCopy(ctx->material_cb_mapped + off, &mtl, sizeof(mtl));
-    }
-  }
-
-  // Draw the scene's models
+  // Draw the temporary models
   for (S32 model_idx = 0; model_idx < SCENE_MODELS_COUNT; model_idx += 1) {
     ModelTmp *m = &models[model_idx];
 
@@ -622,31 +680,32 @@ r_render_forward(Camera *camera, ModelTmp *models)
     Mat4x4 sc = scale_m4x4(m->scale);
     Mat4x4 model = m4x4_mul(sc, tr);
 
-    Mat4x4 inverse = m4x4_inverse(model);
-    Mat4x4 normal_matrix = m4x4_transpose(inverse);
+    Mat4x4 inv = m4x4_inverse(model);
+    Mat4x4 normal = m4x4_transpose(inv);
 
-    U64 model_off = (U64)ctx->model_cb_stride * (U64)model_idx;
-    MemoryCopy(ctx->model_cb_mapped + model_off, &model, sizeof(model));
-    MemoryCopy(ctx->model_cb_mapped + model_off + sizeof(model), &normal_matrix, sizeof(normal_matrix));
+    R_DrawCB draw_cb_data = {
+      .model  = model,
+      .normal = normal,
+    };
 
-    S32 model_slice_index = ctx->model_cbv_base + model_idx;
-    CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_model(cbv_gpu_base, model_slice_index, ctx->cbv_descriptor_size);
-    ctx->command_list->SetGraphicsRootDescriptorTable(1, gpu_model);
-
-    S32 mat_idx = model_idx % SCENE_MATERIALS_COUNT; // Just use the first material.
-    S32 mat_slice_index = ctx->material_cbv_base + mat_idx;
-    CD3DX12_GPU_DESCRIPTOR_HANDLE gpu_mat(cbv_gpu_base, mat_slice_index, ctx->cbv_descriptor_size);
-    ctx->command_list->SetGraphicsRootDescriptorTable(2, gpu_mat);
-
+    // @Todo: Data is zeroed/NaN in shader
+    MemoryCopy(ctx->draw_cb_mapped, &draw_cb_data, sizeof(draw_cb_data));
     ctx->command_list->DrawIndexedInstanced(36, 1, 0, 0, 0);
   }
 
-  CD3DX12_RESOURCE_BARRIER barrier_to_present = CD3DX12_RESOURCE_BARRIER::Transition(
+  {
+    CD3DX12_RESOURCE_BARRIER barrier_to_present = CD3DX12_RESOURCE_BARRIER::Transition(
       ctx->render_targets[ctx->frame_idx],
       D3D12_RESOURCE_STATE_RENDER_TARGET,
       D3D12_RESOURCE_STATE_PRESENT
-  );
-  ctx->command_list->ResourceBarrier(1, &barrier_to_present);
+    );
+    ctx->command_list->ResourceBarrier(1, &barrier_to_present);
+  }
+}
+
+static void
+r_shutdown(void)
+{
 }
 
 // @Note: Temporary. These don't belong in here.
