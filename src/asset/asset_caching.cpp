@@ -872,7 +872,10 @@ ac_build_image_table(AC_Builder *builder, cgltf_data *gltf)
 static AC_BuildResult
 ac_build_mip_table(AC_Builder *builder, cgltf_data *gltf)
 {
-  U32 img_count = (U32)gltf->images_count;
+  (void *)gltf;
+  // @Todo: Have to build this inside ac_build_images() as that's the only place you have access to mip counts!
+
+  //U32 img_count = (U32)gltf->images_count;
   U32 mip_count = 0;
   // @Note: Temporary
 
@@ -977,19 +980,19 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_
 
             // Fill mip table entries
             U32 mips_begin = running_mip_count;
-            U32 mips_end = mips_begin + meta.mipLevels;
+            U32 mips_end = (U32)(mips_begin + meta.mipLevels);
             U32 mip_img_offset = 0;
-            running_mip_count += meta.mipLevels;
+            running_mip_count += (U32)meta.mipLevels;
 
             for (U32 mip_idx = mips_begin; mip_idx < mips_end; mip_idx += 1) {
               AC_MipEntry *mip = &mip_table[mip_idx];
-              mip->width = images[mip_idx].width;
-              mip->height = images[mip_idx].height;
-              mip->row_pitch = images[mip_idx].rowPitch;
-              mip->slice_pitch = images[mip_idx].slicePitch;
+              mip->width = (U32)images[mip_idx].width;
+              mip->height = (U32)images[mip_idx].height;
+              mip->row_pitch = (U32)images[mip_idx].rowPitch;
+              mip->slice_pitch = (U32)images[mip_idx].slicePitch;
 
               mip->image_offset_bytes = mip_img_offset;
-              mip_img_offset += images[mip_idx].slicePitch;
+              mip_img_offset += (U32)images[mip_idx].slicePitch;
             }
 
             // Calculate aligned offset in output

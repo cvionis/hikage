@@ -13,7 +13,7 @@
 struct R_Handle {
   S32 idx;
   S32 gen;
-  S64 ready_fence;
+  S64 fence_value;
 };
 
 struct R_CreateResource {

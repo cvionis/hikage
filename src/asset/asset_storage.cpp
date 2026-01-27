@@ -65,22 +65,28 @@ assets_load_model(AssetContext *ctx, String8 name)
       U32 tex_table_off = hdr->texture_table_off;
       auto *tex_table  = (AC_TextureEntry *)(data + tex_table_off);
 
+      #if 0
       U32 img_count = hdr->image_count;
+      #endif
       U32 img_table_off = hdr->image_table_off;
       auto *img_table  = (AC_ImageEntry *)(data + img_table_off);
 
+      #if 0
       U32 vb_data_off = hdr->vb_bytes_off;
       U32 vb_data_size = hdr->vb_bytes_size;
       U8 *vb_data = data + vb_data_off;
-
+      #endif
+      #if 0
       U32 ib_data_off = hdr->ib_bytes_off;
       U32 ib_data_size = hdr->ib_bytes_size;
       U8 *ib_data = data + ib_data_off;
+      #endif
 
+      #if 0
       U32 img_data_off = hdr->image_bytes_off;
       U32 img_data_size = hdr->image_bytes_size;
       U8 *img_data = data + img_data_off;
-
+      #endif
       //
       // Create model asset and any child assets
       //

@@ -17,6 +17,8 @@
 
 // @Todo: -> R_D3D12_Context, move to backend/d3d12/render_context_d3d12.h
 struct R_Context {
+  Arena *arena;
+
   // Window
   OS_Handle window;
   S32 width;

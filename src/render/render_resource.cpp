@@ -23,6 +23,7 @@ r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
   R_Handle result = {
     .idx = slot_idx,
     .gen = slot->gen,
+    .fence_value = create.fence_value,
   };
   return result;
 }

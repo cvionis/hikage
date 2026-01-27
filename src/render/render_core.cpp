@@ -87,6 +87,8 @@ static void
 r_init(OS_Handle window)
 {
   R_Context *ctx = &r_ctx;
+  ctx->arena = arena_alloc_default();
+
   HWND hwnd = os_win32_window_from_handle(window)->hwnd;
 
   // @Todo: Temp
