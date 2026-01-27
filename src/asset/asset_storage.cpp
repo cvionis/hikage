@@ -65,7 +65,7 @@ assets_load_model(AssetContext *ctx, String8 name)
       U32 tex_table_off = hdr->texture_table_off;
       auto *tex_table  = (AC_TextureEntry *)(data + tex_table_off);
 
-      U32 mip_table_off = hdr->texture_table_off;
+      U32 mip_table_off = hdr->mip_table_off;
       auto *mip_table  = (AC_MipEntry *)(data + mip_table_off);
 
       U32 img_table_off = hdr->image_table_off;

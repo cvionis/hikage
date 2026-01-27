@@ -1076,7 +1076,7 @@ ac_load_model_blob_gltf(Arena *arena, AC_Builder *builder, String8 gltf_path)
     AC_Header *hdr = (AC_Header *)ac_push(builder, sizeof(AC_Header), 1);
     char magic[] = "DEEZ";
     MemoryCopy(&hdr->magic, magic, sizeof(U32));
-    hdr->version = 1u;
+    hdr->version = AC_VERSION;
 
     AC_BuildResult build;
     AC_MeshEntry *mesh_table;

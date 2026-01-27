@@ -19,6 +19,7 @@ r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
 
   R_CreateResource create = r_create_texture_impl(init, init_count, desc, slot->descriptor_idx);
   slot->backend_rsrc = create.backend;
+  slot->fence_value = create.fence_value;
 
   R_Handle result = {
     .idx = slot_idx,

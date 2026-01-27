@@ -190,6 +190,8 @@ entry_point(void)
     .window = os_window_open(S8("Kage"), screen_w, screen_h),
   };
 
+  r_init(app.window);
+
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
   AssetHandle a = assets_load_model(&assets, S8("DamagedHelmet"));
@@ -214,8 +216,6 @@ entry_point(void)
     models[0].scale = v3f32(10,1,10);
     models[0].position = v3f32(0,-1,0);
   }
-
-  r_init(app.window);
 
   while (!app.quit) {
     OS_EventList *events = os_get_events();

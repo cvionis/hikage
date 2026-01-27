@@ -70,8 +70,44 @@ r_d3d12_calc_upload_size(ID3D12Resource *dst, S32 subresource_count, D3D12_PLACE
   return *out_total_size;
 }
 
+static  B32
+is_block_compressed(DXGI_FORMAT fmt)
+{
+  B32 result = 0;
+  switch (fmt) {
+    case DXGI_FORMAT_BC1_UNORM:
+    case DXGI_FORMAT_BC1_UNORM_SRGB:
+    case DXGI_FORMAT_BC2_UNORM:
+    case DXGI_FORMAT_BC2_UNORM_SRGB:
+    case DXGI_FORMAT_BC3_UNORM:
+    case DXGI_FORMAT_BC3_UNORM_SRGB:
+    case DXGI_FORMAT_BC4_UNORM:
+    case DXGI_FORMAT_BC4_SNORM:
+    case DXGI_FORMAT_BC5_UNORM:
+    case DXGI_FORMAT_BC5_SNORM:
+    case DXGI_FORMAT_BC6H_UF16:
+    case DXGI_FORMAT_BC6H_SF16:
+    case DXGI_FORMAT_BC7_UNORM:
+    case DXGI_FORMAT_BC7_UNORM_SRGB: { result = 1; }break;
+  }
+  return result;
+}
+
+static S32
+bc_bytes_per_block(DXGI_FORMAT fmt)
+{
+  S32 result = 16; // BC2/3/5/6/7
+  switch (fmt) {
+    case DXGI_FORMAT_BC1_UNORM:
+    case DXGI_FORMAT_BC1_UNORM_SRGB:
+    case DXGI_FORMAT_BC4_UNORM:
+    case DXGI_FORMAT_BC4_SNORM: { result = 8; }break;
+  }
+  return result;
+}
+
 static void
-r_d3d12_upload_texture(R_D3D12_Texture *tex, R_TextureInitData *init, S32 init_count)
+r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData *init, S32 init_count)
 {
   R_Context *ctx = &r_ctx;
 
@@ -113,15 +149,46 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, R_TextureInitData *init, S32 init_c
   upload->Map(0, 0, &mapped);
   {
     for (S32 i = 0; i < init_count; i += 1) {
-      U8 *dst = (U8 *)mapped + layouts[i].Offset;
-      U8 *src = (U8 *)init[i].data;
+      U8 *dst_base = (U8 *)mapped + layouts[i].Offset;
+      U8 *src_base = (U8 *)init[i].data;
 
-      for (U32 y = 0; y < layouts[i].Footprint.Height; y += 1) {
-        MemoryCopy(
-          dst + y * layouts[i].Footprint.RowPitch,
-          src + y * init[i].row_pitch,
-          init[i].row_pitch
-        );
+      U32 dst_row_pitch = layouts[i].Footprint.RowPitch;
+
+      if (is_block_compressed(fmt)) {
+        U32 bpb = bc_bytes_per_block(fmt);
+
+        U32 w = layouts[i].Footprint.Width;
+        U32 h = layouts[i].Footprint.Height;
+
+        U32 blocks_x = (w + 3) / 4; if (blocks_x == 0) blocks_x = 1;
+        U32 blocks_y = (h + 3) / 4; if (blocks_y == 0) blocks_y = 1;
+
+        U32 src_row_bytes = blocks_x * bpb;
+
+        Assert(init[i].row_pitch >= (S32)src_row_bytes);
+        Assert(src_row_bytes <= dst_row_pitch);
+
+        for (U32 y = 0; y < blocks_y; y += 1) {
+          MemoryCopy(
+            dst_base + (U64)y * dst_row_pitch,
+            src_base + (U64)y * src_row_bytes,
+            src_row_bytes
+          );
+        }
+      }
+      else {
+        U32 rows = layouts[i].Footprint.Height;
+        U32 src_row_bytes = (U32)init[i].row_pitch;
+
+        Assert(src_row_bytes <= dst_row_pitch);
+
+        for (U32 y = 0; y < rows; y += 1) {
+          MemoryCopy(
+            dst_base + (U64)y * dst_row_pitch,
+            src_base + (U64)y * src_row_bytes,
+            src_row_bytes
+          );
+        }
       }
     }
   }
@@ -203,7 +270,7 @@ static R_CreateResource r_create_texture_impl(R_TextureInitData *init, S32 init_
   r_d3d12_write_srv(tex->resource, dxgi_fmt, init_count, descriptor_idx);
 
   if (init_count > 0) {
-    r_d3d12_upload_texture(tex, init, init_count);
+    r_d3d12_upload_texture(tex, dxgi_fmt, init, init_count);
     result.fence_value = ctx->copy_fence_value;
   } else {
     result.fence_value = 0;
