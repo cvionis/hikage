@@ -56,6 +56,7 @@ enum R_TextureFmt {
   // Block-compressed
   R_TextureFmt_BC1_UNORM,
   R_TextureFmt_BC3_UNORM,
+  R_TextureFmt_BC4_UNORM,
   R_TextureFmt_BC5_UNORM,
   R_TextureFmt_BC7_UNORM,
 

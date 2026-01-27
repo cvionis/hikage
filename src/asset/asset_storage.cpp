@@ -65,9 +65,9 @@ assets_load_model(AssetContext *ctx, String8 name)
       U32 tex_table_off = hdr->texture_table_off;
       auto *tex_table  = (AC_TextureEntry *)(data + tex_table_off);
 
-      #if 0
-      U32 img_count = hdr->image_count;
-      #endif
+      U32 mip_table_off = hdr->texture_table_off;
+      auto *mip_table  = (AC_MipEntry *)(data + mip_table_off);
+
       U32 img_table_off = hdr->image_table_off;
       auto *img_table  = (AC_ImageEntry *)(data + img_table_off);
 
@@ -75,18 +75,14 @@ assets_load_model(AssetContext *ctx, String8 name)
       U32 vb_data_off = hdr->vb_bytes_off;
       U32 vb_data_size = hdr->vb_bytes_size;
       U8 *vb_data = data + vb_data_off;
-      #endif
-      #if 0
+
       U32 ib_data_off = hdr->ib_bytes_off;
       U32 ib_data_size = hdr->ib_bytes_size;
       U8 *ib_data = data + ib_data_off;
       #endif
 
-      #if 0
       U32 img_data_off = hdr->image_bytes_off;
-      U32 img_data_size = hdr->image_bytes_size;
-      U8 *img_data = data + img_data_off;
-      #endif
+
       //
       // Create model asset and any child assets
       //
@@ -122,38 +118,40 @@ assets_load_model(AssetContext *ctx, String8 name)
 
         U32 img_idx = src->img_index;
         AC_ImageEntry *img = &img_table[img_idx];
-        //dst->fmt = img->fmt;
+        dst->fmt = img->format;
         dst->width = img->width;
         dst->height = img->height;
         dst->mip_count = img->mip_count;
 
-        #if 0
         R_TextureDesc desc = {
-          .width = img->width,
-          .height = img->height,
+          .width = (S32)img->width,
+          .height = (S32)img->height,
           .depth = 1,
-          .mips_count = img->mip_count,
-          // blah blah blah...
+          .mips_count = (S32)img->mip_count,
+          .fmt = img->format,
+          .usage = R_TextureUsage_Sampled, // @Note: Currently not used.
+          .kind = R_TextureKind_2D,
         };
+
+        U32 mips_end = img->mips_begin + img->mip_count;
 
         R_TextureInitData *init = ArenaPushArray(scratch.arena, R_TextureInitData, img->mip_count);
         U32 init_idx = 0;
-        for (U32 mip_idx = img->mip_start; mip_idx < img->mip_end; mip_idx += 1) {
+        for (U32 mip_idx = img->mips_begin; mip_idx < mips_end; mip_idx += 1) {
           AC_MipEntry *mip = &mip_table[mip_idx];
           U32 img_base_off = img_data_off + img->data_offset_bytes;
           U32 mip_off = img_base_off + mip->image_offset_bytes;
+          U8 *mip_data = (U8 *)(data + mip_off); // @Todo: Verify.
 
           init[init_idx] = {
             .data = mip_data,
-            .slice_pitch = mip->slice_pitch,
-            .row_pitch = mip->row_pitch,
+            .row_pitch = (S32)mip->row_pitch,
+            .slice_pitch = (S32)mip->slice_pitch,
           };
           init_idx += 1;
         }
 
         dst->tex = r_create_texture(init, img->mip_count, desc);
-        #endif
-
         ctx->textures_count += 1;
       }
 

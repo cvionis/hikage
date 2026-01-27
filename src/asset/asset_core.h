@@ -1,15 +1,5 @@
 #pragma once
 
-// @Todo: Naming needs to be more specific; unorm or uint? signed or unsigned (for BC6h)?
-enum A_ImageFormat {
-  A_ImageFormat_BC1,
-  A_ImageFormat_BC3,
-  A_ImageFormat_BC4,
-  A_ImageFormat_BC5,
-  A_ImageFormat_BC6H,
-  A_ImageFormat_BC7,
-};
-
 enum A_IndexKind {
   A_IndexKind_U16,
   A_IndexKind_U32,

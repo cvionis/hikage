@@ -17,6 +17,7 @@
 
     [Material table]
     [Texture table]
+    [Mip table]
     [Image data]
  */
 
@@ -83,26 +84,13 @@ struct AC_TextureEntry {
   U32 img_index;
 };
 
-#if 0
 struct AC_ImageEntry {
-  A_ImageFormat format;
-  U32 width;
-  U32 height;
-  U32 mip_count;
-
-  U32 data_offset_bytes;      // into img_bytes section
-  U32 data_size_bytes;        // total bytes for all mips
-};
-#endif
-
-struct AC_ImageEntry {
-  A_ImageFormat format;
+  R_TextureFmt format;
   U32 width;
   U32 height;
 
+  U32 mips_begin;             // index into mip table
   U32 mip_count;
-  U32 mips_begin;             // indices into mip table
-  U32 mips_end;
 
   U32 data_offset_bytes;      // into img_bytes section
   U32 data_size_bytes;        // total bytes for all mips
@@ -111,8 +99,8 @@ struct AC_ImageEntry {
 struct AC_MipEntry {
   U32 width;
   U32 height;
-  U32 slice_pitch;
   U32 row_pitch;
+  U32 slice_pitch;
 
   U32 image_offset_bytes;    // from beginning of this mip's image's data section
 };

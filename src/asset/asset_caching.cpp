@@ -762,26 +762,29 @@ ac_build_texture_table(AC_Builder *builder, cgltf_data *gltf)
 }
 
 struct AC_ImageMetadata {
-  A_ImageFormat fmt;
+  R_TextureFmt fmt;
   U32 width;
   U32 height;
+
+  U32 mips_begin;
   U32 mip_count;
 
   U32 data_offset;
   U32 data_size;
 };
 
-static A_ImageFormat
+static R_TextureFmt
 ac_image_fmt_from_usage(U32 usage)
 {
-  // From low to high priority
+  // @Note: From low to high priority
+
   //A_ImageFormat result = A_ImageFormat_BC7;
-  A_ImageFormat result = A_ImageFormat_BC3;
+  R_TextureFmt result = R_TextureFmt_BC3_UNORM;
   switch (usage) {
-    case AC_ImageUsage_Emissive:   { result = A_ImageFormat_BC3; }break;
-    case AC_ImageUsage_MetalRough: { result = A_ImageFormat_BC4; }break;
-    case AC_ImageUsage_Occlusion:  { result = A_ImageFormat_BC4; }break;
-    case AC_ImageUsage_Normal:     { result = A_ImageFormat_BC5; }break;
+    case AC_ImageUsage_Emissive:   { result = R_TextureFmt_BC3_UNORM; }break;
+    case AC_ImageUsage_MetalRough: { result = R_TextureFmt_BC4_UNORM; }break;
+    case AC_ImageUsage_Occlusion:  { result = R_TextureFmt_BC4_UNORM; }break;
+    case AC_ImageUsage_Normal:     { result = R_TextureFmt_BC5_UNORM; }break;
   }
 
   return result;
@@ -828,24 +831,6 @@ ac_img_load(AC_Builder *builder, Arena *arena, cgltf_image *img)
   return result;
 }
 
-static DXGI_FORMAT
-ac_dxgi_from_img_fmt(A_ImageFormat fmt)
-{
-  DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
-
-  switch (fmt) {
-    // @Todo: Rename yours to signify that they're UNORM
-    case A_ImageFormat_BC1:  { result = DXGI_FORMAT_BC1_UNORM; }break;
-    case A_ImageFormat_BC3:  { result = DXGI_FORMAT_BC3_UNORM; }break;
-    case A_ImageFormat_BC4:  { result = DXGI_FORMAT_BC4_UNORM; }break;
-    case A_ImageFormat_BC5:  { result = DXGI_FORMAT_BC5_UNORM; }break;
-    case A_ImageFormat_BC6H: { result = DXGI_FORMAT_BC6H_UF16; }break;
-    case A_ImageFormat_BC7:  { result = DXGI_FORMAT_BC7_UNORM; }break;
-  }
-
-  return result;
-}
-
 // @Note: This doesn't fill out any fields in the table's entries.
 static AC_BuildResult
 ac_build_image_table(AC_Builder *builder, cgltf_data *gltf)
@@ -870,39 +855,33 @@ ac_build_image_table(AC_Builder *builder, cgltf_data *gltf)
 }
 
 static AC_BuildResult
-ac_build_mip_table(AC_Builder *builder, cgltf_data *gltf)
+ac_build_mip_table(AC_Builder *builder)
 {
-  (void *)gltf;
-  // @Todo: Have to build this inside ac_build_images() as that's the only place you have access to mip counts!
+  // @Note: Have to populate most of the mip table inside ac_build_images() as that's the only place you have access to mip counts!
 
-  //U32 img_count = (U32)gltf->images_count;
-  U32 mip_count = 0;
-  // @Note: Temporary
-
-  U32 mip_table_size = sizeof(AC_MipEntry) * mip_count;
   U32 mip_table_offset = (U32)builder->size;
-  AC_MipEntry *mip_table = (AC_MipEntry *)ac_push(
-    builder,
-    mip_table_size,
-    1
-  );
+  AC_MipEntry *mip_table = (AC_MipEntry *)(builder->data + builder->size);
 
   AC_BuildResult result = {
-    .data = (void *)mip_table,
+    .data = mip_table, // @Note: Populated in ac_build_images()
     .offset = mip_table_offset,
-    .size = mip_table_size,
-    .count = mip_count,
+    .size = 0, // @Note: Not used
+    .count = 0, // @Note: Not used
   };
 
   return result;
 }
 
 static AC_BuildResult
-ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_table, cgltf_data *gltf)
+ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
 {
   U32 section_offset = (U32)builder->size;
   section_offset = AlignPow2(section_offset, 256);
   U32 section_size = 0;
+
+  // @Note: Temporary
+  Arena *img_staging_arena = arena_alloc_default();
+  arena_set_align(img_staging_arena, 256);
 
   // Preliminary work: Prepare compressed image metadata
   Arena *scratch = arena_get_scratch(0,0);
@@ -951,8 +930,8 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_
 
       if (SUCCEEDED(hr)) {
         // Compress zeh mips
-        A_ImageFormat fmt = img_metadata[img_idx].fmt;
-        DXGI_FORMAT dxgi_fmt = ac_dxgi_from_img_fmt(fmt);
+        R_TextureFmt fmt = img_metadata[img_idx].fmt;
+        DXGI_FORMAT dxgi_fmt = r_d3d12_fmt_from_texture_fmt(fmt);
         if (dxgi_fmt != DXGI_FORMAT_UNKNOWN) {
           DirectX::ScratchImage compressed;
           hr = DirectX::Compress(
@@ -964,14 +943,16 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_
             1.0f,
             compressed
           );
+
           if (SUCCEEDED(hr)) {
             // Save image metadata
             const DirectX::TexMetadata &meta = compressed.GetMetadata();
             const DirectX::Image *images = compressed.GetImages();
 
-            img_metadata[img_idx].mip_count = (U32)meta.mipLevels;
-            img_metadata[img_idx].width     = (U32)meta.width;
-            img_metadata[img_idx].height    = (U32)meta.height;
+            img_metadata[img_idx].mips_begin = running_mip_count;
+            img_metadata[img_idx].mip_count  = (U32)meta.mipLevels;
+            img_metadata[img_idx].width      = (U32)meta.width;
+            img_metadata[img_idx].height     = (U32)meta.height;
 
             U32 compressed_size = 0;
             for (U32 mip_idx = 0; mip_idx < meta.mipLevels; mip_idx += 1) {
@@ -980,18 +961,21 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_
 
             // Fill mip table entries
             U32 mips_begin = running_mip_count;
-            U32 mips_end = (U32)(mips_begin + meta.mipLevels);
+            U32 mips_count = (U32)meta.mipLevels;
             U32 mip_img_offset = 0;
-            running_mip_count += (U32)meta.mipLevels;
+            running_mip_count += mips_count;
+
+            U32 mips_end = mips_begin + mips_count;
 
             for (U32 mip_idx = mips_begin; mip_idx < mips_end; mip_idx += 1) {
-              AC_MipEntry *mip = &mip_table[mip_idx];
+              AC_MipEntry *mip = (AC_MipEntry *)ac_push(builder, sizeof(AC_MipEntry), 1);
+
               mip->width = (U32)images[mip_idx].width;
               mip->height = (U32)images[mip_idx].height;
               mip->row_pitch = (U32)images[mip_idx].rowPitch;
               mip->slice_pitch = (U32)images[mip_idx].slicePitch;
-
               mip->image_offset_bytes = mip_img_offset;
+
               mip_img_offset += (U32)images[mip_idx].slicePitch;
             }
 
@@ -1003,9 +987,11 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_
             section_size += compressed_size;
 
             // Copy compressed image data to output
-            U32 image_count = (U32)compressed.GetImageCount();
-            U8 *compressed_mips = (U8 *)ac_push(builder, compressed_size, 256);
+            // @Note: Temporary
+            U8 *compressed_mips = (U8 *)arena_push(img_staging_arena, compressed_size);
+
             U32 pos = 0;
+            U32 image_count = (U32)compressed.GetImageCount();
             for (U32 mip_idx = 0; mip_idx < image_count; mip_idx += 1) {
               U32 copy_size = (U32)images[mip_idx].slicePitch;
               MemoryCopy(compressed_mips + pos, images[mip_idx].pixels, copy_size);
@@ -1017,14 +1003,21 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_
     }
 
     arena_temp_end(tmp);
+
+    U8 *src = (U8 *)(img_staging_arena + ARENA_HEADER_SIZE);
+    U8 *dst = builder->data + AlignPow2(builder->size, 256);
+    MemoryCopy(dst, src, section_size);
+    arena_release(img_staging_arena);
+    // @Todo: Copy img_staging_arena -> builder->arena
   }
 
-  // Fill img table entries (@Todo: Move this inside the fucking loop...)
+  // Fill img table entries (@Todo: Get rid of this stupid array and just directly copy inside the fucking loop...)
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
     AC_ImageMetadata *metadata = &img_metadata[img_idx];
     img_table[img_idx].format = metadata->fmt;
     img_table[img_idx].width = metadata->width;
     img_table[img_idx].height = metadata->height;
+    img_table[img_idx].mips_begin = metadata->mips_begin;
     img_table[img_idx].mip_count = metadata->mip_count;
     img_table[img_idx].data_offset_bytes = metadata->data_offset;
     img_table[img_idx].data_size_bytes = metadata->data_size;
@@ -1034,7 +1027,7 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, AC_MipEntry *mip_
     .data = 0,
     .offset = section_offset,
     .size = section_size,
-    .count = running_mip_count,
+    .count = running_mip_count, // @Note: Gross temporary solution
   };
   return result;
 }
@@ -1117,12 +1110,11 @@ ac_load_model_blob_gltf(Arena *arena, AC_Builder *builder, String8 gltf_path)
     hdr->image_table_off = build.offset;
     img_table = (AC_ImageEntry *)build.data;
 
-    build = ac_build_mip_table(builder, gltf);
-    // hdr->mip_count = build.count;  @Note: Can't know this at this point because images haven't been decoded and gltf doesn't provide counts.
+    build = ac_build_mip_table(builder);
     hdr->mip_table_off = build.offset;
     mip_table = (AC_MipEntry *)build.data;
 
-    build = ac_build_images(builder, img_table, mip_table, gltf);
+    build = ac_build_images(builder, img_table, gltf);
     hdr->image_bytes_off = build.offset;
     hdr->image_bytes_size = build.size;
     hdr->mip_count = build.count; // @Note: Temporary gross solution.
