@@ -25,6 +25,7 @@ r_d3d12_fmt_from_texture_fmt(R_TextureFmt fmt)
     case R_TextureFmt_RGBA16_FLOAT: { result = DXGI_FORMAT_R16G16B16A16_FLOAT; } break;
     case R_TextureFmt_BC1_UNORM:    { result = DXGI_FORMAT_BC1_UNORM;          } break;
     case R_TextureFmt_BC3_UNORM:    { result = DXGI_FORMAT_BC3_UNORM;          } break;
+    case R_TextureFmt_BC4_UNORM:    { result = DXGI_FORMAT_BC4_UNORM;          } break;
     case R_TextureFmt_BC5_UNORM:    { result = DXGI_FORMAT_BC5_UNORM;          } break;
     case R_TextureFmt_BC7_UNORM:    { result = DXGI_FORMAT_BC7_UNORM;          } break;
   }

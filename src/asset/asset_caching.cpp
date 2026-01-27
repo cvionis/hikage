@@ -260,11 +260,16 @@ ac_push(AC_Builder *builder, U64 size, U64 align)
 
   if (builder) {
     Arena *arena = builder->arena;
+
+    U64 pos_prev = arena->pos;
+
     arena_set_align(arena, align);
     result = arena_push(arena, size);
-    arena_set_align(arena, 0);
+    arena_set_align(arena, 1);
 
-    builder->size += size;
+    U64 pos_curr = arena->pos;
+
+    builder->size += (pos_curr - pos_prev);
   }
 
   return result;
@@ -875,12 +880,10 @@ ac_build_mip_table(AC_Builder *builder)
 static AC_BuildResult
 ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
 {
-  U32 section_offset = (U32)builder->size;
-  section_offset = AlignPow2(section_offset, 256);
-  U32 section_size = 0;
+  U32 img_data_size = 0;
 
   // @Note: Temporary
-  Arena *img_staging_arena = arena_alloc_default();
+  Arena *img_staging_arena = arena_alloc(MiB(128));
   arena_set_align(img_staging_arena, 256);
 
   // Preliminary work: Prepare compressed image metadata
@@ -895,7 +898,7 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
 
   // Load, decode, build mips, compress image data
 
-  U32 compressed_data_offset = 0; // From start of compressed image data, not file.
+  U32 compressed_data_offset = 0; // From start of compressed image data, not the file.
   U32 running_mip_count = 0;
 
   // @Todo: Make sure to handle sRGB data correctly.
@@ -959,15 +962,12 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
               compressed_size += (U32)images[mip_idx].slicePitch;
             }
 
-            // Fill mip table entries
-            U32 mips_begin = running_mip_count;
+            // Fill mip table entries for this image
             U32 mips_count = (U32)meta.mipLevels;
             U32 mip_img_offset = 0;
             running_mip_count += mips_count;
 
-            U32 mips_end = mips_begin + mips_count;
-
-            for (U32 mip_idx = mips_begin; mip_idx < mips_end; mip_idx += 1) {
+            for (U32 mip_idx = 0; mip_idx < mips_count; mip_idx += 1) {
               AC_MipEntry *mip = (AC_MipEntry *)ac_push(builder, sizeof(AC_MipEntry), 1);
 
               mip->width = (U32)images[mip_idx].width;
@@ -984,7 +984,7 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
             img_metadata[img_idx].data_offset = compressed_data_offset;
             img_metadata[img_idx].data_size = compressed_size;
             compressed_data_offset += compressed_size;
-            section_size += compressed_size;
+            img_data_size += compressed_size;
 
             // Copy compressed image data to output
             // @Note: Temporary
@@ -1003,13 +1003,15 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
     }
 
     arena_temp_end(tmp);
-
-    U8 *src = (U8 *)(img_staging_arena + ARENA_HEADER_SIZE);
-    U8 *dst = builder->data + AlignPow2(builder->size, 256);
-    MemoryCopy(dst, src, section_size);
-    arena_release(img_staging_arena);
-    // @Todo: Copy img_staging_arena -> builder->arena
   }
+
+  U32 img_data_offset = AlignPow2(builder->size, 256);
+  U8 *src = (U8 *)img_staging_arena + ARENA_HEADER_SIZE;
+  U8 *dst = builder->data + img_data_offset;
+  ac_push(builder, img_data_size, 256);
+  MemoryCopy(dst, src, img_data_size);
+
+  arena_release(img_staging_arena);
 
   // Fill img table entries (@Todo: Get rid of this stupid array and just directly copy inside the fucking loop...)
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
@@ -1025,8 +1027,8 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
 
   AC_BuildResult result = {
     .data = 0,
-    .offset = section_offset,
-    .size = section_size,
+    .offset = img_data_offset,
+    .size = img_data_size,
     .count = running_mip_count, // @Note: Gross temporary solution
   };
   return result;
