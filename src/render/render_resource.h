@@ -13,6 +13,12 @@
 struct R_Handle {
   S32 idx;
   S32 gen;
+  S64 ready_fence;
+};
+
+struct R_CreateResource {
+  S64 fence_value;
+  void *backend;
 };
 
 enum R_ResourceKind {
@@ -27,7 +33,7 @@ struct R_ResourceSlot {
   B32 alive;
 
   S32 descriptor_idx;
-  S32 fence_value;
+  S64 fence_value;
   void *backend_rsrc;
 };
 

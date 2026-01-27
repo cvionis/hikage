@@ -20,7 +20,7 @@ r_wait_for_previous_frame(void)
   // Advance to the next back buffer index.
   ctx->frame_idx = ctx->swapchain->GetCurrentBackBufferIndex();
 
-  // If the GPU hasnâ€™t finished processing this frame yet, wait for the fence event.
+  // If the GPU hasn't finished processing this frame yet, wait for the fence event.
   if (ctx->fence->GetCompletedValue() < ctx->fence_values[ctx->frame_idx]) {
     hr = ctx->fence->SetEventOnCompletion(ctx->fence_values[ctx->frame_idx], ctx->fence_event);
     Assert(SUCCEEDED(hr));
@@ -494,6 +494,52 @@ r_init(OS_Handle window)
   for (S32 idx = 0; idx < R_D3D12_FRAME_COUNT; idx += 1) ctx->fence_values[idx] = 0;
   ctx->fence_values[ctx->frame_idx] = 1;
   factory->Release();
+
+  //                                         //
+  // ============ NEW STUFF ================ //
+  //                                         //
+
+  // Resource copy command allocator
+  hr = ctx->device->CreateCommandAllocator(
+    D3D12_COMMAND_LIST_TYPE_DIRECT,
+    IID_PPV_ARGS(&ctx->copy_cmd_allocator)
+  );
+  Assert(SUCCEEDED(hr));
+
+  // Resource copy command list
+  hr = ctx->device->CreateCommandList(
+    0,
+    D3D12_COMMAND_LIST_TYPE_DIRECT,
+    ctx->copy_cmd_allocator,
+    0,
+    IID_PPV_ARGS(&ctx->copy_cmd_list)
+  );
+  Assert(SUCCEEDED(hr));
+  ctx->copy_cmd_list->Close();
+
+  // Resource upload/ready-tracking fence
+  hr = ctx->device->CreateFence(
+    0,
+    D3D12_FENCE_FLAG_NONE,
+    IID_PPV_ARGS(&ctx->copy_fence)
+  );
+  Assert(SUCCEEDED(hr));
+  ctx->copy_fence_value = 0;
+
+  ctx->copy_fence_event = CreateEventA(0, FALSE, FALSE, 0);
+
+  // Bindless SRV/CBV/UAV descriptor heap
+  D3D12_DESCRIPTOR_HEAP_DESC heap_desc = {};
+  heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+  heap_desc.NumDescriptors = R_RESOURCE_SLOTS_MAX;
+  heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+  heap_desc.NodeMask = 0;
+
+  hr = ctx->device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&ctx->srv_heap));
+  Assert(SUCCEEDED(hr));
+
+  ctx->srv_descriptor_size =
+    ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 }
 
 static void

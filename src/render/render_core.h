@@ -27,12 +27,11 @@ struct R_Context {
   ID3D12Device *device;
 
   ID3D12Resource *render_targets[R_D3D12_FRAME_COUNT];
-  S32 rtv_descriptor_size; // @Todo: Why is this here?
 
   ID3D12PipelineState *pipeline_state;
 
   ID3D12CommandAllocator *command_allocators[R_D3D12_FRAME_COUNT];
-  ID3D12CommandQueue *command_queue;
+  ID3D12CommandQueue *command_queue; // @Todo: Rename gfx queue or something to differentiate from upload queue
   ID3D12GraphicsCommandList *command_list;
   ID3D12RootSignature *root_signature;
 
@@ -74,7 +73,7 @@ struct R_Context {
   U8 *material_cb_mapped;
   U32 material_cb_stride;
 
-  // Synchronization
+  // Frame synchronization
   U32 frame_idx;
   HANDLE fence_event;
   ID3D12Fence *fence;
@@ -84,13 +83,22 @@ struct R_Context {
   // ============ NEW STUFF ================ //
   //                                         //
 
+  ID3D12Fence *copy_fence;
+  HANDLE copy_fence_event;
+  U64 copy_fence_value;
+
+  ID3D12GraphicsCommandList *copy_cmd_list;
+  ID3D12CommandAllocator *copy_cmd_allocator;
+
   ID3D12DescriptorHeap *dsv_heap;
   ID3D12DescriptorHeap *rtv_heap;
-  ID3D12DescriptorHeap *srv_cbv_uav_heap; // Per-frame and per-draw data, texture table, material table
+  ID3D12DescriptorHeap *srv_heap;       // Per-frame and per-draw data, texture table, material table
   ID3D12DescriptorHeap *sampler_heap;
 
-  // @Todo: Separate command list and allocator for resource uploads.
-  // @Todo: srv_cbv_uav descriptor idx free list.
+  S32 rtv_descriptor_size;
+  S32 srv_descriptor_size;
+
+  S32 srv_next_idx;
 };
 
 global R_Context r_ctx;
