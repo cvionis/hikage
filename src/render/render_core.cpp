@@ -429,10 +429,11 @@ r_init(OS_Handle window)
   }
 
   // Pipeline state object
-  U32 input_count = 3;
-  ctx->input_desc[0] = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
-  ctx->input_desc[1] = {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
-  ctx->input_desc[2] = {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 28, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
+  U32 input_count = 4;
+  ctx->input_desc[0] = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0,  0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
+  ctx->input_desc[1] = {"NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
+  ctx->input_desc[2] = {"TANGENT",  0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
+  ctx->input_desc[3] = {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,       0, 40, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC *pso_desc = &ctx->pso_desc;
   pso_desc->InputLayout = {ctx->input_desc, input_count};
@@ -467,95 +468,6 @@ r_init(OS_Handle window)
   );
   Assert(SUCCEEDED(hr));
   ctx->command_list->Close();
-
-  // Cube geometry (unchanged)
-  struct Vertex { V3F32 pos; V4F32 color; V3F32 normal; };
-
-  Vertex cube_vertices[] = {
-    {{-0.5f,-0.5f,-0.5f},{1,0,0,1},{ 0, 0,-1}},
-    {{-0.5f, 0.5f,-0.5f},{0,1,0,1},{ 0, 0,-1}},
-    {{ 0.5f, 0.5f,-0.5f},{0,0,1,1},{ 0, 0,-1}},
-    {{ 0.5f,-0.5f,-0.5f},{1,1,0,1},{ 0, 0,-1}},
-
-    {{-0.5f,-0.5f, 0.5f},{1,0,1,1},{ 0, 0, 1}},
-    {{-0.5f, 0.5f, 0.5f},{0,1,1,1},{ 0, 0, 1}},
-    {{ 0.5f, 0.5f, 0.5f},{1,1,1,1},{ 0, 0, 1}},
-    {{ 0.5f,-0.5f, 0.5f},{0.2f,0.2f,0.2f},{ 0, 0, 1}},
-
-    {{-0.5f,-0.5f,-0.5f},{1,0,0,1},{-1, 0, 0}},
-    {{-0.5f,-0.5f, 0.5f},{1,0,1,1},{-1, 0, 0}},
-    {{-0.5f, 0.5f, 0.5f},{0,1,1,1},{-1, 0, 0}},
-    {{-0.5f, 0.5f,-0.5f},{0,1,0,1},{-1, 0, 0}},
-
-    {{ 0.5f,-0.5f,-0.5f},{1,1,0,1},{ 1, 0, 0}},
-    {{ 0.5f,-0.5f, 0.5f},{0.2f,0.2f,0.2f},{ 1, 0, 0}},
-    {{ 0.5f, 0.5f, 0.5f},{1,1,1,1},{ 1, 0, 0}},
-    {{ 0.5f, 0.5f,-0.5f},{0,0,1,1},{ 1, 0, 0}},
-
-    {{-0.5f,-0.5f,-0.5f},{1,0,0,1},{ 0,-1, 0}},
-    {{ 0.5f,-0.5f,-0.5f},{1,1,0,1},{ 0,-1, 0}},
-    {{ 0.5f,-0.5f, 0.5f},{0.2f,0.2f,0.2f},{ 0,-1, 0}},
-    {{-0.5f,-0.5f, 0.5f},{1,0,1,1},{ 0,-1, 0}},
-
-    {{-0.5f, 0.5f,-0.5f},{0,1,0,1},{ 0, 1, 0}},
-    {{ 0.5f, 0.5f,-0.5f},{0,0,1,1},{ 0, 1, 0}},
-    {{ 0.5f, 0.5f, 0.5f},{1,1,1,1},{ 0, 1, 0}},
-    {{-0.5f, 0.5f, 0.5f},{0,1,1,1},{ 0, 1, 0}},
-  };
-
-  U16 cube_indices[] = {
-    0,1,2,0,2,3,
-    4,6,5,4,7,6,
-    8,9,10,8,10,11,
-    12,14,13,12,15,14,
-    16,17,18,16,18,19,
-    20,22,21,20,23,22
-  };
-
-  UINT vb_size = sizeof(cube_vertices);
-  UINT ib_size = sizeof(cube_indices);
-
-  // Vertex buffer
-  {
-    CD3DX12_HEAP_PROPERTIES vb_heap(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC vb_desc = CD3DX12_RESOURCE_DESC::Buffer(vb_size);
-    hr = ctx->device->CreateCommittedResource(
-      &vb_heap, D3D12_HEAP_FLAG_NONE, &vb_desc,
-      D3D12_RESOURCE_STATE_GENERIC_READ, 0,
-      IID_PPV_ARGS(&ctx->vertex_buffer)
-    );
-    Assert(SUCCEEDED(hr));
-
-    void *vtx_data = 0;
-    ctx->vertex_buffer->Map(0, 0, &vtx_data);
-    MemoryCopy(vtx_data, cube_vertices, vb_size);
-    ctx->vertex_buffer->Unmap(0, 0);
-
-    ctx->vertex_buffer_view.BufferLocation = ctx->vertex_buffer->GetGPUVirtualAddress();
-    ctx->vertex_buffer_view.SizeInBytes = vb_size;
-    ctx->vertex_buffer_view.StrideInBytes = sizeof(Vertex);
-  }
-
-  // Index buffer
-  {
-    CD3DX12_HEAP_PROPERTIES ib_heap(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC ib_desc = CD3DX12_RESOURCE_DESC::Buffer(ib_size);
-    hr = ctx->device->CreateCommittedResource(
-      &ib_heap, D3D12_HEAP_FLAG_NONE, &ib_desc,
-      D3D12_RESOURCE_STATE_GENERIC_READ, 0,
-      IID_PPV_ARGS(&ctx->index_buffer)
-    );
-    Assert(SUCCEEDED(hr));
-
-    void *idx_data = 0;
-    ctx->index_buffer->Map(0, 0, &idx_data);
-    MemoryCopy(idx_data, cube_indices, ib_size);
-    ctx->index_buffer->Unmap(0, 0);
-
-    ctx->index_buffer_view.BufferLocation = ctx->index_buffer->GetGPUVirtualAddress();
-    ctx->index_buffer_view.Format = DXGI_FORMAT_R16_UINT;
-    ctx->index_buffer_view.SizeInBytes = ib_size;
-  }
 
   // Create synchronization primitives (frame fence)
   ctx->device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&ctx->fence));
@@ -595,7 +507,7 @@ r_init(OS_Handle window)
 }
 
 static void
-r_render_forward(Camera *camera, ModelTmp *models)
+r_render_forward(AssetContext *assets, Camera *camera, ModelInstance *models, S32 models_count)
 {
   R_Context *ctx = &r_ctx;
 
@@ -664,28 +576,39 @@ r_render_forward(Camera *camera, ModelTmp *models)
 
   // Input Assembler setup
   ctx->command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-  ctx->command_list->IASetVertexBuffers(0, 1, &ctx->vertex_buffer_view);
-  ctx->command_list->IASetIndexBuffer(&ctx->index_buffer_view);
 
-  // Draw the temporary models
-  for (S32 model_idx = 0; model_idx < SCENE_MODELS_COUNT; model_idx += 1) {
-    ModelTmp *m = &models[model_idx];
+  // Draw models
+  for (S32 model_idx = 0; model_idx < models_count; model_idx += 1) {
+    ModelInstance *m = &models[model_idx];
+    Model *model = assets_get_model(assets, m->model);
 
+    // @Todo: rotation
     Mat4x4 tr = translation_m4x4(m->position);
     Mat4x4 sc = scale_m4x4(m->scale);
-    Mat4x4 model = m4x4_mul(sc, tr);
+    Mat4x4 mmat = m4x4_mul(sc, tr);
 
-    Mat4x4 inv = m4x4_inverse(model);
+    Mat4x4 inv = m4x4_inverse(mmat);
     Mat4x4 normal = m4x4_transpose(inv);
 
     R_DrawCB draw_cb_data = {
-      .model  = model,
+      .model  = mmat,
       .normal = normal,
     };
+    MemoryCopy(ctx->draw_cb_mapped, &draw_cb_data, sizeof(draw_cb_data)); // @Todo: Data is zeroed/NaN in shader (NEVER EVEN BIND CBV...)
 
-    // @Todo: Data is zeroed/NaN in shader
-    MemoryCopy(ctx->draw_cb_mapped, &draw_cb_data, sizeof(draw_cb_data));
-    ctx->command_list->DrawIndexedInstanced(36, 1, 0, 0, 0);
+    auto vertex_buffer_view = r_d3d12_vertex_buffer_view_from_buffer(model->vertex_buffer);
+    auto index_buffer_view = r_d3d12_index_buffer_view_from_buffer(model->index_buffer);
+    ctx->command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
+    ctx->command_list->IASetIndexBuffer(&index_buffer_view);
+
+    for (S32 mesh_idx = 0; mesh_idx < model->meshes_count; mesh_idx += 1) {
+      Mesh *mesh = &model->meshes[mesh_idx];
+
+      S32 index_off = mesh->ib_off;
+      S32 index_count = mesh->ib_count;
+
+      ctx->command_list->DrawIndexedInstanced(index_count, 1, index_off, 0, 0);
+    }
   }
 
   {

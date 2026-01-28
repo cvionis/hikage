@@ -45,13 +45,7 @@ struct R_Context {
 
   // Cached for shader reload
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc;
-  D3D12_INPUT_ELEMENT_DESC input_desc[3];
-
-  // Vertex & index buffer
-  ID3D12Resource *vertex_buffer;
-  D3D12_VERTEX_BUFFER_VIEW vertex_buffer_view;
-  ID3D12Resource *index_buffer;
-  D3D12_INDEX_BUFFER_VIEW index_buffer_view;
+  D3D12_INPUT_ELEMENT_DESC input_desc[4];
 
   // Frame synchronization
   U32 frame_idx;

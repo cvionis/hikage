@@ -59,6 +59,7 @@ assets_load_model(AssetContext *ctx, String8 name)
       // @Note: Temporary. Should just assume index kind is constant per-model
       // (doesn't vary per submesh) and store it in the header once rather than in each mesh entry.
       R_IndexKind model_index_kind = mesh_table[0].index_kind;
+      S32 model_index_size_bytes = ((model_index_kind == R_IndexKind_U16) ? sizeof(U16): sizeof(U32));
 
       U32 mtl_count = hdr->material_count;
       U32 mtl_table_off = hdr->material_table_off;
@@ -94,7 +95,7 @@ assets_load_model(AssetContext *ctx, String8 name)
 
       // @Todo: Create vertex and index buffer for model, return handles
       // @Todo: Consider storing index kind (U32/U16)
-      Model *model = &asset->v.model;
+      Model *model = &asset->model;
       model->meshes_count = mesh_count;
       model->meshes = ArenaPushArray(ctx->arena, Mesh, mesh_count);
 
@@ -133,15 +134,15 @@ assets_load_model(AssetContext *ctx, String8 name)
         Mesh *dst = &model->meshes[mesh_idx];
         AC_MeshEntry *src = &mesh_table[mesh_idx];
 
-        dst->vb_off = src->vertex_offset_bytes;
+        dst->vb_off = src->vertex_offset_bytes; // @Todo: should probably be in vertexes, not bytes.
         dst->vb_count = src->vertex_count;
-        dst->ib_off = src->index_offset_bytes;
+        dst->ib_off = src->index_offset_bytes / model_index_size_bytes;
         dst->ib_count = src->index_count;
         dst->material = src->material_index;
       }
 
       for (U32 tex_idx = 0; tex_idx < tex_count; tex_idx += 1) {
-        Texture *dst = &ctx->textures[tex_idx].v.texture;
+        Texture *dst = &ctx->textures[tex_idx].texture;
         AC_TextureEntry *src = &tex_table[tex_idx];
 
         U32 img_idx = src->img_index;
@@ -187,7 +188,7 @@ assets_load_model(AssetContext *ctx, String8 name)
       // as a structured buffer that I can index into inside the shader using the material id,
       //  which would be a per-draw/per-model constant.
       for (U32 mtl_idx = 0; mtl_idx < mtl_count; mtl_idx += 1) {
-        Material *dst = &ctx->materials[mtl_idx].v.material;
+        Material *dst = &ctx->materials[mtl_idx].material;
         AC_MaterialEntry *src = &mtl_table[mtl_idx];
 
         dst->base_color = src->base_color;
@@ -204,11 +205,20 @@ assets_load_model(AssetContext *ctx, String8 name)
         ctx->materials_count += 1;
       }
 
+      result.idx = ctx->models_count;
       ctx->models_count += 1;
     }
 
     arena_scratch_end(scratch);
   }
 
+  return result;
+}
+
+static Model *
+assets_get_model(AssetContext *ctx, AssetHandle handle)
+{
+  S32 idx = handle.idx;
+  Model *result = &ctx->models[idx].model;
   return result;
 }

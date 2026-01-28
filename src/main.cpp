@@ -176,6 +176,8 @@ mouse_down(Input *input, MouseButton btn)
   return input->mouse.buttons[btn];
 }
 
+global ModelInstance model_list[SCENE_MODELS_COUNT];
+
 void
 entry_point(void)
 {
@@ -195,6 +197,11 @@ entry_point(void)
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
   AssetHandle a = assets_load_model(&assets, S8("DamagedHelmet"));
+
+  {
+    model_list[0].model = a;
+    model_list[0].scale = v3f32(1,1,1);
+  }
 
   Input input = {};
 
@@ -272,7 +279,7 @@ entry_point(void)
       }
 
       // Do render passes
-      r_render_forward(&camera, models);
+      r_render_forward(&assets, &camera, model_list, 1); // @Note: Temporary count. Track w/ global model list.
 
       // End frame
       {

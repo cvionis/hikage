@@ -310,6 +310,35 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
 // Buffers
 //
 
+static D3D12_VERTEX_BUFFER_VIEW
+r_d3d12_vertex_buffer_view_from_buffer(R_Handle handle)
+{
+  D3D12_VERTEX_BUFFER_VIEW result = {};
+
+  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
+  R_D3D12_Buffer *buff = (R_D3D12_Buffer *)slot->backend_rsrc;
+  if (buff) {
+    result = buff->vbv;
+  }
+
+  return result;
+}
+
+static D3D12_INDEX_BUFFER_VIEW
+r_d3d12_index_buffer_view_from_buffer(R_Handle handle)
+{
+  D3D12_INDEX_BUFFER_VIEW result = {};
+
+  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
+  R_D3D12_Buffer *buff = (R_D3D12_Buffer *)slot->backend_rsrc;
+  if (buff) {
+    result = buff->ibv;
+  }
+
+  return result;
+}
+
+
 // @Note: Incomplete
 static void
 r_d3d12_buffer_flags_state_from_desc(R_BufferDesc desc, D3D12_RESOURCE_FLAGS *out_flags, D3D12_RESOURCE_STATES *out_state)
@@ -462,6 +491,23 @@ r_create_buffer_impl(R_BufferInitData init, R_BufferDesc desc)
     }
   }
 
-  result.backend = buf;
+  switch (desc.usage) {
+    case R_BufferUsage_Vertex: {
+      D3D12_VERTEX_BUFFER_VIEW vbv = {};
+      vbv.BufferLocation = buf->resource->GetGPUVirtualAddress();
+      vbv.SizeInBytes = (UINT)buf->size;
+      vbv.StrideInBytes = desc.stride_bytes;
+      buf->vbv = vbv;
+    }break;
+    case R_BufferUsage_Index: {
+      D3D12_INDEX_BUFFER_VIEW ibv = {};
+      ibv.BufferLocation = buf->resource->GetGPUVirtualAddress();
+      ibv.SizeInBytes = (UINT)buf->size;
+      ibv.Format = ((desc.index_kind == R_IndexKind_U16) ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT);
+      buf->ibv = ibv;
+    }break;
+  }
+
+  result.backend = (void *)buf;
   return result;
 }

@@ -521,6 +521,8 @@ ac_build_geometry_vertices(AC_Builder *builder, AC_PrimitiveArray prims, AC_Mesh
 {
   U32 section_offset = (U32)builder->size;
   section_offset = AlignPow2(section_offset, 256);
+  ac_push(builder, section_offset - builder->size, 1);
+
   U32 section_size = 0;
   U32 entry_offset = 0;
 
@@ -557,6 +559,8 @@ ac_build_geometry_indices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshE
 {
   U32 section_offset = (U32)builder->size;
   section_offset = AlignPow2(section_offset, 256);
+  ac_push(builder, section_offset - builder->size, 1);
+
   U32 section_size = 0;
   U32 entry_offset = 0;
 
@@ -576,6 +580,9 @@ ac_build_geometry_indices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshE
         16
       );
       ac_emit_indices_u16(indices, p);
+
+      int x = 0;
+      (void) x;
     }
     else {
       indices_size = sizeof(U32) * p->index_count;
@@ -1132,6 +1139,26 @@ ac_load_model_blob_gltf(Arena *arena, AC_Builder *builder, String8 gltf_path)
       .data = blob_data,
       .size = blob_size,
     };
+
+    S32 i_count = mesh_table[0].index_count;
+    R_IndexKind i_kind = mesh_table[0].index_kind;
+
+    if (i_kind == R_IndexKind_U16) {
+      U16 *indices = (U16 *)(blob_data + hdr->ib_bytes_off);
+      for (S32 i = 0; i < i_count; i += 3) {
+        Assert(indices[i+0] != indices[i+1]);
+        Assert(indices[i+1] != indices[i+2]);
+        Assert(indices[i+0] != indices[i+2]);
+      }
+    }
+    else {
+      U16 *indices = (U16 *)(blob_data + hdr->ib_bytes_off);
+      for (S32 i = 0; i < i_count; i += 3) {
+        Assert(indices[i+0] != indices[i+1]);
+        Assert(indices[i+1] != indices[i+2]);
+        Assert(indices[i+0] != indices[i+2]);
+      }
+    }
   }
 
   return res;

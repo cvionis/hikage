@@ -61,18 +61,20 @@ enum AssetKind {
 
 struct AssetHandle {
   S32 idx;
-  S32 gen;
+  S32 gen; // @Todo: Use
 };
 
 struct Asset {
-  String8 name; // @Todo: Fill this out
+  S32 gen; // @Todo: Use
+
+  String8 name; // @Todo: Fill this out for textures (and materials if applicable)
   AssetStatus status;
   AssetKind kind;
   union {
     Model model;
     Material material;
     Texture texture;
-  }v;
+  };
 };
 
 struct AssetContext {
@@ -88,6 +90,14 @@ struct AssetContext {
   S32 textures_count;
 };
 
+// @Note: Temporary name and location
+struct ModelInstance {
+  AssetHandle model;
+  V3F32 position;
+  V3F32 scale;
+  V3F32 rot;
+};
+
 // Internal helpers
 static B32 asset_cached(AssetContext *ctx, String8 path);
 static AssetHandle alloc_asset_handle(AssetContext *ctx, AssetKind kind);
@@ -97,3 +107,6 @@ static AssetContext assets_make(void);
 static void assets_release(AssetContext *ctx);
 static void assets_set_root_path(AssetContext *ctx, String8 path);
 static AssetHandle assets_load_model(AssetContext *ctx, String8 name);
+
+
+static Model *assets_get_model(AssetContext *ctx, AssetHandle handle);
