@@ -1,10 +1,5 @@
 #pragma once
 
-enum A_IndexKind {
-  A_IndexKind_U16,
-  A_IndexKind_U32,
-};
-
 enum A_MaterialFlags {
   A_MaterialFlag_None = 0,
   A_MaterialFlag_BaseColor = (1 << 0),

@@ -57,7 +57,7 @@ struct AC_MeshEntry {
 
   U32 index_offset_bytes;    // into ib section
   U32 index_count;
-  A_IndexKind index_kind;
+  R_IndexKind index_kind;
 
   U32 material_index;        // into material table
 };

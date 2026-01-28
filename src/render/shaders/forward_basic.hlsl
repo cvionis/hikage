@@ -20,9 +20,9 @@ cbuffer DrawCB : register(b1)
   float4x4 normal;
 };
 
-// ======================================================
+//
 // Bindless resources
-// ======================================================
+//
 
 Texture2D g_textures[R_BINDLESS_TEXTURES_MAX] : register(t0);
 SamplerState g_sampler : register(s0);
@@ -82,7 +82,7 @@ PS_Input vs_main(VS_Input input)
 float4 ps_main(PS_Input input) : SV_TARGET
 {
   uint tex_idx = 1;
-  float2 uv = input.position.xy * 0.01;
+  float2 uv = input.position.xy * 0.001;
 
   //float3 albedo = float3(1.,1.,1.);
   float3 albedo = g_textures[tex_idx].Sample(g_sampler, uv).rgb;

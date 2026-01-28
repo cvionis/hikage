@@ -28,3 +28,24 @@ r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
   };
   return result;
 }
+
+static R_Handle
+r_create_buffer(R_BufferInitData init, R_BufferDesc desc)
+{
+  S32 slot_idx = r_alloc_resource_slot();
+  R_ResourceSlot *slot = &r_resource_table.slots[slot_idx];
+
+  slot->gen += 1;
+  slot->kind = R_ResourceKind_Buffer;
+
+  R_CreateResource create = r_create_buffer_impl(init, desc);
+  slot->backend_rsrc = create.backend;
+  slot->fence_value = create.fence_value;
+
+  R_Handle result = {
+    .idx = slot_idx,
+    .gen = slot->gen,
+    .fence_value = create.fence_value,
+  };
+  return result;
+}

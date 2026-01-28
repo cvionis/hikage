@@ -7,14 +7,9 @@
 #define SCENE_MODELS_COUNT 256
 #define SCENE_MATERIALS_COUNT 256
 
-// Descriptor heap layout:
-//   [0 .. R_D3D12_FRAME_CBV_COUNT-1]  = per-frame CBVs (currently just b0)
-//   [R_D3D12_TEXTURE_TABLE_BASE .. ]  = bindless texture SRVs (t0[])
 #define R_D3D12_FRAME_CBV_COUNT 1
 #define R_D3D12_DRAW_CBV_COUNT  1
-
 #define R_D3D12_CBV_COUNT       (R_D3D12_FRAME_CBV_COUNT + R_D3D12_DRAW_CBV_COUNT)
-
 #define R_D3D12_TEXTURE_MAX     1024
 #define R_D3D12_SRV_HEAP_SIZE   (R_D3D12_CBV_COUNT + R_D3D12_TEXTURE_MAX)
 
@@ -202,7 +197,7 @@ r_init(OS_Handle window)
     }
   }
 
-  // Color buffer (kept as-is; not used by r_render_forward currently)
+  // Color buffer
   {
     D3D12_RESOURCE_DESC color_desc = {};
     color_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -404,7 +399,7 @@ r_init(OS_Handle window)
     if (err_blob) err_blob->Release();
   }
 
-  // Compile shaders (unchanged)
+  // Compile shaders
   ID3DBlob *vs_blob = 0;
   ID3DBlob *ps_blob = 0;
   ID3DBlob *err_blob = 0;
@@ -433,7 +428,7 @@ r_init(OS_Handle window)
     Assert(SUCCEEDED(hr));
   }
 
-  // Pipeline state object (kept as-is)
+  // Pipeline state object
   U32 input_count = 3;
   ctx->input_desc[0] = {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT,    0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};
   ctx->input_desc[1] = {"COLOR",    0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0};

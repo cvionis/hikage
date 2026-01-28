@@ -56,6 +56,9 @@ assets_load_model(AssetContext *ctx, String8 name)
       U32 mesh_table_off = hdr->mesh_table_off;
       U32 mesh_count = hdr->mesh_count;
       auto *mesh_table = (AC_MeshEntry *)(data + mesh_table_off);
+      // @Note: Temporary. Should just assume index kind is constant per-model
+      // (doesn't vary per submesh) and store it in the header once rather than in each mesh entry.
+      R_IndexKind model_index_kind = mesh_table[0].index_kind;
 
       U32 mtl_count = hdr->material_count;
       U32 mtl_table_off = hdr->material_table_off;
@@ -71,7 +74,6 @@ assets_load_model(AssetContext *ctx, String8 name)
       U32 img_table_off = hdr->image_table_off;
       auto *img_table  = (AC_ImageEntry *)(data + img_table_off);
 
-      #if 0
       U32 vb_data_off = hdr->vb_bytes_off;
       U32 vb_data_size = hdr->vb_bytes_size;
       U8 *vb_data = data + vb_data_off;
@@ -79,7 +81,6 @@ assets_load_model(AssetContext *ctx, String8 name)
       U32 ib_data_off = hdr->ib_bytes_off;
       U32 ib_data_size = hdr->ib_bytes_size;
       U8 *ib_data = data + ib_data_off;
-      #endif
 
       U32 img_data_off = hdr->image_bytes_off;
 
@@ -97,14 +98,41 @@ assets_load_model(AssetContext *ctx, String8 name)
       model->meshes_count = mesh_count;
       model->meshes = ArenaPushArray(ctx->arena, Mesh, mesh_count);
 
-#if 0
-      model->vertex_buffer = r_create_vertex_buffer();
-      model->index_buffer = r_create_index_buffer();
-#endif
+      // Vertex buffer (shared by submeshes)
+      {
+        R_BufferInitData init = {
+          .data = vb_data,
+        };
+        R_BufferDesc desc = {
+          .size = vb_data_size,
+          .stride_bytes = sizeof(A_Vertex),
+          .usage = R_BufferUsage_Vertex,
+          .memory = R_BufferMemory_Default,
+        };
 
+        model->vertex_buffer = r_create_buffer(init, desc);
+      }
+
+      // Index buffer (shared by submeshes)
+      {
+        R_BufferInitData init = {
+          .data = ib_data,
+        };
+        R_BufferDesc desc = {
+          .size = ib_data_size,
+          .index_kind = model_index_kind,
+          .usage = R_BufferUsage_Index,
+          .memory = R_BufferMemory_Default,
+        };
+
+        model->index_buffer = r_create_buffer(init, desc);
+      }
+
+      // Per-submesh slices into vertex/index buffers
       for (U32 mesh_idx = 0; mesh_idx < mesh_count; mesh_idx += 1) {
         Mesh *dst = &model->meshes[mesh_idx];
         AC_MeshEntry *src = &mesh_table[mesh_idx];
+
         dst->vb_off = src->vertex_offset_bytes;
         dst->vb_count = src->vertex_count;
         dst->ib_off = src->index_offset_bytes;
@@ -141,7 +169,7 @@ assets_load_model(AssetContext *ctx, String8 name)
           AC_MipEntry *mip = &mip_table[mip_idx];
           U32 img_base_off = img_data_off + img->data_offset_bytes;
           U32 mip_off = img_base_off + mip->image_offset_bytes;
-          U8 *mip_data = (U8 *)(data + mip_off); // @Todo: Verify.
+          U8 *mip_data = data + mip_off; // @Todo: Verify
 
           init[init_idx] = {
             .data = mip_data,

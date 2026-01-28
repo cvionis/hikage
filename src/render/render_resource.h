@@ -115,7 +115,7 @@ struct R_BufferInitData {
   void *data;
 };
 
-enum R_BufferMemory {
+enum R_BufferMemoryKind {
   R_BufferMemory_Default,
   R_BufferMemory_Upload,
   R_BufferMemory_Readback,
@@ -129,10 +129,18 @@ enum R_BufferUsage {
   R_BufferUsage_Unordered,
 };
 
-struct R_BufferDesc {
-  S64 size;
-  R_BufferUsage usage;
-  R_BufferMemory memory;
+enum R_IndexKind {
+  R_IndexKind_U16,
+  R_IndexKind_U32,
 };
 
-static R_Handle r_create_buffer(R_BufferInitData *init, R_BufferDesc desc);
+struct R_BufferDesc {
+  S64 size;
+  S32 stride_bytes; // used for vertex buffers
+
+  R_IndexKind index_kind; // used for index buffers
+  R_BufferUsage usage;
+  R_BufferMemoryKind memory;
+};
+
+static R_Handle r_create_buffer(R_BufferInitData init, R_BufferDesc desc);

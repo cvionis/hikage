@@ -297,7 +297,7 @@ ac_build_mesh_table(AC_Builder *builder, AC_PrimitiveArray prims, cgltf_data *gl
       .vertex_stride       = A_VERTEX_STRIDE,
       .index_offset_bytes  = 0, // filled during geometry build
       .index_count         = p->index_count,
-      .index_kind          = (p->vertex_count <= 65535) ? A_IndexKind_U16 : A_IndexKind_U32,
+      .index_kind          = (p->vertex_count <= 65535) ? R_IndexKind_U16 : R_IndexKind_U32,
       .material_index      = (U32)(p->gltf_primitive->material - gltf->materials), // @Todo: Make sure material isn't null first.
     };
   }
@@ -568,7 +568,7 @@ ac_build_geometry_indices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshE
 
     U32 indices_size = 0;
 
-    if (m->index_kind == A_IndexKind_U16) {
+    if (m->index_kind == R_IndexKind_U16) {
       indices_size = sizeof(U16) * p->index_count;
       U16 *indices = (U16 *)ac_push(
         builder,

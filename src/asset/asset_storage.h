@@ -65,7 +65,7 @@ struct AssetHandle {
 };
 
 struct Asset {
-  String8 name;
+  String8 name; // @Todo: Fill this out
   AssetStatus status;
   AssetKind kind;
   union {
