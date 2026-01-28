@@ -2,8 +2,8 @@
 
 // Packed CPU-side format for models
 
-#define AC_MAGIC 0x0 // @Todo: Define a magic number to put at beginning of file
-#define AC_VERSION 2
+#define AC_MAGIC 0x0 // @Todo: Define a magic number to put at beginning of file, use it instead of placeholder constant
+#define AC_VERSION 3
 
 #define AC_TEXTURE_NONE 0xFFFFFFFFu
 

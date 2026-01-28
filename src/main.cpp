@@ -196,7 +196,7 @@ entry_point(void)
 
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
-  AssetHandle a = assets_load_model(&assets, S8("DamagedHelmet"));
+  AssetHandle a = assets_load_model(&assets, S8("CommercialRefrigerator"));
 
   {
     model_list[0].model = a;

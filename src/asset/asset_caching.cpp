@@ -519,6 +519,7 @@ ac_emit_indices_u32(U32 *dst, AC_Primitive *prim)
 static AC_BuildResult
 ac_build_geometry_vertices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshEntry *mesh_table)
 {
+  // @Todo: I don't like this...
   U32 section_offset = (U32)builder->size;
   section_offset = AlignPow2(section_offset, 256);
   ac_push(builder, section_offset - builder->size, 1);
@@ -536,7 +537,7 @@ ac_build_geometry_vertices(AC_Builder *builder, AC_PrimitiveArray prims, AC_Mesh
     A_Vertex *vertices = (A_Vertex *)ac_push(
       builder,
       vertices_size,
-      16
+      1
     );
     ac_emit_vertices(vertices, p);
 
@@ -557,6 +558,7 @@ ac_build_geometry_vertices(AC_Builder *builder, AC_PrimitiveArray prims, AC_Mesh
 static AC_BuildResult
 ac_build_geometry_indices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshEntry *mesh_table)
 {
+  // @Todo: I don't like this...
   U32 section_offset = (U32)builder->size;
   section_offset = AlignPow2(section_offset, 256);
   ac_push(builder, section_offset - builder->size, 1);
@@ -577,7 +579,7 @@ ac_build_geometry_indices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshE
       U16 *indices = (U16 *)ac_push(
         builder,
         indices_size,
-        16
+        1
       );
       ac_emit_indices_u16(indices, p);
 
@@ -589,7 +591,7 @@ ac_build_geometry_indices(AC_Builder *builder, AC_PrimitiveArray prims, AC_MeshE
       U32 *indices = (U32 *)ac_push(
         builder,
         indices_size,
-        16
+        1
       );
       ac_emit_indices_u32(indices, p);
     }

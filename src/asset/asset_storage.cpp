@@ -30,6 +30,7 @@ assets_load_model(AssetContext *ctx, String8 name)
   if (ctx) {
     TempArena scratch = arena_scratch_begin(0,0);
 
+    // @Todo: If cache version != current version, don't load it; need to reload it and update cache.
     AC_Blob blob = ac_load_model_blob_cached(scratch.arena, name);
     if (!blob.size) {
       AC_Builder ac = ac_make();
@@ -134,10 +135,11 @@ assets_load_model(AssetContext *ctx, String8 name)
         Mesh *dst = &model->meshes[mesh_idx];
         AC_MeshEntry *src = &mesh_table[mesh_idx];
 
-        dst->vb_off = src->vertex_offset_bytes; // @Todo: should probably be in vertexes, not bytes.
+        dst->vb_off = src->vertex_offset_bytes / sizeof(A_Vertex);
         dst->vb_count = src->vertex_count;
         dst->ib_off = src->index_offset_bytes / model_index_size_bytes;
         dst->ib_count = src->index_count;
+
         dst->material = src->material_index;
       }
 

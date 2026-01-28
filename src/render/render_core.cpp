@@ -607,7 +607,7 @@ r_render_forward(AssetContext *assets, Camera *camera, ModelInstance *models, S3
       S32 index_off = mesh->ib_off;
       S32 index_count = mesh->ib_count;
 
-      ctx->command_list->DrawIndexedInstanced(index_count, 1, index_off, 0, 0);
+      ctx->command_list->DrawIndexedInstanced(index_count, 1, index_off, mesh->vb_off, 0);
     }
   }
 
