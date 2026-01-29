@@ -174,7 +174,7 @@ ac_node_local_matrix(cgltf_node *node)
 }
 
 static U32
-A_Vertex_count_from_primitive(cgltf_primitive *prim)
+a_vertex_count_from_primitive(cgltf_primitive *prim)
 {
   U32 result = 0;
   for (U32 i = 0; i < prim->attributes_count; ++i) {
@@ -206,7 +206,7 @@ ac_collect_primitives_from_node(Arena *arena, cgltf_node *node, Mat4x4 parent_wo
         .gltf_primitive = &mesh->primitives[p],
         .gltf_material  = mesh->primitives[p].material,
         .world_transform = world,
-        .vertex_count   = A_Vertex_count_from_primitive(&mesh->primitives[p]),
+        .vertex_count   = a_vertex_count_from_primitive(&mesh->primitives[p]),
         .index_count    = ac_index_count_from_primitive(&mesh->primitives[p]),
       };
     }
@@ -792,7 +792,6 @@ ac_image_fmt_from_usage(U32 usage)
 {
   // @Note: From low to high priority
 
-  //A_ImageFormat result = A_ImageFormat_BC7;
   R_TextureFmt result = R_TextureFmt_BC3_UNORM;
   switch (usage) {
     case AC_ImageUsage_Emissive:   { result = R_TextureFmt_BC3_UNORM; }break;
@@ -877,10 +876,10 @@ ac_build_mip_table(AC_Builder *builder)
   AC_MipEntry *mip_table = (AC_MipEntry *)(builder->data + builder->size);
 
   AC_BuildResult result = {
-    .data = mip_table, // @Note: Populated in ac_build_images()
+    .data = mip_table,          // @Note: Populated in ac_build_images()
     .offset = mip_table_offset,
-    .size = 0, // @Note: Not used
-    .count = 0, // @Note: Not used
+    .size = 0,                  // @Note: Not used
+    .count = 0,                 // @Note: Not used
   };
 
   return result;
@@ -911,6 +910,7 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
   U32 running_mip_count = 0;
 
   // @Todo: Make sure to handle sRGB data correctly.
+  // Keep decoded pixels in R8G8B8A8_UNORM, and decide sRGB at the compressed output / SRV stage (BC1/BC3/BC7 _SRGB for albedo).
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
     TempArena tmp = arena_temp_begin(scratch);
 
@@ -919,13 +919,14 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
 
     S32 img_width = 0, img_height = 0, img_channels = 0;
     U8 *img_data_decoded = stbi_load_from_memory(img.data, (S32)img.size, &img_width, &img_height, &img_channels, 4);
+    U64 row_pitch = (U64)img_width * 4;
     if (img_data_decoded) {
       DirectX::Image src = {
         .width      = (size_t)img_width,
         .height     = (size_t)img_height,
         .format     = DXGI_FORMAT_R8G8B8A8_UNORM,
-        .rowPitch   = (size_t)img_width * 4,
-        .slicePitch = src.rowPitch * img_height,
+        .rowPitch   = row_pitch,
+        .slicePitch = row_pitch * img_height,
         .pixels     = img_data_decoded,
       };
 
@@ -966,12 +967,8 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
             img_metadata[img_idx].width      = (U32)meta.width;
             img_metadata[img_idx].height     = (U32)meta.height;
 
-            U32 compressed_size = 0;
-            for (U32 mip_idx = 0; mip_idx < meta.mipLevels; mip_idx += 1) {
-              compressed_size += (U32)images[mip_idx].slicePitch;
-            }
-
             // Fill mip table entries for this image
+            U32 compressed_size = 0;
             U32 mips_count = (U32)meta.mipLevels;
             U32 mip_img_offset = 0;
             running_mip_count += mips_count;
@@ -983,20 +980,25 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
               mip->height = (U32)images[mip_idx].height;
               mip->row_pitch = (U32)images[mip_idx].rowPitch;
               mip->slice_pitch = (U32)images[mip_idx].slicePitch;
-              mip->image_offset_bytes = mip_img_offset;
 
+              mip->image_offset_bytes = mip_img_offset;
               mip_img_offset += (U32)images[mip_idx].slicePitch;
+
+              compressed_size += (U32)images[mip_idx].slicePitch;
             }
 
             // Calculate aligned offset in output
             compressed_data_offset = AlignPow2(compressed_data_offset, 256);
+
             img_metadata[img_idx].data_offset = compressed_data_offset;
             img_metadata[img_idx].data_size = compressed_size;
+
             compressed_data_offset += compressed_size;
-            img_data_size += compressed_size;
+            img_data_size = compressed_data_offset;
 
             // Copy compressed image data to output
-            // @Note: Temporary
+
+            // @Note: Aligned to 256 bytes
             U8 *compressed_mips = (U8 *)arena_push(img_staging_arena, compressed_size);
 
             U32 pos = 0;
@@ -1014,10 +1016,14 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
     arena_temp_end(tmp);
   }
 
-  U32 img_data_offset = AlignPow2(builder->size, 256);
+  U32 img_data_offset = (U32)builder->size;
+  img_data_offset = AlignPow2(img_data_offset, 256);
+  U64 padding = img_data_offset - builder->size;
+  ac_push(builder, padding, 1);
+  ac_push(builder, img_data_size, 256);
+
   U8 *src = (U8 *)img_staging_arena + ARENA_HEADER_SIZE;
   U8 *dst = builder->data + img_data_offset;
-  ac_push(builder, img_data_size, 256);
   MemoryCopy(dst, src, img_data_size);
 
   arena_release(img_staging_arena);
@@ -1141,26 +1147,6 @@ ac_load_model_blob_gltf(Arena *arena, AC_Builder *builder, String8 gltf_path)
       .data = blob_data,
       .size = blob_size,
     };
-
-    S32 i_count = mesh_table[0].index_count;
-    R_IndexKind i_kind = mesh_table[0].index_kind;
-
-    if (i_kind == R_IndexKind_U16) {
-      U16 *indices = (U16 *)(blob_data + hdr->ib_bytes_off);
-      for (S32 i = 0; i < i_count; i += 3) {
-        Assert(indices[i+0] != indices[i+1]);
-        Assert(indices[i+1] != indices[i+2]);
-        Assert(indices[i+0] != indices[i+2]);
-      }
-    }
-    else {
-      U16 *indices = (U16 *)(blob_data + hdr->ib_bytes_off);
-      for (S32 i = 0; i < i_count; i += 3) {
-        Assert(indices[i+0] != indices[i+1]);
-        Assert(indices[i+1] != indices[i+2]);
-        Assert(indices[i+0] != indices[i+2]);
-      }
-    }
   }
 
   return res;

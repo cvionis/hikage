@@ -143,6 +143,7 @@ assets_load_model(AssetContext *ctx, String8 name)
         dst->material = src->material_index;
       }
 
+      // Load textures
       for (U32 tex_idx = 0; tex_idx < tex_count; tex_idx += 1) {
         Texture *dst = &ctx->textures[tex_idx].texture;
         AC_TextureEntry *src = &tex_table[tex_idx];
@@ -161,7 +162,7 @@ assets_load_model(AssetContext *ctx, String8 name)
           .mips_count = (S32)img->mip_count,
           .fmt = img->format,
           .usage = R_TextureUsage_Sampled, // @Note: Currently not used.
-          .kind = R_TextureKind_2D,
+          .kind = R_TextureKind_2D,        // @Note: Currently not used.
         };
 
         U32 mips_end = img->mips_begin + img->mip_count;

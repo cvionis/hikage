@@ -183,8 +183,6 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
         U32 blocks_y = (h + 3) / 4; if (blocks_y == 0) blocks_y = 1;
 
         U32 src_row_bytes = blocks_x * bpb;
-
-        Assert(init[i].row_pitch >= (S32)src_row_bytes);
         Assert(src_row_bytes <= dst_row_pitch);
 
         for (U32 y = 0; y < blocks_y; y += 1) {

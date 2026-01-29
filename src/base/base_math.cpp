@@ -9,7 +9,7 @@ lerpf32(F32 a, F32 b, F32 t)
 }
 
 //
-// Easing statics
+// Easing functions
 //
 
 static F32
