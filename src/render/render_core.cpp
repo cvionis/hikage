@@ -354,10 +354,8 @@ r_init(OS_Handle window)
     ranges[2].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
       R_D3D12_TEXTURE_MAX,
-      0,
-      0,
-      R_D3D12_TEXTURE_TABLE_BASE
-    );
+      0
+    ); // Append to previous entry.
 
     CD3DX12_ROOT_PARAMETER params[3];
     params[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);

@@ -10,7 +10,7 @@
 
 cbuffer FrameCB : register(b0) {
   float4x4 viewproj;
-  float4   camera_ws;
+  float4 camera_ws;
 };
 
 cbuffer DrawCB : register(b1) {
@@ -38,8 +38,9 @@ struct VS_Input {
 
 struct PS_Input {
   float4 position   : SV_POSITION;
-  float3 world_pos  : TEXCOORD0;
-  float3 world_norm : TEXCOORD1;
+  float2 uv         : TEXCOORD0;
+  float3 world_pos  : TEXCOORD1;
+  float3 world_norm : TEXCOORD2;
 };
 
 //
@@ -64,6 +65,7 @@ PS_Input vs_main(VS_Input input)
     normalize(mul((float3x3)identity, input.normal));
 
   output.position   = mul(world_pos, viewproj);
+  output.uv         = input.uv;
   output.world_pos  = world_pos.xyz;
   output.world_norm = world_normal;
 
@@ -76,12 +78,11 @@ PS_Input vs_main(VS_Input input)
 
 float4 ps_main(PS_Input input) : SV_TARGET
 {
-  uint tex_idx = 1;
-  float2 uv = input.position.xy * 0.001;
+  uint tex_idx = 0;
+  float2 uv = input.uv;
 
   //float3 albedo = float3(1.,1.,1.);
   float3 albedo = g_textures[tex_idx].Sample(g_sampler, uv).rgb;
-  albedo = float3(1.,0.,0.);
 
   float3 lig = float3(0.9, 0.2, 0.4);
 
