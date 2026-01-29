@@ -176,6 +176,7 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
       if (is_block_compressed(fmt)) {
         U32 bpb = bc_bytes_per_block(fmt);
 
+        #if 0
         U32 w = layouts[i].Footprint.Width;
         U32 h = layouts[i].Footprint.Height;
 
@@ -186,6 +187,23 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
         Assert(src_row_bytes <= dst_row_pitch);
 
         for (U32 y = 0; y < blocks_y; y += 1) {
+          MemoryCopy(
+            dst_base + (U64)y * dst_row_pitch,
+            src_base + (U64)y * src_row_bytes,
+            // src_base + (U64)y * init[i].row_pitch,
+            src_row_bytes
+          );
+        }
+        #endif
+        U32 dst_row_pitch = layouts[i].Footprint.RowPitch;
+
+        // Source layout must come from your init data (DirectXTex)
+        U32 src_row_bytes = (U32)init[i].row_pitch;
+        U32 rows          = (U32)(init[i].slice_pitch / init[i].row_pitch);
+
+        Assert(src_row_bytes <= dst_row_pitch);
+
+        for (U32 y = 0; y < rows; y += 1) {
           MemoryCopy(
             dst_base + (U64)y * dst_row_pitch,
             src_base + (U64)y * src_row_bytes,

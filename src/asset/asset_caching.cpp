@@ -795,7 +795,7 @@ ac_image_fmt_from_usage(U32 usage)
   R_TextureFmt result = R_TextureFmt_BC3_UNORM;
   switch (usage) {
     case AC_ImageUsage_Emissive:   { result = R_TextureFmt_BC3_UNORM; }break;
-    case AC_ImageUsage_MetalRough: { result = R_TextureFmt_BC4_UNORM; }break;
+    case AC_ImageUsage_MetalRough: { result = R_TextureFmt_BC1_UNORM; }break;
     case AC_ImageUsage_Occlusion:  { result = R_TextureFmt_BC4_UNORM; }break;
     case AC_ImageUsage_Normal:     { result = R_TextureFmt_BC5_UNORM; }break;
   }
@@ -892,7 +892,7 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
 
   // @Note: Temporary
   Arena *img_staging_arena = arena_alloc(MiB(128));
-  arena_set_align(img_staging_arena, 256);
+  //arena_set_align(img_staging_arena, 256);
 
   // Preliminary work: Prepare compressed image metadata
   Arena *scratch = arena_get_scratch(0,0);
@@ -988,7 +988,9 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
             }
 
             // Calculate aligned offset in output
-            compressed_data_offset = AlignPow2(compressed_data_offset, 256);
+
+            //compressed_size = AlignPow2(compressed_size, 256);
+            //compressed_data_offset = AlignPow2(compressed_data_offset, 256);
 
             img_metadata[img_idx].data_offset = compressed_data_offset;
             img_metadata[img_idx].data_size = compressed_size;
@@ -1017,10 +1019,11 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
   }
 
   U32 img_data_offset = (U32)builder->size;
-  img_data_offset = AlignPow2(img_data_offset, 256);
+  //img_data_offset = AlignPow2(img_data_offset, 256);
   U64 padding = img_data_offset - builder->size;
-  ac_push(builder, padding, 1);
-  ac_push(builder, img_data_size, 256);
+  //ac_push(builder, padding, 1);
+  //ac_push(builder, img_data_size, 256);
+  ac_push(builder, img_data_size, 1);
 
   U8 *src = (U8 *)img_staging_arena + ARENA_HEADER_SIZE;
   U8 *dst = builder->data + img_data_offset;
