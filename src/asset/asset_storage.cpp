@@ -187,26 +187,37 @@ assets_load_model(AssetContext *ctx, String8 name)
         ctx->textures_count += 1;
       }
 
-      // @Todo: I want to store materials on the GPU so I can expose them to the shader
-      // as a structured buffer that I can index into inside the shader using the material id,
-      //  which would be a per-draw/per-model constant.
+      R_MaterialGPU *gpu_materials = ArenaPushArray(arena_get_scratch(0,0), R_MaterialGPU, mtl_count);
+
       for (U32 mtl_idx = 0; mtl_idx < mtl_count; mtl_idx += 1) {
         Material *dst = &ctx->materials[mtl_idx].material;
         AC_MaterialEntry *src = &mtl_table[mtl_idx];
+        R_MaterialGPU *gpu = &gpu_materials[mtl_idx];
 
         dst->base_color = src->base_color;
         dst->emissive = src->emissive;
         dst->metallic = src->metallic;
         dst->roughness = src->roughness;
-
         dst->tex_base_color = src->base_color_tex;
         dst->tex_normal = src->normal_tex;
         dst->tex_metal_rough = src->metallic_roughness_tex;
         dst->tex_occlusion = src->occlusion_tex;
         dst->tex_emissive = src->emissive_tex;
 
+        gpu->base_color = src->base_color;
+        gpu->emissive = src->emissive;
+        gpu->metallic = src->metallic;
+        gpu->roughness = src->roughness;
+        gpu->tex_base_color = (U32)src->base_color_tex;
+        gpu->tex_normal = (U32)src->normal_tex;
+        gpu->tex_metal_rough = (U32)src->metallic_roughness_tex;
+        gpu->tex_occlusion = (U32)src->occlusion_tex;
+        gpu->tex_emissive = (U32)src->emissive_tex;
+
         ctx->materials_count += 1;
       }
+
+      r_upload_materials(gpu_materials, mtl_count);
 
       result.idx = ctx->models_count;
       ctx->models_count += 1;

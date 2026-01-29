@@ -57,11 +57,18 @@ struct R_Context {
   // ============ NEW STUFF ================ //
   //                                         //
 
+  ID3D12Resource *material_buffer;
+  U32 material_srv_idx; // @Todo: Remove. Redundant. Use #define you already have.
+  U32 material_capacity;
+
   ID3D12Resource *frame_cb;
   U8 *frame_cb_mapped;
 
-  ID3D12Resource *draw_cb;
-  U8 *draw_cb_mapped;
+  ID3D12Resource *draw_cb_buffer;
+  U8 *draw_cb_buffer_mapped;
+  U32 draw_cb_stride;        // always 256
+  U32 draw_cb_capacity;      // number of slots
+  U32 draw_cb_write_idx;     // cursor
 
   ID3D12Fence *copy_fence;
   HANDLE copy_fence_event;
@@ -72,16 +79,40 @@ struct R_Context {
 
   ID3D12DescriptorHeap *dsv_heap;
   ID3D12DescriptorHeap *rtv_heap;
+
+  /*
+  0–1        CBVs
+  2–1025     textures (fixed region)
+  1026       material buffer
+  ...
+  */
+
   ID3D12DescriptorHeap *srv_heap;       // Per-frame and per-draw data, texture table, material table
   ID3D12DescriptorHeap *sampler_heap;   // @Note: Just using a static sampler for now.
 
   S32 rtv_descriptor_size;
   S32 srv_descriptor_size;
 
-  S32 srv_next_idx;
+  S32 srv_next_idx; // @Todo: Rename. Used exclusively for texture table entries.
 };
 
 global R_Context r_ctx;
+
+struct R_MaterialGPU {
+  V4F32 base_color;
+  V3F32 emissive;
+
+  F32 metallic;
+  F32 roughness;
+
+  U32 flags;
+
+  S32 tex_base_color;
+  S32 tex_normal;
+  S32 tex_metal_rough;
+  S32 tex_occlusion;
+  S32 tex_emissive;
+};
 
 // @Todo: These definitely shouldn't be defined in render_core.h
 struct R_CameraCB {

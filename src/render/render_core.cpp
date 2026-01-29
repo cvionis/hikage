@@ -4,18 +4,64 @@
 #pragma comment(lib, "dxguid.lib")
 
 // @Note: Temporary and stupid
+// @Todo: Deprecate
 #define SCENE_MODELS_COUNT 256
 #define SCENE_MATERIALS_COUNT 256
+
+// -------------------------------------------------------------------------------------------------------------------------------------------
+
+
+#define R_D3D12_MAX_DRAWS 4096
 
 #define R_D3D12_FRAME_CBV_COUNT 1
 #define R_D3D12_DRAW_CBV_COUNT  1
 #define R_D3D12_CBV_COUNT       (R_D3D12_FRAME_CBV_COUNT + R_D3D12_DRAW_CBV_COUNT)
+#define R_D3D12_MATERIAL_MAX    4096
 #define R_D3D12_TEXTURE_MAX     1024
-#define R_D3D12_SRV_HEAP_SIZE   (R_D3D12_CBV_COUNT + R_D3D12_TEXTURE_MAX)
+#define R_D3D12_SRV_HEAP_SIZE   (R_D3D12_CBV_COUNT + R_D3D12_TEXTURE_MAX + 1) // +1: material buffer
 
 #define R_D3D12_FRAME_CBV_SLOT  0
 #define R_D3D12_DRAW_CBV_SLOT   1
-#define R_D3D12_TEXTURE_TABLE_BASE R_D3D12_CBV_COUNT
+#define R_D3D12_TEXTURE_TABLE_BASE   (R_D3D12_CBV_COUNT)
+#define R_D3D12_MATERIAL_BUFFER_BASE (R_D3D12_TEXTURE_TABLE_BASE + R_D3D12_TEXTURE_MAX) // @Note: +1 was crashing (noob)
+
+// @Todo: Put in render_resource.h, render_resource_d3d12.cpp (can use r_create_buffer_impl() maybe if you flesh it out for structured buffs)
+static void
+r_upload_materials(R_MaterialGPU *materials, S32 materials_count)
+{
+  R_Context *ctx = &r_ctx;
+  ID3D12Resource *upload;
+
+  U64 buffer_size = sizeof(R_MaterialGPU) * materials_count;
+  CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
+  CD3DX12_RESOURCE_DESC buf = CD3DX12_RESOURCE_DESC::Buffer(buffer_size);
+
+  ctx->device->CreateCommittedResource(
+    &heap,
+    D3D12_HEAP_FLAG_NONE,
+    &buf,
+    D3D12_RESOURCE_STATE_GENERIC_READ,
+    0,
+    IID_PPV_ARGS(&upload)
+  );
+
+  void *mapped;
+  upload->Map(0, 0, &mapped);
+  {
+    MemoryCopy(mapped, materials, buffer_size);
+  }
+  upload->Unmap(0, 0);
+  ctx->copy_cmd_list->CopyBufferRegion(ctx->material_buffer, 0, upload, 0, buffer_size);
+
+  CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
+    ctx->material_buffer,
+    D3D12_RESOURCE_STATE_COPY_DEST,
+    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+  );
+  ctx->copy_cmd_list->ResourceBarrier(1, &barrier);
+
+  // @Todo: Release upload buffer
+}
 
 static void
 r_wait_for_previous_frame(void)
@@ -93,6 +139,7 @@ r_d3d12_get_hardware_adapter(IDXGIFactory1 *factory)
   return adapter;
 }
 
+// @Todo: Rename and move these
 struct R_FrameCB {
   Mat4x4 viewproj;
   V4F32  camera_ws;
@@ -101,6 +148,8 @@ struct R_FrameCB {
 struct R_DrawCB {
   Mat4x4 model;
   Mat4x4 normal;
+  U32 material;
+  U32 _pad[3];
 };
 
 static void
@@ -313,6 +362,35 @@ r_init(OS_Handle window)
     ctx->device->CreateConstantBufferView(&cbv, h);
   }
 
+  // Per-draw constant buffer ring (root CBV)
+  {
+    ctx->draw_cb_stride = 256;
+    ctx->draw_cb_capacity = R_D3D12_MAX_DRAWS;
+    ctx->draw_cb_write_idx = 0;
+
+    U64 size = (U64)ctx->draw_cb_stride * ctx->draw_cb_capacity;
+
+    CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
+    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(size);
+
+    hr = ctx->device->CreateCommittedResource(
+      &heap,
+      D3D12_HEAP_FLAG_NONE,
+      &desc,
+      D3D12_RESOURCE_STATE_GENERIC_READ,
+      0,
+      IID_PPV_ARGS(&ctx->draw_cb_buffer)
+    );
+    Assert(SUCCEEDED(hr));
+
+    hr = ctx->draw_cb_buffer->Map(
+      0, 0,
+      (void **)&ctx->draw_cb_buffer_mapped
+    );
+    Assert(SUCCEEDED(hr));
+  }
+
+  #if 0
   // Per-draw constant buffer (b1) stored in slot 1 of srv_heap
   {
     CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
@@ -342,25 +420,67 @@ r_init(OS_Handle window)
     );
     ctx->device->CreateConstantBufferView(&cbv, h);
   }
+  #endif
+
+  // Material buffer (StructuredBuffer) (t0, space1) stored in slot 3 of srv_heap
+  {
+    ctx->material_capacity = R_D3D12_MATERIAL_MAX;
+    U64 buffer_size = sizeof(R_MaterialGPU) * ctx->material_capacity;
+    CD3DX12_HEAP_PROPERTIES heap_props(D3D12_HEAP_TYPE_DEFAULT);
+    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(buffer_size);
+    hr = ctx->device->CreateCommittedResource(
+      &heap_props,
+      D3D12_HEAP_FLAG_NONE,
+      &desc,
+      D3D12_RESOURCE_STATE_COPY_DEST,
+      0,
+      IID_PPV_ARGS(&ctx->material_buffer)
+    );
+    Assert(SUCCEEDED(hr));
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srv = {};
+    srv.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    srv.Format = DXGI_FORMAT_UNKNOWN;
+    srv.Buffer.FirstElement = 0;
+    srv.Buffer.NumElements = ctx->material_capacity;
+    srv.Buffer.StructureByteStride = sizeof(R_MaterialGPU);
+    srv.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+    srv.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
+    ctx->material_srv_idx = R_D3D12_MATERIAL_BUFFER_BASE;
+
+    CD3DX12_CPU_DESCRIPTOR_HANDLE h(
+      ctx->srv_heap->GetCPUDescriptorHandleForHeapStart(),
+      ctx->material_srv_idx,
+      ctx->srv_descriptor_size
+    );
+    ctx->device->CreateShaderResourceView(ctx->material_buffer, &srv, h);
+  }
 
   // Root signature
   {
     CD3DX12_DESCRIPTOR_RANGE ranges[3];
     // b0: frame
     ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-    // b1: per-draw
-    ranges[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
-    // t0[]: textures
-    ranges[2].Init(
+    // t0[] space0: textures
+    ranges[1].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
       R_D3D12_TEXTURE_MAX,
+      0,
       0
     ); // Append to previous entry.
+    ranges[2].Init(
+      D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+      1,
+      0,
+      1
+    );
 
-    CD3DX12_ROOT_PARAMETER params[3];
+    CD3DX12_ROOT_PARAMETER params[4];
     params[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
-    params[1].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_VERTEX);
-    params[2].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
+    params[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL);
+    params[2].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
+    params[3].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
 
     D3D12_STATIC_SAMPLER_DESC static_sampler = {};
     static_sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -408,7 +528,7 @@ r_init(OS_Handle window)
   UINT compile_flags = 0;
 #endif
 
-  hr = D3DCompileFromFile(L"../src/render/shaders/forward_basic.hlsl", 0, 0, "vs_main", "vs_5_0", compile_flags, 0, &vs_blob, &err_blob);
+  hr = D3DCompileFromFile(L"../src/render/shaders/forward_basic.hlsl", 0, 0, "vs_main", "vs_5_1", compile_flags, 0, &vs_blob, &err_blob);
   if (FAILED(hr)) {
     if (err_blob) {
       OutputDebugStringA((char *)err_blob->GetBufferPointer());
@@ -417,7 +537,7 @@ r_init(OS_Handle window)
     Assert(SUCCEEDED(hr));
   }
 
-  hr = D3DCompileFromFile(L"../src/render/shaders/forward_basic.hlsl", 0, 0, "ps_main", "ps_5_0", compile_flags, 0, &ps_blob, &err_blob);
+  hr = D3DCompileFromFile(L"../src/render/shaders/forward_basic.hlsl", 0, 0, "ps_main", "ps_5_1", compile_flags, 0, &ps_blob, &err_blob);
   if (FAILED(hr)) {
     if (err_blob) {
       OutputDebugStringA((char *)err_blob->GetBufferPointer());
@@ -518,6 +638,8 @@ r_render_forward(AssetContext *assets, Camera *camera, ModelInstance *models, S3
     MemoryCopy(ctx->frame_cb_mapped, &cb, sizeof(cb));
   }
 
+  ctx->draw_cb_write_idx = 0;
+
   // Command list setup
   CD3DX12_VIEWPORT viewport(0.f, 0.f, (F32)ctx->width, (F32)ctx->height);
   CD3DX12_RECT scissor_rect(0, 0, ctx->width, ctx->height);
@@ -534,20 +656,16 @@ r_render_forward(AssetContext *assets, Camera *camera, ModelInstance *models, S3
 
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_base =
       ctx->srv_heap->GetGPUDescriptorHandleForHeapStart();
-
-    // Root param 0: per-frame constant buffer
     ctx->command_list->SetGraphicsRootDescriptorTable(0, gpu_base);
 
-    // Root param 1: per-draw constant buffer
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu_draw =
-      CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_base, R_D3D12_DRAW_CBV_SLOT, ctx->srv_descriptor_size);
-    ctx->command_list->SetGraphicsRootDescriptorTable(1, gpu_draw);
-
-    // Root param 2: texture table
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex = gpu_base;
     gpu_tex.ptr +=
       (U64)R_D3D12_TEXTURE_TABLE_BASE * (U64)ctx->srv_descriptor_size;
     ctx->command_list->SetGraphicsRootDescriptorTable(2, gpu_tex);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_material =
+      CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_base, ctx->material_srv_idx, ctx->srv_descriptor_size);
+    ctx->command_list->SetGraphicsRootDescriptorTable(3, gpu_material);
   }
 
   // Prepare current framebuffer for writing by transitioning from presenting state
@@ -588,12 +706,6 @@ r_render_forward(AssetContext *assets, Camera *camera, ModelInstance *models, S3
     Mat4x4 inv = m4x4_inverse(mmat);
     Mat4x4 normal = m4x4_transpose(inv);
 
-    R_DrawCB draw_cb_data = {
-      .model  = mmat,
-      .normal = normal,
-    };
-    MemoryCopy(ctx->draw_cb_mapped, &draw_cb_data, sizeof(draw_cb_data)); // @Todo: Data is zeroed/NaN in shader (NEVER EVEN BIND CBV...)
-
     auto vertex_buffer_view = r_d3d12_vertex_buffer_view_from_buffer(model->vertex_buffer);
     auto index_buffer_view = r_d3d12_index_buffer_view_from_buffer(model->index_buffer);
     ctx->command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
@@ -601,6 +713,23 @@ r_render_forward(AssetContext *assets, Camera *camera, ModelInstance *models, S3
 
     for (S32 mesh_idx = 0; mesh_idx < model->meshes_count; mesh_idx += 1) {
       Mesh *mesh = &model->meshes[mesh_idx];
+
+      R_DrawCB draw_cb_data = {
+        .model  = mmat,
+        .normal = normal,
+        .material = (U32)mesh->material,
+      };
+
+      U32 slot = ctx->draw_cb_write_idx;
+      ctx->draw_cb_write_idx += 1;
+      ctx->draw_cb_write_idx = Min(ctx->draw_cb_write_idx, ctx->draw_cb_capacity);
+
+      U64 offset = (U64)slot * (U64)ctx->draw_cb_stride;
+      U8 *dst = ctx->draw_cb_buffer_mapped + offset;
+      MemoryCopy(dst, &draw_cb_data, sizeof(draw_cb_data));
+
+      D3D12_GPU_VIRTUAL_ADDRESS gpu_addr = ctx->draw_cb_buffer->GetGPUVirtualAddress() + offset;
+      ctx->command_list->SetGraphicsRootConstantBufferView(1, gpu_addr);
 
       S32 index_off = mesh->ib_off;
       S32 index_count = mesh->ib_count;
