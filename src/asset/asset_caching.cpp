@@ -1059,14 +1059,15 @@ ac_load_model_blob_cached(Arena *arena, String8 name)
 {
   AC_Blob result = {};
 
-  TempArena scratch = arena_scratch_begin(&arena, 1);
+  // @Todo: Should really do all allocations except `data = ArenaPushArray()` onto temp arena or scratch...
+  // was crashing when i did both (for scratch: not enough space reserved; for temp arena: cleared `data = ...` after done).
   {
     String8 cached_model_dir = S8("R:/KageEngine/assets/cache/models/"); // @Note: Temporary
     String8 cache_path;
-    cache_path = str8_cat(scratch.arena, cached_model_dir, name);
-    cache_path = str8_cat(scratch.arena, cache_path, S8(".mb"));
+    cache_path = str8_cat(arena, cached_model_dir, name);
+    cache_path = str8_cat(arena, cache_path, S8(".mb"));
 
-    String8 file_read = os_file_read(scratch.arena, cache_path);
+    String8 file_read = os_file_read(arena, cache_path);
     if (file_read.count > 0) {
       U8 *data = ArenaPushArray(arena, U8, file_read.count);
       MemoryCopy(data, file_read.data, file_read.count);
@@ -1075,7 +1076,6 @@ ac_load_model_blob_cached(Arena *arena, String8 name)
       result.size = file_read.count;
     }
   }
-  arena_scratch_end(scratch);
   return result;
 }
 

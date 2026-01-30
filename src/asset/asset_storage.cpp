@@ -28,20 +28,21 @@ assets_load_model(AssetContext *ctx, String8 name)
   AssetHandle result = {};
 
   if (ctx) {
-    TempArena scratch = arena_scratch_begin(0,0);
+    // @Note: Temporary
+    Arena *arena = arena_alloc(MiB(512));
 
     // @Todo: If cache version != current version, don't load it; need to reload it and update cache.
-    AC_Blob blob = ac_load_model_blob_cached(scratch.arena, name);
+    AC_Blob blob = ac_load_model_blob_cached(arena, name);
     if (!blob.size) {
       AC_Builder ac = ac_make();
 
       String8 gltf_path;
-      gltf_path = str8_cat(scratch.arena, ctx->root_path, name);
-      gltf_path = str8_cat(scratch.arena, gltf_path, S8("/"));
-      gltf_path = str8_cat(scratch.arena, gltf_path, name);
-      gltf_path = str8_cat(scratch.arena, gltf_path, S8(".gltf"));
+      gltf_path = str8_cat(arena, ctx->root_path, name);
+      gltf_path = str8_cat(arena, gltf_path, S8("/"));
+      gltf_path = str8_cat(arena, gltf_path, name);
+      gltf_path = str8_cat(arena, gltf_path, S8(".gltf"));
 
-      blob = ac_load_model_blob_gltf(scratch.arena, &ac, gltf_path);
+      blob = ac_load_model_blob_gltf(arena, &ac, gltf_path);
       if (blob.size > 0) {
         ac_cache_model_blob(&ac, blob);
       }
@@ -167,7 +168,7 @@ assets_load_model(AssetContext *ctx, String8 name)
 
         U32 mips_end = img->mips_begin + img->mip_count;
 
-        R_TextureInitData *init = ArenaPushArray(scratch.arena, R_TextureInitData, img->mip_count);
+        R_TextureInitData *init = ArenaPushArray(arena, R_TextureInitData, img->mip_count);
         U32 init_idx = 0;
         for (U32 mip_idx = img->mips_begin; mip_idx < mips_end; mip_idx += 1) {
           AC_MipEntry *mip = &mip_table[mip_idx];
@@ -224,8 +225,6 @@ assets_load_model(AssetContext *ctx, String8 name)
       result.idx = ctx->models_count;
       ctx->models_count += 1;
     }
-
-    arena_scratch_end(scratch);
   }
 
   return result;

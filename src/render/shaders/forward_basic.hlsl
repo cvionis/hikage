@@ -167,13 +167,20 @@ float4 ps_main(PS_Input input) : SV_TARGET
 
   float NoL = saturate(dot(N, L));
 
-  float3 amb = albedo*0.3;
-  float3 lit = amb + float3(1.1, 0.6, 0.4) * NoL;
+  // Note: Entering non-physically-correct territory (temporary)
 
-  float3 color = albedo * lit;
+  float sky_dif = saturate(0.5+0.5*normal_ws.y);
+  float bot_dif = 0.4*saturate(0.5-0.5*normal_ws.y);
+
+  float3 amb = albedo*0.3;
+  float3 lit = amb*occlusion +
+    float3(1.1, 0.6, 0.4) * NoL +
+    float3(0.4,0.6,1.) * sky_dif +
+    float3(1.0,1.0,1.0) * bot_dif;
+
+  float3 color = albedo * lit + emissive*1.2;
 
   color = pow(color, 1.0 / 2.2);
-  color = saturate(color);
 
   return float4(color, 1.0);
 }
