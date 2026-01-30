@@ -32,6 +32,9 @@ r_upload_materials(R_MaterialGPU *materials, S32 materials_count)
   R_Context *ctx = &r_ctx;
   ID3D12Resource *upload;
 
+  ctx->copy_cmd_allocator->Reset();
+  ctx->copy_cmd_list->Reset(ctx->copy_cmd_allocator, 0);
+
   U64 buffer_size = sizeof(R_MaterialGPU) * materials_count;
   CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
   CD3DX12_RESOURCE_DESC buf = CD3DX12_RESOURCE_DESC::Buffer(buffer_size);
@@ -56,9 +59,16 @@ r_upload_materials(R_MaterialGPU *materials, S32 materials_count)
   CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(
     ctx->material_buffer,
     D3D12_RESOURCE_STATE_COPY_DEST,
-    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
+    D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE
   );
   ctx->copy_cmd_list->ResourceBarrier(1, &barrier);
+  ctx->copy_cmd_list->Close();
+
+  ID3D12CommandList *lists[] = { ctx->copy_cmd_list };
+  ctx->command_queue->ExecuteCommandLists(1, lists);
+
+  ctx->copy_fence_value += 1;
+  ctx->command_queue->Signal(ctx->copy_fence, ctx->copy_fence_value);
 
   // @Todo: Release upload buffer
 }

@@ -196,11 +196,11 @@ entry_point(void)
 
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
-  AssetHandle a = assets_load_model(&assets, S8("ToyCar"));
+  AssetHandle a = assets_load_model(&assets, S8("DamagedHelmet"));
 
   {
     model_list[0].model = a;
-    model_list[0].scale = v3f32(1,1,1);
+    model_list[0].scale = v3f32(1.,1.,1.);
   }
 
   Input input = {};

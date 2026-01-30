@@ -98,6 +98,7 @@ struct R_Context {
 
 global R_Context r_ctx;
 
+
 struct R_MaterialGPU {
   V4F32 base_color;
   V3F32 emissive;
@@ -107,11 +108,11 @@ struct R_MaterialGPU {
 
   U32 flags;
 
-  S32 tex_base_color;
-  S32 tex_normal;
-  S32 tex_metal_rough;
-  S32 tex_occlusion;
-  S32 tex_emissive;
+  U32 tex_base_color;
+  U32 tex_normal;
+  U32 tex_metal_rough;
+  U32 tex_occlusion;
+  U32 tex_emissive;
 };
 
 // @Todo: These definitely shouldn't be defined in render_core.h

@@ -194,6 +194,7 @@ assets_load_model(AssetContext *ctx, String8 name)
         AC_MaterialEntry *src = &mtl_table[mtl_idx];
         R_MaterialGPU *gpu = &gpu_materials[mtl_idx];
 
+        dst->flags = src->flags;
         dst->base_color = src->base_color;
         dst->emissive = src->emissive;
         dst->metallic = src->metallic;
@@ -204,15 +205,16 @@ assets_load_model(AssetContext *ctx, String8 name)
         dst->tex_occlusion = src->occlusion_tex;
         dst->tex_emissive = src->emissive_tex;
 
+        gpu->flags = src->flags;
         gpu->base_color = src->base_color;
         gpu->emissive = src->emissive;
         gpu->metallic = src->metallic;
         gpu->roughness = src->roughness;
-        gpu->tex_base_color = (U32)src->base_color_tex;
-        gpu->tex_normal = (U32)src->normal_tex;
-        gpu->tex_metal_rough = (U32)src->metallic_roughness_tex;
-        gpu->tex_occlusion = (U32)src->occlusion_tex;
-        gpu->tex_emissive = (U32)src->emissive_tex;
+        gpu->tex_base_color = src->base_color_tex;
+        gpu->tex_normal = src->normal_tex;
+        gpu->tex_metal_rough = src->metallic_roughness_tex;
+        gpu->tex_occlusion = src->occlusion_tex;
+        gpu->tex_emissive = src->emissive_tex;
 
         ctx->materials_count += 1;
       }
