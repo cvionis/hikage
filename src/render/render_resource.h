@@ -22,6 +22,7 @@ struct R_CreateResource {
 };
 
 enum R_ResourceKind {
+  R_ResourceKind_Pipeline,
   R_ResourceKind_Texture,
   R_ResourceKind_Buffer,
 };
@@ -32,7 +33,7 @@ struct R_ResourceSlot {
   S32 gen;
   B32 alive;
 
-  S32 descriptor_idx;
+  S32 descriptor_idx; // @Note: Optional
   S64 fence_value;
   void *backend_rsrc;
 };
@@ -144,3 +145,40 @@ struct R_BufferDesc {
 };
 
 static R_Handle r_create_buffer(R_BufferInitData init, R_BufferDesc desc);
+
+//
+// Pipelines
+//
+
+// @Todo: These should probably be put in render_core.h
+struct R_Layout {
+};
+
+struct R_RasterizerState {
+};
+
+struct R_DepthStencilState {
+};
+
+struct R_BlendState {
+};
+
+enum R_TopologyKind {
+};
+
+struct R_PipelineDesc {
+  String8 vs_path;
+  String8 ps_path;
+
+  R_Layout input_layout;
+
+  R_RasterizerState raster;
+  R_DepthStencilState depth_stencil;
+  R_BlendState blend;
+  R_TopologyKind topology;
+
+  R_TextureFmt rt_formats[8];
+  R_TextureFmt depth_format;
+};
+
+static R_Handle r_create_pipeline(R_PipelineDesc desc);

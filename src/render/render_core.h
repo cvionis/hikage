@@ -13,6 +13,22 @@
 #include <shellapi.h>
 #pragma warning(pop, 0)
 
+// r_pass_add({}, "depth_prepass");
+// r_pass_add({}, "shadow");
+// r_pass_add({}, "gbuffer");
+// ...
+// for (pass in ctx.passes) pass.execute(cmd_list)
+struct R_Pass {
+  R_Handle pipeline;
+
+  ID3D12Resource *render_targets[8];
+  S32 render_targets_count;
+  ID3D12Resource *depth_target;
+
+  D3D12_VIEWPORT viewport;
+  D3D12_RECT scissor;
+};
+
 #define R_D3D12_FRAME_COUNT 2
 
 // @Todo: -> R_D3D12_Context, move to backend/d3d12/render_context_d3d12.h
@@ -97,7 +113,6 @@ struct R_Context {
 };
 
 global R_Context r_ctx;
-
 
 struct R_MaterialGPU {
   V4F32 base_color;

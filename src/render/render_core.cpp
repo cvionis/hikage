@@ -10,7 +10,6 @@
 
 // -------------------------------------------------------------------------------------------------------------------------------------------
 
-
 #define R_D3D12_MAX_DRAWS 4096
 
 #define R_D3D12_FRAME_CBV_COUNT 1
@@ -399,38 +398,6 @@ r_init(OS_Handle window)
     );
     Assert(SUCCEEDED(hr));
   }
-
-  #if 0
-  // Per-draw constant buffer (b1) stored in slot 1 of srv_heap
-  {
-    CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(256);
-
-   hr = ctx->device->CreateCommittedResource(
-      &heap,
-      D3D12_HEAP_FLAG_NONE,
-      &desc,
-      D3D12_RESOURCE_STATE_GENERIC_READ,
-      0,
-      IID_PPV_ARGS(&ctx->draw_cb)
-    );
-    Assert(SUCCEEDED(hr));
-
-    hr = ctx->draw_cb->Map(0, 0, (void **)&ctx->draw_cb_mapped);
-    Assert(SUCCEEDED(hr));
-
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbv = {};
-    cbv.BufferLocation = ctx->draw_cb->GetGPUVirtualAddress();
-    cbv.SizeInBytes = 256;
-
-    CD3DX12_CPU_DESCRIPTOR_HANDLE h(
-      ctx->srv_heap->GetCPUDescriptorHandleForHeapStart(),
-      R_D3D12_DRAW_CBV_SLOT,
-      ctx->srv_descriptor_size
-    );
-    ctx->device->CreateConstantBufferView(&cbv, h);
-  }
-  #endif
 
   // Material buffer (StructuredBuffer) (t0, space1) stored in slot 3 of srv_heap
   {

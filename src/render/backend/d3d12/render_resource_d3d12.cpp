@@ -2,6 +2,35 @@
 // D3D12 Resources
 //
 
+struct R_D3D12_Pipeline {
+  // Runtime
+  ID3D12PipelineState *pso;
+  ID3D12RootSignature *root_sig;
+
+  // Shader info
+  String8 vs_path;
+  String8 ps_path;
+
+  // Input layout
+  D3D12_INPUT_ELEMENT_DESC input_layout[16];
+  S32 input_layout_count;
+
+  // Fixed state
+  D3D12_RASTERIZER_DESC raster;
+  D3D12_DEPTH_STENCIL_DESC depth_stencil;
+  D3D12_BLEND_DESC blend;
+  D3D12_PRIMITIVE_TOPOLOGY_TYPE topology_type;
+
+  // Attachment formats
+  DXGI_FORMAT rtv_formats[8];
+  S32 rtv_count;
+  DXGI_FORMAT dsv_format;
+  DXGI_SAMPLE_DESC sample_desc;
+
+  // Cached desc for rebuild
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc;
+};
+
 struct R_D3D12_Texture {
   ID3D12Resource *resource;
   D3D12_RESOURCE_STATES state;
