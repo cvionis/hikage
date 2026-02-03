@@ -49,3 +49,30 @@ r_create_buffer(R_BufferInitData init, R_BufferDesc desc)
   };
   return result;
 }
+
+static R_Handle
+r_create_pipeline(R_PipelineDesc desc)
+{
+  R_Handle result = {};
+
+  // @Note: Temporary type for path
+  if (desc.vs_path != 0 && desc.rt_count > 0 && desc.rt_count < 8) {
+    S32 slot_idx = r_alloc_resource_slot();
+    R_ResourceSlot *slot = &r_resource_table.slots[slot_idx];
+
+    slot->gen += 1;
+    slot->alive = 1;
+    slot->kind = R_ResourceKind_Pipeline;
+    slot->descriptor_idx = -1;
+
+    R_CreateResource create = r_create_pipeline_impl(desc);
+    slot->backend_rsrc = create.backend;
+    slot->fence_value  = create.fence_value;
+
+    result.idx = slot_idx;
+    result.gen = slot->gen;
+    result.fence_value = create.fence_value;
+  }
+
+  return result;
+}

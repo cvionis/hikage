@@ -8,8 +8,9 @@ struct R_D3D12_Pipeline {
   ID3D12RootSignature *root_sig;
 
   // Shader info
-  String8 vs_path;
-  String8 ps_path;
+  // @Todo: String8, convert
+  LPCWSTR vs_path;
+  LPCWSTR ps_path;
 
   // Input layout
   D3D12_INPUT_ELEMENT_DESC input_layout[16];
@@ -554,5 +555,352 @@ r_create_buffer_impl(R_BufferInitData init, R_BufferDesc desc)
   }
 
   result.backend = (void *)buf;
+  return result;
+}
+
+//
+// Pipelines
+//
+
+static D3D12_PRIMITIVE_TOPOLOGY_TYPE
+r_d3d12_topology_from_r(R_TopologyKind kind)
+{
+  D3D12_PRIMITIVE_TOPOLOGY_TYPE result = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+  switch(kind) {
+    case R_TopologyKind_Triangle: { result = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; }break;
+    case R_TopologyKind_Line:     { result = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; }break;
+    case R_TopologyKind_Point:    { result = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT; }break;
+  }
+
+  return result;
+}
+
+static D3D12_FILL_MODE
+r_d3d12_fill_mode_from_r(R_FillMode m)
+{
+  D3D12_FILL_MODE result = D3D12_FILL_MODE_SOLID;
+
+  switch(m) {
+    case R_FillMode_Solid:     { result = D3D12_FILL_MODE_SOLID; }break;
+    case R_FillMode_Wireframe: { result = D3D12_FILL_MODE_WIREFRAME; }break;
+  }
+
+  return result;
+}
+
+static D3D12_CULL_MODE
+r_d3d12_cull_mode_from_r(R_CullMode m)
+{
+  D3D12_CULL_MODE result = D3D12_CULL_MODE_BACK;
+
+  switch(m) {
+    case R_CullMode_None:  { result = D3D12_CULL_MODE_NONE; }break;
+    case R_CullMode_Front: { result = D3D12_CULL_MODE_FRONT; }break;
+    case R_CullMode_Back:  { result = D3D12_CULL_MODE_BACK; }break;
+  }
+
+  return result;
+}
+
+static D3D12_COMPARISON_FUNC
+r_d3d12_compare_func_from_r(R_CompareOp op)
+{
+  D3D12_COMPARISON_FUNC result = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+
+  switch(op) {
+    case R_CompareOp_Never:        { result = D3D12_COMPARISON_FUNC_NEVER; }break;
+    case R_CompareOp_Less:         { result = D3D12_COMPARISON_FUNC_LESS; }break;
+    case R_CompareOp_Equal:        { result = D3D12_COMPARISON_FUNC_EQUAL; }break;
+    case R_CompareOp_LessEqual:    { result = D3D12_COMPARISON_FUNC_LESS_EQUAL; }break;
+    case R_CompareOp_Greater:      { result = D3D12_COMPARISON_FUNC_GREATER; }break;
+    case R_CompareOp_NotEqual:     { result = D3D12_COMPARISON_FUNC_NOT_EQUAL; }break;
+    case R_CompareOp_GreaterEqual: { result = D3D12_COMPARISON_FUNC_GREATER_EQUAL; }break;
+    case R_CompareOp_Always:       { result = D3D12_COMPARISON_FUNC_ALWAYS; }break;
+  }
+
+  return result;
+}
+
+static D3D12_STENCIL_OP
+r_d3d12_stencil_op_from_r(R_StencilOp op)
+{
+  D3D12_STENCIL_OP result = D3D12_STENCIL_OP_KEEP;
+
+  switch(op) {
+    case R_StencilOp_Keep:     { result = D3D12_STENCIL_OP_KEEP; }break;
+    case R_StencilOp_Zero:     { result = D3D12_STENCIL_OP_ZERO; }break;
+    case R_StencilOp_Replace:  { result = D3D12_STENCIL_OP_REPLACE; }break;
+    case R_StencilOp_IncClamp: { result = D3D12_STENCIL_OP_INCR_SAT; }break;
+    case R_StencilOp_DecClamp: { result = D3D12_STENCIL_OP_DECR_SAT; }break;
+    case R_StencilOp_Invert:   { result = D3D12_STENCIL_OP_INVERT; }break;
+    case R_StencilOp_IncWrap:  { result = D3D12_STENCIL_OP_INCR; }break;
+    case R_StencilOp_DecWrap:  { result = D3D12_STENCIL_OP_DECR; }break;
+  }
+
+  return result;
+}
+
+static D3D12_BLEND
+r_d3d12_blend_from_r(R_BlendFactor f)
+{
+  D3D12_BLEND result = D3D12_BLEND_ONE;
+
+  switch(f) {
+    case R_BlendFactor_Zero:         { result = D3D12_BLEND_ZERO; }break;
+    case R_BlendFactor_One:          { result = D3D12_BLEND_ONE; }break;
+    case R_BlendFactor_SrcColor:     { result = D3D12_BLEND_SRC_COLOR; }break;
+    case R_BlendFactor_InvSrcColor:  { result = D3D12_BLEND_INV_SRC_COLOR; }break;
+    case R_BlendFactor_SrcAlpha:     { result = D3D12_BLEND_SRC_ALPHA; }break;
+    case R_BlendFactor_InvSrcAlpha:  { result = D3D12_BLEND_INV_SRC_ALPHA; }break;
+    case R_BlendFactor_DestAlpha:    { result = D3D12_BLEND_DEST_ALPHA; }break;
+    case R_BlendFactor_InvDestAlpha: { result = D3D12_BLEND_INV_DEST_ALPHA; }break;
+    case R_BlendFactor_DestColor:    { result = D3D12_BLEND_DEST_COLOR; }break;
+    case R_BlendFactor_InvDestColor: { result = D3D12_BLEND_INV_DEST_COLOR; }break;
+  }
+
+  return result;
+}
+
+static D3D12_BLEND_OP
+r_d3d12_blend_op_from_r(R_BlendOp op)
+{
+  D3D12_BLEND_OP result = D3D12_BLEND_OP_ADD;
+
+  switch(op) {
+    case R_BlendOp_Add:        { result = D3D12_BLEND_OP_ADD; }break;
+    case R_BlendOp_Subtract:   { result = D3D12_BLEND_OP_SUBTRACT; }break;
+    case R_BlendOp_RevSubtract:{ result = D3D12_BLEND_OP_REV_SUBTRACT; }break;
+    case R_BlendOp_Min:        { result = D3D12_BLEND_OP_MIN; }break;
+    case R_BlendOp_Max:        { result = D3D12_BLEND_OP_MAX; }break;
+  }
+
+  return result;
+}
+
+static void
+r_d3d12_input_layout_from_r(R_Layout *layout, D3D12_INPUT_ELEMENT_DESC *out, S32 *out_count)
+{
+  S32 n = (S32)layout->elements_count;
+  if (n > 16) {
+    n = 16;
+  }
+
+  for (S32 i = 0; i < n; i += 1) {
+    R_InputElement *e = &layout->elements[i];
+
+    D3D12_INPUT_ELEMENT_DESC d = {};
+    d.SemanticName         = chr_from_str8(e->semantic_name);
+    d.SemanticIndex        = (UINT)e->semantic_index;
+    d.Format               =  r_d3d12_fmt_from_texture_fmt(e->format);
+    d.InputSlot            = (UINT)e->input_slot;
+    d.AlignedByteOffset    = (UINT)e->byte_offset;
+
+    if (e->input_class == R_VertexInputClass_PerInstance) {
+      d.InputSlotClass         = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+      d.InstanceDataStepRate   = (UINT)e->instance_step_rate;
+    } else {
+      d.InputSlotClass         = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+      d.InstanceDataStepRate   = 0;
+    }
+
+    out[i] = d;
+  }
+
+  *out_count = n;
+}
+
+static D3D12_RASTERIZER_DESC
+r_d3d12_raster_from_r(R_RasterizerState *s)
+{
+  D3D12_RASTERIZER_DESC r = {};
+
+  r.FillMode              = r_d3d12_fill_mode_from_r(s->fill_mode);
+  r.CullMode              = r_d3d12_cull_mode_from_r(s->cull_mode);
+  r.FrontCounterClockwise = s->front_ccw ? TRUE : FALSE;
+
+  r.DepthBias             = (INT)s->depth_bias;
+  r.DepthBiasClamp        = s->depth_bias_clamp;
+  r.SlopeScaledDepthBias  = s->slope_scaled_depth_bias;
+
+  r.DepthClipEnable       = s->depth_clip_enable ? TRUE : FALSE;
+  r.MultisampleEnable     = s->multisample_enable ? TRUE : FALSE;
+  r.AntialiasedLineEnable = FALSE;
+  r.ForcedSampleCount     = 0;
+  r.ConservativeRaster    = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF;
+
+  return r;
+}
+
+static D3D12_DEPTH_STENCILOP_DESC
+r_d3d12_stencil_face_from_r(R_StencilFaceState *s)
+{
+  D3D12_DEPTH_STENCILOP_DESC d = {};
+
+  d.StencilFailOp      = r_d3d12_stencil_op_from_r(s->fail_op);
+  d.StencilDepthFailOp = r_d3d12_stencil_op_from_r(s->depth_fail_op);
+  d.StencilPassOp      = r_d3d12_stencil_op_from_r(s->pass_op);
+  d.StencilFunc        = r_d3d12_compare_func_from_r(s->compare_op);
+
+  return d;
+}
+
+static D3D12_DEPTH_STENCIL_DESC
+r_d3d12_depthstencil_from_r(R_DepthStencilState *s)
+{
+  D3D12_DEPTH_STENCIL_DESC d = {};
+
+  d.DepthEnable      = s->depth_enable ? TRUE : FALSE;
+  d.DepthWriteMask   = s->depth_write_enable ? D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+  d.DepthFunc        = r_d3d12_compare_func_from_r(s->depth_compare);
+
+  d.StencilEnable    = s->stencil_enable ? TRUE : FALSE;
+  d.StencilReadMask  = s->stencil_read_mask;
+  d.StencilWriteMask = s->stencil_write_mask;
+
+  d.FrontFace = r_d3d12_stencil_face_from_r(&s->front_face);
+  d.BackFace  = r_d3d12_stencil_face_from_r(&s->back_face);
+
+  return d;
+}
+
+static D3D12_BLEND_DESC
+r_d3d12_blend_from_r(R_BlendState *s)
+{
+  D3D12_BLEND_DESC b = {};
+
+  b.AlphaToCoverageEnable  = s->alpha_to_coverage_enable ? TRUE : FALSE;
+  b.IndependentBlendEnable = s->independent_blend_enable ? TRUE : FALSE;
+
+  for (S32 i = 0; i < 8; i += 1) {
+    R_RenderTargetBlendState *rt = &s->targets[i];
+
+    D3D12_RENDER_TARGET_BLEND_DESC out = {};
+    out.BlendEnable           = rt->blend_enable ? TRUE : FALSE;
+    out.LogicOpEnable         = FALSE;
+
+    out.SrcBlend              = r_d3d12_blend_from_r(rt->src_color);
+    out.DestBlend             = r_d3d12_blend_from_r(rt->dst_color);
+    out.BlendOp               = r_d3d12_blend_op_from_r(rt->color_op);
+
+    out.SrcBlendAlpha         = r_d3d12_blend_from_r(rt->src_alpha);
+    out.DestBlendAlpha        = r_d3d12_blend_from_r(rt->dst_alpha);
+    out.BlendOpAlpha          = r_d3d12_blend_op_from_r(rt->alpha_op);
+
+    out.LogicOp               = D3D12_LOGIC_OP_NOOP;
+    out.RenderTargetWriteMask = rt->write_mask;
+
+    b.RenderTarget[i] = out;
+  }
+
+  return b;
+}
+
+// @Todo: Use String8, convert to LPCWSTR
+ID3DBlob *
+r_d3d12_compile_hlsl(LPCWSTR path, char *entry, char *version)
+{
+  // Compile shaders
+  ID3DBlob *shader_blob = 0;
+  ID3DBlob *err_blob = 0;
+
+#if BUILD_DEBUG
+  UINT compile_flags = D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION;
+#else
+  UINT compile_flags = 0;
+#endif
+
+  HRESULT hr = D3DCompileFromFile(path, 0, 0, entry, version, compile_flags, 0, &shader_blob, &err_blob);
+  if (FAILED(hr)) {
+    if (err_blob) {
+      OutputDebugStringA((char *)err_blob->GetBufferPointer());
+      err_blob->Release();
+    }
+    Assert(SUCCEEDED(hr));
+  }
+
+  return shader_blob;
+}
+
+static R_CreateResource
+r_create_pipeline_impl(R_PipelineDesc desc)
+{
+  R_Context *ctx = &r_ctx;
+  R_CreateResource result = {};
+
+  R_D3D12_Pipeline *pipe = ArenaPushStruct(ctx->arena, R_D3D12_Pipeline);
+  MemoryZeroStruct(pipe);
+
+  pipe->vs_path = desc.vs_path;
+  pipe->ps_path = desc.ps_path;
+  pipe->root_sig = ctx->root_signature; // @Note: Using a single shared root signature that all pipelines will agree upon.
+
+  // @Todo: Should probably free later
+  ID3DBlob *vs_blob = r_d3d12_compile_hlsl(desc.vs_path, "vs_main", "vs_6_6");
+  ID3DBlob *ps_blob = 0;
+  if (desc.ps_path != 0) {
+    ps_blob = r_d3d12_compile_hlsl(desc.ps_path, "ps_main", "ps_6_6");
+  }
+  Assert(vs_blob != 0);
+
+  r_d3d12_input_layout_from_r(&desc.input_layout, pipe->input_layout, &pipe->input_layout_count);
+
+  pipe->raster        = r_d3d12_raster_from_r(&desc.raster);
+  pipe->depth_stencil = r_d3d12_depthstencil_from_r(&desc.depth_stencil);
+  pipe->blend         = r_d3d12_blend_from_r(&desc.blend);
+  pipe->topology_type = r_d3d12_topology_from_r(desc.topology);
+
+  pipe->rtv_count = desc.rt_count;
+
+  for (S32 i = 0; i < pipe->rtv_count; i += 1) {
+    pipe->rtv_formats[i] = r_d3d12_fmt_from_texture_fmt(desc.rt_formats[i]);
+  }
+  pipe->dsv_format = r_d3d12_fmt_from_texture_fmt(desc.depth_format);
+  pipe->sample_desc.Count = (UINT)desc.sample_count;
+  pipe->sample_desc.Quality = 0;
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC pso = {};
+  pso.pRootSignature = pipe->root_sig;
+
+  pso.VS = CD3DX12_SHADER_BYTECODE(vs_blob);
+  pso.PS = CD3DX12_SHADER_BYTECODE(ps_blob);
+
+  pso.BlendState        = pipe->blend;
+  pso.SampleMask        = UINT_MAX;
+  pso.RasterizerState   = pipe->raster;
+  pso.DepthStencilState = pipe->depth_stencil;
+
+  if (pipe->input_layout_count != 0) {
+    pso.InputLayout.pInputElementDescs = pipe->input_layout;
+    pso.InputLayout.NumElements        = (UINT)pipe->input_layout_count;
+  }
+
+  pso.PrimitiveTopologyType = pipe->topology_type;
+  pso.NumRenderTargets = (UINT)pipe->rtv_count;
+
+  for (S32 i = 0; i < 8; i += 1) {
+    if (i < pipe->rtv_count) {
+      pso.RTVFormats[i] = pipe->rtv_formats[i];
+    } else {
+      pso.RTVFormats[i] = DXGI_FORMAT_UNKNOWN;
+    }
+  }
+
+  pso.DSVFormat  = pipe->dsv_format;
+  pso.SampleDesc = pipe->sample_desc;
+
+  pso.IBStripCutValue                 = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+  pso.NodeMask                        = 0;
+  pso.CachedPSO.pCachedBlob           = 0;
+  pso.CachedPSO.CachedBlobSizeInBytes = 0;
+  pso.Flags                           = D3D12_PIPELINE_STATE_FLAG_NONE;
+
+  pipe->pso_desc = pso;
+
+  HRESULT hr = ctx->device->CreateGraphicsPipelineState(&pipe->pso_desc, IID_PPV_ARGS(&pipe->pso));
+  Assert(SUCCEEDED(hr));
+
+  result.fence_value = 0;
+  result.backend = (void *)pipe;
   return result;
 }

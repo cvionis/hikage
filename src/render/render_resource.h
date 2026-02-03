@@ -34,7 +34,7 @@ struct R_ResourceSlot {
   B32 alive;
 
   S32 descriptor_idx; // @Note: Optional
-  S64 fence_value;
+  S64 fence_value; // @Note: need a value that indicates a fence is ready by default (e.g. 0)
   void *backend_rsrc;
 };
 
@@ -105,7 +105,7 @@ struct R_TextureDesc {
   R_TextureKind kind;
 };
 
-// @Todo: init_count might be redundant as desc already contains `mips_count`.
+// @Todo: init_count might be redundant as desc already contains `mips_count` (perhaps this makes the latter redundant instead)
 static R_Handle r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc);
 
 //
@@ -150,25 +150,148 @@ static R_Handle r_create_buffer(R_BufferInitData init, R_BufferDesc desc);
 // Pipelines
 //
 
-// @Todo: These should probably be put in render_core.h
+// @Todo: These should probably be elsewhere (render_core.h?)
+
+enum R_VertexInputClass {
+  R_VertexInputClass_PerVertex,
+  R_VertexInputClass_PerInstance,
+};
+
+struct R_InputElement {
+  String8 semantic_name;
+  S32 semantic_index;
+
+  R_TextureFmt format;
+  S32 input_slot;
+  S32 byte_offset;
+
+  R_VertexInputClass input_class;
+  S32 instance_step_rate;
+};
+
 struct R_Layout {
+  R_InputElement elements[16];
+  S32 elements_count;
+};
+
+enum R_FillMode {
+  R_FillMode_Solid,
+  R_FillMode_Wireframe,
+};
+
+enum R_CullMode {
+  R_CullMode_None,
+  R_CullMode_Front,
+  R_CullMode_Back,
 };
 
 struct R_RasterizerState {
+  R_FillMode fill_mode;
+  R_CullMode cull_mode;
+  B32 front_ccw;
+
+  S32 depth_bias;
+  F32 depth_bias_clamp;
+  F32 slope_scaled_depth_bias;
+
+  B32 depth_clip_enable;
+  B32 multisample_enable;
+};
+
+enum R_CompareOp {
+  R_CompareOp_Never,
+  R_CompareOp_Less,
+  R_CompareOp_Equal,
+  R_CompareOp_LessEqual,
+  R_CompareOp_Greater,
+  R_CompareOp_NotEqual,
+  R_CompareOp_GreaterEqual,
+  R_CompareOp_Always,
+};
+
+enum R_StencilOp {
+  R_StencilOp_Keep,
+  R_StencilOp_Zero,
+  R_StencilOp_Replace,
+  R_StencilOp_IncClamp,
+  R_StencilOp_DecClamp,
+  R_StencilOp_Invert,
+  R_StencilOp_IncWrap,
+  R_StencilOp_DecWrap,
+};
+
+struct R_StencilFaceState {
+  R_StencilOp fail_op;
+  R_StencilOp depth_fail_op;
+  R_StencilOp pass_op;
+  R_CompareOp compare_op;
 };
 
 struct R_DepthStencilState {
+  B32 depth_enable;
+  B32 depth_write_enable;
+  R_CompareOp depth_compare;
+
+  B32 stencil_enable;
+  U8 stencil_read_mask;
+  U8 stencil_write_mask;
+
+  R_StencilFaceState front_face;
+  R_StencilFaceState back_face;
+};
+
+enum R_BlendFactor {
+  R_BlendFactor_Zero,
+  R_BlendFactor_One,
+  R_BlendFactor_SrcColor,
+  R_BlendFactor_InvSrcColor,
+  R_BlendFactor_SrcAlpha,
+  R_BlendFactor_InvSrcAlpha,
+  R_BlendFactor_DestAlpha,
+  R_BlendFactor_InvDestAlpha,
+  R_BlendFactor_DestColor,
+  R_BlendFactor_InvDestColor,
+};
+
+enum R_BlendOp {
+  R_BlendOp_Add,
+  R_BlendOp_Subtract,
+  R_BlendOp_RevSubtract,
+  R_BlendOp_Min,
+  R_BlendOp_Max,
+};
+
+struct R_RenderTargetBlendState {
+  B32 blend_enable;
+
+  R_BlendFactor src_color;
+  R_BlendFactor dst_color;
+  R_BlendOp color_op;
+
+  R_BlendFactor src_alpha;
+  R_BlendFactor dst_alpha;
+  R_BlendOp alpha_op;
+
+  U8 write_mask;
 };
 
 struct R_BlendState {
+  B32 alpha_to_coverage_enable;
+  B32 independent_blend_enable;
+
+  R_RenderTargetBlendState targets[8];
 };
 
 enum R_TopologyKind {
+  R_TopologyKind_Triangle,
+  R_TopologyKind_Line,
+  R_TopologyKind_Point,
 };
 
 struct R_PipelineDesc {
-  String8 vs_path;
-  String8 ps_path;
+  // @Todo: Use String8, convert
+  LPCWSTR vs_path;
+  LPCWSTR ps_path;
 
   R_Layout input_layout;
 
@@ -178,7 +301,10 @@ struct R_PipelineDesc {
   R_TopologyKind topology;
 
   R_TextureFmt rt_formats[8];
+  S32 rt_count;
+
   R_TextureFmt depth_format;
+  S32 sample_count; // MSAA
 };
 
 static R_Handle r_create_pipeline(R_PipelineDesc desc);
