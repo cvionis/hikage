@@ -15,7 +15,7 @@ struct Mesh {
 
 struct Texture {
   R_Handle tex;
-  R_TextureFmt fmt;
+  R_Format fmt;
   U32 width;
   U32 height;
   U32 mip_count;

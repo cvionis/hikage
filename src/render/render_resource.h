@@ -49,21 +49,44 @@ global R_ResourceTable r_resource_table; // @Todo: Store in r_ctx
 // Textures
 //
 
-enum R_TextureFmt {
-  // Uncompressed
-  R_TextureFmt_RGBA8_UNORM,
-  R_TextureFmt_RGBA16_FLOAT,
+enum R_Format
+{
+  R_Format_Invalid,
 
-  // Block-compressed
-  R_TextureFmt_BC1_UNORM,
-  R_TextureFmt_BC3_UNORM,
-  R_TextureFmt_BC4_UNORM,
-  R_TextureFmt_BC5_UNORM,
-  R_TextureFmt_BC7_UNORM,
+  // 8-bit normalized color
+  R_Format_R8_UNorm,
+  R_Format_R8G8_UNorm,
+  R_Format_R8G8B8A8_UNorm,
+  R_Format_R8G8B8A8_UNorm_Srgb,
 
-  // Depth
-  R_TextureFmt_D32_FLOAT,
+  // 16-bit / 32-bit float color (HDR / G-buffer)
+  R_Format_R16_Float,
+  R_Format_R16G16_Float,
+  R_Format_R16G16B16A16_Float,
+  R_Format_R32_Float,
+  R_Format_R32G32_Float,
+  R_Format_R32G32B32_Float,
+  R_Format_R32G32B32A32_Float,
+
+  // Packed / special
+  R_Format_R11G11B10_Float,     // HDR lighting buffers
+  R_Format_R10G10B10A2_UNorm,   // optional G-buffer / lighting
+
+  // Block-compressed (BCn)
+  R_Format_BC1_UNorm,
+  R_Format_BC1_UNorm_Srgb,
+  R_Format_BC3_UNorm,
+  R_Format_BC3_UNorm_Srgb,
+  R_Format_BC4_UNorm,
+  R_Format_BC5_UNorm,
+  R_Format_BC7_UNorm,
+  R_Format_BC7_UNorm_Srgb,
+
+  // Depth / Stencil
+  R_Format_D32_Float,
+  R_Format_D24_UNorm_S8_UInt,
 };
+
 
 enum R_TextureUsage {
   R_TextureUsage_Default      = 0,
@@ -100,7 +123,7 @@ struct R_TextureDesc {
   S32 depth; // depth for 3D, array size for array textures
   S32 mips_count;
 
-  R_TextureFmt fmt;
+  R_Format fmt;
   R_TextureUsage usage;
   R_TextureKind kind;
 };
@@ -161,7 +184,7 @@ struct R_InputElement {
   String8 semantic_name;
   S32 semantic_index;
 
-  R_TextureFmt format;
+  R_Format format;
   S32 input_slot;
   S32 byte_offset;
 
@@ -300,10 +323,10 @@ struct R_PipelineDesc {
   R_BlendState blend;
   R_TopologyKind topology;
 
-  R_TextureFmt rt_formats[8];
+  R_Format rt_formats[8];
   S32 rt_count;
 
-  R_TextureFmt depth_format;
+  R_Format depth_format;
   S32 sample_count; // MSAA
 };
 

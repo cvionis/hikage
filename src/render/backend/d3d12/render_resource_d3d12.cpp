@@ -64,22 +64,40 @@ r_alloc_texture_descriptor_idx(void)
 }
 
 static DXGI_FORMAT
-r_d3d12_fmt_from_texture_fmt(R_TextureFmt fmt)
+r_d3d12_fmt_from_r_fmt(R_Format fmt)
 {
   DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 
   switch (fmt) {
-    case R_TextureFmt_RGBA8_UNORM:  { result = DXGI_FORMAT_R8G8B8A8_UNORM;     } break;
-    case R_TextureFmt_RGBA16_FLOAT: { result = DXGI_FORMAT_R16G16B16A16_FLOAT; } break;
-    case R_TextureFmt_BC1_UNORM:    { result = DXGI_FORMAT_BC1_UNORM;          } break;
-    case R_TextureFmt_BC3_UNORM:    { result = DXGI_FORMAT_BC3_UNORM;          } break;
-    case R_TextureFmt_BC4_UNORM:    { result = DXGI_FORMAT_BC4_UNORM;          } break;
-    case R_TextureFmt_BC5_UNORM:    { result = DXGI_FORMAT_BC5_UNORM;          } break;
-    case R_TextureFmt_BC7_UNORM:    { result = DXGI_FORMAT_BC7_UNORM;          } break;
+    case R_Format_Invalid:                { result = DXGI_FORMAT_UNKNOWN; } break;
+    case R_Format_R8_UNorm:               { result = DXGI_FORMAT_R8_UNORM; } break;
+    case R_Format_R8G8_UNorm:             { result = DXGI_FORMAT_R8G8_UNORM; } break;
+    case R_Format_R8G8B8A8_UNorm:         { result = DXGI_FORMAT_R8G8B8A8_UNORM; } break;
+    case R_Format_R8G8B8A8_UNorm_Srgb:    { result = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; } break;
+    case R_Format_R16_Float:              { result = DXGI_FORMAT_R16_FLOAT; } break;
+    case R_Format_R16G16_Float:           { result = DXGI_FORMAT_R16G16_FLOAT; } break;
+    case R_Format_R16G16B16A16_Float:     { result = DXGI_FORMAT_R16G16B16A16_FLOAT; } break;
+    case R_Format_R32_Float:              { result = DXGI_FORMAT_R32_FLOAT; } break;
+    case R_Format_R32G32_Float:           { result = DXGI_FORMAT_R32G32_FLOAT; } break;
+    case R_Format_R32G32B32_Float:        { result = DXGI_FORMAT_R32G32B32_FLOAT; } break;
+    case R_Format_R32G32B32A32_Float:     { result = DXGI_FORMAT_R32G32B32A32_FLOAT; } break;
+    case R_Format_R11G11B10_Float:        { result = DXGI_FORMAT_R11G11B10_FLOAT; } break;
+    case R_Format_R10G10B10A2_UNorm:      { result = DXGI_FORMAT_R10G10B10A2_UNORM; } break;
+    case R_Format_BC1_UNorm:              { result = DXGI_FORMAT_BC1_UNORM; } break;
+    case R_Format_BC1_UNorm_Srgb:         { result = DXGI_FORMAT_BC1_UNORM_SRGB; } break;
+    case R_Format_BC3_UNorm:              { result = DXGI_FORMAT_BC3_UNORM; } break;
+    case R_Format_BC3_UNorm_Srgb:         { result = DXGI_FORMAT_BC3_UNORM_SRGB; } break;
+    case R_Format_BC4_UNorm:              { result = DXGI_FORMAT_BC4_UNORM; } break;
+    case R_Format_BC5_UNorm:              { result = DXGI_FORMAT_BC5_UNORM; } break;
+    case R_Format_BC7_UNorm:              { result = DXGI_FORMAT_BC7_UNORM; } break;
+    case R_Format_BC7_UNorm_Srgb:         { result = DXGI_FORMAT_BC7_UNORM_SRGB; } break;
+    case R_Format_D32_Float:              { result = DXGI_FORMAT_D32_FLOAT; } break;
+    case R_Format_D24_UNorm_S8_UInt:      { result = DXGI_FORMAT_D24_UNORM_S8_UINT; } break;
   }
 
   return result;
 }
+
 
 static void
 r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 mips_count, S32 descriptor_idx)
@@ -311,7 +329,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   R_Context *ctx = &r_ctx;
   R_CreateResource result = {};
 
-  DXGI_FORMAT dxgi_fmt = r_d3d12_fmt_from_texture_fmt(desc.fmt);
+  DXGI_FORMAT dxgi_fmt = r_d3d12_fmt_from_r_fmt(desc.fmt);
   D3D12_RESOURCE_DESC rdesc = {};
   rdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
   rdesc.Width = desc.width;
@@ -692,7 +710,7 @@ r_d3d12_input_layout_from_r(R_Layout *layout, D3D12_INPUT_ELEMENT_DESC *out, S32
     D3D12_INPUT_ELEMENT_DESC d = {};
     d.SemanticName         = chr_from_str8(e->semantic_name);
     d.SemanticIndex        = (UINT)e->semantic_index;
-    d.Format               =  r_d3d12_fmt_from_texture_fmt(e->format);
+    d.Format               =  r_d3d12_fmt_from_r_fmt(e->format);
     d.InputSlot            = (UINT)e->input_slot;
     d.AlignedByteOffset    = (UINT)e->byte_offset;
 
@@ -853,9 +871,9 @@ r_create_pipeline_impl(R_PipelineDesc desc)
   pipe->rtv_count = desc.rt_count;
 
   for (S32 i = 0; i < pipe->rtv_count; i += 1) {
-    pipe->rtv_formats[i] = r_d3d12_fmt_from_texture_fmt(desc.rt_formats[i]);
+    pipe->rtv_formats[i] = r_d3d12_fmt_from_r_fmt(desc.rt_formats[i]);
   }
-  pipe->dsv_format = r_d3d12_fmt_from_texture_fmt(desc.depth_format);
+  pipe->dsv_format = r_d3d12_fmt_from_r_fmt(desc.depth_format);
   pipe->sample_desc.Count = (UINT)desc.sample_count;
   pipe->sample_desc.Quality = 0;
 

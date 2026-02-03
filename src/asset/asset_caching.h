@@ -85,7 +85,7 @@ struct AC_TextureEntry {
 };
 
 struct AC_ImageEntry {
-  R_TextureFmt format;
+  R_Format format;
   U32 width;
   U32 height;
 

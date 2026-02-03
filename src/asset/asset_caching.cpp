@@ -776,7 +776,7 @@ ac_build_texture_table(AC_Builder *builder, cgltf_data *gltf)
 }
 
 struct AC_ImageMetadata {
-  R_TextureFmt fmt;
+  R_Format fmt;
   U32 width;
   U32 height;
 
@@ -787,17 +787,18 @@ struct AC_ImageMetadata {
   U32 data_size;
 };
 
-static R_TextureFmt
+static R_Format
 ac_image_fmt_from_usage(U32 usage)
 {
   // @Note: From low to high priority
 
-  R_TextureFmt result = R_TextureFmt_BC3_UNORM;
+  // @Todo: What about SRGB block compressed?
+  R_Format result = R_Format_BC3_UNorm;
   switch (usage) {
-    case AC_ImageUsage_Emissive:   { result = R_TextureFmt_BC3_UNORM; }break;
-    case AC_ImageUsage_MetalRough: { result = R_TextureFmt_BC1_UNORM; }break;
-    case AC_ImageUsage_Occlusion:  { result = R_TextureFmt_BC4_UNORM; }break;
-    case AC_ImageUsage_Normal:     { result = R_TextureFmt_BC5_UNORM; }break;
+    case AC_ImageUsage_Emissive:   { result = R_Format_BC3_UNorm; }break;
+    case AC_ImageUsage_MetalRough: { result = R_Format_BC1_UNorm; }break;
+    case AC_ImageUsage_Occlusion:  { result = R_Format_BC4_UNorm; }break;
+    case AC_ImageUsage_Normal:     { result = R_Format_BC5_UNorm; }break;
   }
 
   return result;
@@ -910,7 +911,7 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
   U32 running_mip_count = 0;
 
   // @Todo: Make sure to handle sRGB data correctly.
-  // Keep decoded pixels in R8G8B8A8_UNORM, and decide sRGB at the compressed output / SRV stage (BC1/BC3/BC7 _SRGB for albedo).
+  // Keep decoded pixels in R8G8B8A8_UNorm, and decide sRGB at the compressed output / SRV stage (BC1/BC3/BC7 _SRGB for albedo).
   for (U32 img_idx = 0; img_idx < gltf->images_count; img_idx += 1) {
     TempArena tmp = arena_temp_begin(scratch);
 
@@ -943,8 +944,8 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
 
       if (SUCCEEDED(hr)) {
         // Compress zeh mips
-        R_TextureFmt fmt = img_metadata[img_idx].fmt;
-        DXGI_FORMAT dxgi_fmt = r_d3d12_fmt_from_texture_fmt(fmt);
+        R_Format fmt = img_metadata[img_idx].fmt;
+        DXGI_FORMAT dxgi_fmt = r_d3d12_fmt_from_r_fmt(fmt);
         if (dxgi_fmt != DXGI_FORMAT_UNKNOWN) {
           DirectX::ScratchImage compressed;
           hr = DirectX::Compress(

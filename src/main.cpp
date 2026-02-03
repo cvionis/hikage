@@ -194,6 +194,55 @@ entry_point(void)
 
   r_init(app.window);
 
+  {
+    static R_Layout mesh_layout = {
+      .elements = {
+        { S8("POSITIONS"), 0, R_Format_R32G32B32_Float,    0,  0, R_VertexInputClass_PerVertex, 0 },
+        { S8("NORMALS"),   0, R_Format_R32G32B32_Float,    0, 12, R_VertexInputClass_PerVertex, 0 },
+        { S8("TEXCOORDS"), 0, R_Format_R32G32_Float,       0, 24, R_VertexInputClass_PerVertex, 0 },
+        { S8("TANGENT"),  0,  R_Format_R32G32B32A32_Float, 0, 32, R_VertexInputClass_PerVertex, 0 },
+      },
+      .elements_count = 4,
+    };
+
+    R_PipelineDesc forward_ldr = {
+      .vs_path = L"../src/shaders/forward_basic.hlsl",
+      .ps_path = L"../src/shaders/forward_basic.hlsl",
+
+      .input_layout = mesh_layout,
+
+      .raster = {
+        .fill_mode = R_FillMode_Solid,
+        .cull_mode = R_CullMode_Back,
+        .front_ccw = 0,
+        .depth_clip_enable = 1,
+      },
+
+      .depth_stencil = {
+        .depth_enable = 1,
+        .depth_write_enable = 1,
+        .depth_compare = R_CompareOp_LessEqual,
+      },
+
+      .blend = {
+        .targets = {
+          { .blend_enable = 0, .write_mask = 0xF },
+        },
+      },
+
+      .topology = R_TopologyKind_Triangle,
+
+      // Backbuffer format
+      .rt_formats = { R_Format_R8G8B8A8_UNorm },
+      .rt_count = 1,
+
+      .depth_format = R_Format_D32_Float,
+      .sample_count = 1,
+    };
+
+    R_Handle forward_ldr_pipeline = r_create_pipeline(forward_ldr);
+  }
+
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
   AssetHandle a = assets_load_model(&assets, S8("DamagedHelmet"));
