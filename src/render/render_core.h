@@ -13,11 +13,7 @@
 #include <shellapi.h>
 #pragma warning(pop, 0)
 
-// r_pass_add({}, "depth_prepass");
-// r_pass_add({}, "shadow");
-// r_pass_add({}, "gbuffer");
-// ...
-// for (pass in ctx.passes) pass.execute(cmd_list)
+#if 0
 struct R_Pass {
   R_Handle pipeline;
 
@@ -27,7 +23,35 @@ struct R_Pass {
 
   D3D12_VIEWPORT viewport;
   D3D12_RECT scissor;
+
+  //void (* render)(R_Pass *);
 };
+#endif
+
+#if 0
+struct R_Pass {
+  R_Handle pipeline;
+
+  R_Handle render_targets[8];
+  S32 render_targets_count;
+
+  R_Handle depth_target;
+
+  R_Viewport viewport;
+  R_RectF32 scissor_rect;
+};
+#endif
+
+#if 0
+static void r_pass_add(String8 name, R_Handle pipeline, void (* render)(R_Pass ));
+
+for (S32 pass_idx = 0; pass_idx < passes_count; pass_idx += 1) {
+  R_Pass *pass = passes + pass_idx;
+  r_pass_begin_frame(pass);
+  pass->render(pass, cmdlist);
+  r_pass_end_frame(pass);
+}
+#endif
 
 #define R_D3D12_FRAME_COUNT 2
 
@@ -130,19 +154,7 @@ struct R_MaterialGPU {
   U32 tex_emissive;
 };
 
-// @Todo: These definitely shouldn't be defined in render_core.h
-struct R_CameraCB {
-  Mat4x4 viewproj;
-  V4F32 camera_ws;
-  Mat4x4 view;
-};
-
-struct R_MaterialCB {
-  V3F32 base_color;
-};
-
-// @Todo: Move somewhere more permanent
-
+// @Todo: Move somewhere more permanent (probably outside render layer?)
 struct Camera {
   Mat4x4 view;
   Mat4x4 proj;
@@ -159,11 +171,6 @@ struct Camera {
 
   F32 fov;
   B32 ortho;
-};
-
-struct ModelTmp {
-  V3F32 position;
-  V3F32 scale;
 };
 
 static void camera_update_position_aspect(Camera *camera, V3F32 delta, F32 aspect, F32 delta_time);

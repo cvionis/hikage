@@ -847,17 +847,16 @@ r_create_pipeline_impl(R_PipelineDesc desc)
   R_CreateResource result = {};
 
   R_D3D12_Pipeline *pipe = ArenaPushStruct(ctx->arena, R_D3D12_Pipeline);
-  MemoryZeroStruct(pipe);
 
   pipe->vs_path = desc.vs_path;
   pipe->ps_path = desc.ps_path;
   pipe->root_sig = ctx->root_signature; // @Note: Using a single shared root signature that all pipelines will agree upon.
 
   // @Todo: Should probably free later
-  ID3DBlob *vs_blob = r_d3d12_compile_hlsl(desc.vs_path, "vs_main", "vs_6_6");
+  ID3DBlob *vs_blob = r_d3d12_compile_hlsl(desc.vs_path, "vs_main", "vs_5_1");
   ID3DBlob *ps_blob = 0;
   if (desc.ps_path != 0) {
-    ps_blob = r_d3d12_compile_hlsl(desc.ps_path, "ps_main", "ps_6_6");
+    ps_blob = r_d3d12_compile_hlsl(desc.ps_path, "ps_main", "ps_5_1");
   }
   Assert(vs_blob != 0);
 

@@ -197,17 +197,18 @@ entry_point(void)
   {
     static R_Layout mesh_layout = {
       .elements = {
-        { S8("POSITIONS"), 0, R_Format_R32G32B32_Float,    0,  0, R_VertexInputClass_PerVertex, 0 },
-        { S8("NORMALS"),   0, R_Format_R32G32B32_Float,    0, 12, R_VertexInputClass_PerVertex, 0 },
-        { S8("TEXCOORDS"), 0, R_Format_R32G32_Float,       0, 24, R_VertexInputClass_PerVertex, 0 },
+        { S8("POSITION"), 0, R_Format_R32G32B32_Float,     0,  0, R_VertexInputClass_PerVertex, 0 },
+        { S8("NORMAL"),   0, R_Format_R32G32B32_Float,     0, 12, R_VertexInputClass_PerVertex, 0 },
         { S8("TANGENT"),  0,  R_Format_R32G32B32A32_Float, 0, 32, R_VertexInputClass_PerVertex, 0 },
+        { S8("TEXCOORD"), 0, R_Format_R32G32_Float,        0, 24, R_VertexInputClass_PerVertex, 0 },
       },
       .elements_count = 4,
     };
 
+    #if 0
     R_PipelineDesc forward_ldr = {
-      .vs_path = L"../src/shaders/forward_basic.hlsl",
-      .ps_path = L"../src/shaders/forward_basic.hlsl",
+      .vs_path = L"../src/render/shaders/forward_basic.hlsl",
+      .ps_path = L"../src/render/shaders/forward_basic.hlsl",
 
       .input_layout = mesh_layout,
 
@@ -240,7 +241,7 @@ entry_point(void)
       .sample_count = 1,
     };
 
-    R_Handle forward_ldr_pipeline = r_create_pipeline(forward_ldr);
+    #endif
   }
 
   AssetContext assets = assets_make();
@@ -265,12 +266,6 @@ entry_point(void)
     camera.yaw = atan2f32(camera.direction.x, camera.direction.z);
     camera.pitch_target = camera.pitch;
     camera.yaw_target = camera.yaw;
-  }
-
-  ModelTmp models[SCENE_MODELS_COUNT] = {0};
-  {
-    models[0].scale = v3f32(10,1,10);
-    models[0].position = v3f32(0,-1,0);
   }
 
   while (!app.quit) {

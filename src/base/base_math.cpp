@@ -793,7 +793,7 @@ orthographic_m4x4(F32 l, F32 r, F32 b, F32 t, F32 n, F32 f)
 {
   F32 x =  2.f / (r - l);
   F32 y =  2.f / (t - b);
-  F32 z = -2.f / (f - n); // NOTE: Assumes -z forward, right-handed.
+  F32 z = -2.f / (f - n); // NOTE: Assumes OpenGL z range of [-1, 1]
 
   F32 tx = -(r + l) / (r - l);
   F32 ty = -(t + b) / (t - b);
