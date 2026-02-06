@@ -1,0 +1,453 @@
+[debug]
+main.cpp
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(225,13): warning C4189: 'bpb': local variable is initialized but not referenced
+        U32 bpb = bc_bytes_per_block(fmt);
+            ^
+R:\KageEngine\src\render\render_frame.cpp(6,22): warning C4100: 'pass': unreferenced formal parameter
+r_pass_begin(R_Pass *pass)
+                     ^
+R:\KageEngine\src\render\render_frame.cpp(11,20): warning C4100: 'pass': unreferenced formal parameter
+r_pass_end(R_Pass *pass)
+                   ^
+R:\KageEngine\src\render\render_frame.cpp(35,32): warning C4100: 'frame': unreferenced formal parameter
+r_frame_push_pass(R_FrameData *frame)
+                               ^
+R:\KageEngine\src\render\render_frame.cpp(42,30): warning C4100: 'frame': unreferenced formal parameter
+r_frame_compile(R_FrameData *frame)
+                             ^
+R:\KageEngine\src\render\render_frame.cpp(48,30): warning C4100: 'frame': unreferenced formal parameter
+r_frame_execute(R_FrameData *frame)
+                             ^
+R:\KageEngine\src\render\render_frame.cpp(56,26): warning C4100: 'frame': unreferenced formal parameter
+r_frame_end(R_FrameData *frame)
+                         ^
+R:\KageEngine\src\render\render_passes.cpp(2,1): error C2447: '{': missing function header (old-style formal list?)
+{
+^
+R:\KageEngine\src\render\render_passes.cpp(8,1): error C2182: 'r_pass_add_forward': this use of 'void' is not valid
+r_pass_add_forward(R_Frame *frame)
+^
+R:\KageEngine\src\render\render_passes.cpp(8,20): error C2065: 'R_Frame': undeclared identifier
+r_pass_add_forward(R_Frame *frame)
+                   ^
+R:\KageEngine\src\render\render_passes.cpp(8,29): error C2065: 'frame': undeclared identifier
+r_pass_add_forward(R_Frame *frame)
+                            ^
+R:\KageEngine\src\render\render_passes.cpp(9,1): error C2143: syntax error: missing ';' before '{'
+{
+^
+R:\KageEngine\src\render\render_passes.cpp(12,36): error C2065: 'frame': undeclared identifier
+  R_Pass *pass = r_frame_push_pass(frame);
+                                   ^
+R:\KageEngine\src\render\render_passes.cpp(14,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  pass->name = S8("forward");
+  ^
+R:\KageEngine\src\render\render_passes.cpp(14,9): error C3613: missing return type after '->' ('int' assumed)
+  pass->name = S8("forward");
+        ^
+R:\KageEngine\src\render\render_passes.cpp(14,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  pass->name = S8("forward");
+  ^
+R:\KageEngine\src\render\render_passes.cpp(14,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
+R:\KageEngine\src\render\render_passes.cpp(14,9): error C2146: syntax error: missing ';' before identifier 'name'
+  pass->name = S8("forward");
+        ^
+R:\KageEngine\src\render\render_passes.cpp(14,16): error C2143: syntax error: missing ';' before '{'
+  pass->name = S8("forward");
+               ^
+R:\KageEngine\src\render\render_passes.cpp(14,16): error C2447: '{': missing function header (old-style formal list?)
+R:\KageEngine\src\render\render_passes.cpp(15,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  pass->pipeline = ctx->pipelines.forward; // @Note: Temporary
+  ^
+R:\KageEngine\src\render\render_passes.cpp(15,9): error C3613: missing return type after '->' ('int' assumed)
+  pass->pipeline = ctx->pipelines.forward; // @Note: Temporary
+        ^
+R:\KageEngine\src\render\render_passes.cpp(15,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  pass->pipeline = ctx->pipelines.forward; // @Note: Temporary
+  ^
+R:\KageEngine\src\render\render_passes.cpp(15,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
+R:\KageEngine\src\render\render_passes.cpp(15,9): error C2146: syntax error: missing ';' before identifier 'pipeline'
+  pass->pipeline = ctx->pipelines.forward; // @Note: Temporary
+        ^
+R:\KageEngine\src\render\render_passes.cpp(20,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  pass->color_targets[0] = frame->forward_color;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(20,9): error C3613: missing return type after '->' ('int' assumed)
+  pass->color_targets[0] = frame->forward_color;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(20,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  pass->color_targets[0] = frame->forward_color;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(20,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
+R:\KageEngine\src\render\render_passes.cpp(20,9): error C2146: syntax error: missing ';' before identifier 'color_targets'
+  pass->color_targets[0] = frame->forward_color;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(21,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  pass->color_targets_count = 1;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(21,9): error C3613: missing return type after '->' ('int' assumed)
+  pass->color_targets_count = 1;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(21,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  pass->color_targets_count = 1;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(21,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
+R:\KageEngine\src\render\render_passes.cpp(21,9): error C2146: syntax error: missing ';' before identifier 'color_targets_count'
+  pass->color_targets_count = 1;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(22,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  pass->depth_target = frame->forward_depth;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(22,9): error C3613: missing return type after '->' ('int' assumed)
+  pass->depth_target = frame->forward_depth;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(22,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  pass->depth_target = frame->forward_depth;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(22,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
+R:\KageEngine\src\render\render_passes.cpp(22,9): error C2146: syntax error: missing ';' before identifier 'depth_target'
+  pass->depth_target = frame->forward_depth;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(25,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  pass->writes[0] = frame->gbuf_albedo;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(25,9): error C3613: missing return type after '->' ('int' assumed)
+  pass->writes[0] = frame->gbuf_albedo;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(25,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  pass->writes[0] = frame->gbuf_albedo;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(25,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
+R:\KageEngine\src\render\render_passes.cpp(25,9): error C2146: syntax error: missing ';' before identifier 'writes'
+  pass->writes[0] = frame->gbuf_albedo;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(26,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  pass->writes_count = 1;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(26,9): error C3613: missing return type after '->' ('int' assumed)
+  pass->writes_count = 1;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(26,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  pass->writes_count = 1;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(26,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
+R:\KageEngine\src\render\render_passes.cpp(26,9): error C2146: syntax error: missing ';' before identifier 'writes_count'
+  pass->writes_count = 1;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(28,21): error C2143: syntax error: missing ';' before '*'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                    ^
+R:\KageEngine\src\render\render_passes.cpp(28,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+  ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\render\render_passes.cpp(28,29): error C2059: syntax error: ')'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                            ^
+R:\KageEngine\src\render\render_passes.cpp(29,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  data->assets = frame->assets;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(29,9): error C3613: missing return type after '->' ('int' assumed)
+  data->assets = frame->assets;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(29,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  data->assets = frame->assets;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(29,3): error C2040: 'data': 'int' differs in levels of indirection from 'int *'
+R:\KageEngine\src\render\render_passes.cpp(29,9): error C2146: syntax error: missing ';' before identifier 'assets'
+  data->assets = frame->assets;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(30,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  data->models = frame->models;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(30,9): error C3613: missing return type after '->' ('int' assumed)
+  data->models = frame->models;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(30,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  data->models = frame->models;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(30,3): error C2040: 'data': 'int' differs in levels of indirection from 'int *'
+R:\KageEngine\src\render\render_passes.cpp(30,9): error C2146: syntax error: missing ';' before identifier 'models'
+  data->models = frame->models;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(31,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  data->models_count = frame->models_count;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(31,9): error C3613: missing return type after '->' ('int' assumed)
+  data->models_count = frame->models_count;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(31,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  data->models_count = frame->models_count;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(31,3): error C2040: 'data': 'int' differs in levels of indirection from 'int *'
+R:\KageEngine\src\render\render_passes.cpp(31,9): error C2146: syntax error: missing ';' before identifier 'models_count'
+  data->models_count = frame->models_count;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(32,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  data->camera = frame->camera;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(32,9): error C3613: missing return type after '->' ('int' assumed)
+  data->camera = frame->camera;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(32,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  data->camera = frame->camera;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(32,3): error C2040: 'data': 'int' differs in levels of indirection from 'int *'
+R:\KageEngine\src\render\render_passes.cpp(32,9): error C2146: syntax error: missing ';' before identifier 'camera'
+  data->camera = frame->camera;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(34,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  pass->userdata = data;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(34,9): error C3613: missing return type after '->' ('int' assumed)
+  pass->userdata = data;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(34,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  pass->userdata = data;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(34,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
+R:\KageEngine\src\render\render_passes.cpp(34,9): error C2146: syntax error: missing ';' before identifier 'userdata'
+  pass->userdata = data;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(35,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
+  pass->execute = r_pass_execute_forward;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(35,9): error C3613: missing return type after '->' ('int' assumed)
+  pass->execute = r_pass_execute_forward;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(35,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  pass->execute = r_pass_execute_forward;
+  ^
+R:\KageEngine\src\render\render_passes.cpp(35,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
+R:\KageEngine\src\render\render_passes.cpp(35,9): error C2146: syntax error: missing ';' before identifier 'execute'
+  pass->execute = r_pass_execute_forward;
+        ^
+R:\KageEngine\src\render\render_passes.cpp(36,1): error C2059: syntax error: '}'
+}
+^
+R:\KageEngine\src\render\render_passes.cpp(36,1): error C2143: syntax error: missing ';' before '}'
+C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\ucrt\assert.h(17,1): error C2143: syntax error: missing ';' before '{'
+_CRT_BEGIN_C_HEADER
+^
+C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\ucrt\assert.h(17,1): error C2447: '{': missing function header (old-style formal list?)
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1040,186): warning C4459: declaration of 'data' hides global declaration
+static cgltf_result cgltf_default_file_read(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, const char* path, cgltf_size* size, void** data)
+                                                                                                                                                                                         ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1103,144): warning C4459: declaration of 'data' hides global declaration
+static void cgltf_default_file_release(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, void* data, cgltf_size size)
+                                                                                                                                               ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1113,68): warning C4459: declaration of 'data' hides global declaration
+cgltf_result cgltf_parse(const cgltf_options* options, const void* data, cgltf_size size, cgltf_data** out_data)
+                                                                   ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1328,17): warning C4459: declaration of 'data' hides global declaration
+	unsigned char* data = (unsigned char*)memory_alloc(options->memory.user_data, size);
+	               ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1481,75): warning C4459: declaration of 'data' hides global declaration
+cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, const char* gltf_path)
+                                                                          ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1553,8): warning C4459: declaration of 'data' hides global declaration
+	char* data = (char*)buffer_view->buffer->data + offset + buffer_view->offset;
+	      ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1595,41): warning C4459: declaration of 'data' hides global declaration
+cgltf_result cgltf_validate(cgltf_data* data)
+                                        ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1806,55): warning C4459: declaration of 'data' hides global declaration
+cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* extras, char* dest, cgltf_size* dest_size)
+                                                      ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1834,43): warning C4459: declaration of 'data' hides global declaration
+static void cgltf_free_extras(cgltf_data* data, cgltf_extras* extras)
+                                          ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1839,47): warning C4459: declaration of 'data' hides global declaration
+static void cgltf_free_extensions(cgltf_data* data, cgltf_extension* extensions, cgltf_size extensions_count)
+                                              ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1849,29): warning C4459: declaration of 'data' hides global declaration
+void cgltf_free(cgltf_data* data)
+                            ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2580,47): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_mesh_index(const cgltf_data* data, const cgltf_mesh* object)
+                                              ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2586,51): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_material_index(const cgltf_data* data, const cgltf_material* object)
+                                                  ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2592,51): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_accessor_index(const cgltf_data* data, const cgltf_accessor* object)
+                                                  ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2598,54): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_buffer_view_index(const cgltf_data* data, const cgltf_buffer_view* object)
+                                                     ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2604,49): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_buffer_index(const cgltf_data* data, const cgltf_buffer* object)
+                                                ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2610,48): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_image_index(const cgltf_data* data, const cgltf_image* object)
+                                               ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2616,50): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_texture_index(const cgltf_data* data, const cgltf_texture* object)
+                                                 ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2622,50): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_sampler_index(const cgltf_data* data, const cgltf_sampler* object)
+                                                 ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2628,47): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_skin_index(const cgltf_data* data, const cgltf_skin* object)
+                                              ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2634,49): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_camera_index(const cgltf_data* data, const cgltf_camera* object)
+                                                ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2640,48): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_light_index(const cgltf_data* data, const cgltf_light* object)
+                                               ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2646,47): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_node_index(const cgltf_data* data, const cgltf_node* object)
+                                              ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2652,48): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_scene_index(const cgltf_data* data, const cgltf_scene* object)
+                                               ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2658,52): warning C4459: declaration of 'data' hides global declaration
+cgltf_size cgltf_animation_index(const cgltf_data* data, const cgltf_animation* object)
+                                                   ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6633,14): warning C4459: declaration of 'data' hides global declaration
+	cgltf_data* data = (cgltf_data*)options->memory.alloc_func(options->memory.user_data, sizeof(cgltf_data));
+	            ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6675,45): warning C4459: declaration of 'data' hides global declaration
+static int cgltf_fixup_pointers(cgltf_data* data)
+                                            ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\asset\asset_caching.cpp(9,9): warning C4459: declaration of 'data' hides global declaration
+    U8 *data = ArenaPushArray(arena, U8, count + 1);
+        ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\asset\asset_caching.cpp(119,15): warning C4459: declaration of 'data' hides global declaration
+  cgltf_data *data = 0;
+              ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\asset\asset_caching.cpp(135,26): warning C4459: declaration of 'data' hides global declaration
+ac_free_gltf(cgltf_data *data)
+                         ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\asset\asset_caching.cpp(1073,11): warning C4459: declaration of 'data' hides global declaration
+      U8 *data = ArenaPushArray(arena, U8, file_read.count);
+          ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\asset\asset_storage.cpp(11,30): warning C4459: declaration of 'ctx' hides global declaration
+assets_release(AssetContext *ctx)
+                             ^
+R:\KageEngine\src\render\render_passes.cpp(10,14): note: see declaration of 'ctx'
+  R_Context *ctx = &r_ctx;
+             ^
+R:\KageEngine\src\asset\asset_storage.cpp(18,36): warning C4459: declaration of 'ctx' hides global declaration
+assets_set_root_path(AssetContext *ctx, String8 path)
+                                   ^
+R:\KageEngine\src\render\render_passes.cpp(10,14): note: see declaration of 'ctx'
+  R_Context *ctx = &r_ctx;
+             ^
+R:\KageEngine\src\asset\asset_storage.cpp(26,33): warning C4459: declaration of 'ctx' hides global declaration
+assets_load_model(AssetContext *ctx, String8 name)
+                                ^
+R:\KageEngine\src\render\render_passes.cpp(10,14): note: see declaration of 'ctx'
+  R_Context *ctx = &r_ctx;
+             ^
+R:\KageEngine\src\asset\asset_storage.cpp(54,11): warning C4459: declaration of 'data' hides global declaration
+      U8 *data = (U8 *)blob.data;
+          ^
+R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
+  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
+                     ^
+R:\KageEngine\src\asset\asset_storage.cpp(234,32): warning C4459: declaration of 'ctx' hides global declaration
+assets_get_model(AssetContext *ctx, AssetHandle handle)
+                               ^
+R:\KageEngine\src\render\render_passes.cpp(10,14): note: see declaration of 'ctx'
+  R_Context *ctx = &r_ctx;
+             ^
+R:\KageEngine\src\main.cpp(310,7): error C2064: term does not evaluate to a function taking 1 arguments
+      r_pass_add_forward(&frame);
+      ^

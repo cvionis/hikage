@@ -176,7 +176,8 @@ mouse_down(Input *input, MouseButton btn)
   return input->mouse.buttons[btn];
 }
 
-global ModelInstance model_list[SCENE_MODELS_COUNT];
+global ModelInstance models[SCENE_MODELS_COUNT];
+global S32 models_count = 1;
 
 void
 entry_point(void)
@@ -194,63 +195,56 @@ entry_point(void)
 
   r_init(app.window);
 
-  {
-    static R_Layout mesh_layout = {
-      .elements = {
-        { S8("POSITION"), 0, R_Format_R32G32B32_Float,     0,  0, R_VertexInputClass_PerVertex, 0 },
-        { S8("NORMAL"),   0, R_Format_R32G32B32_Float,     0, 12, R_VertexInputClass_PerVertex, 0 },
-        { S8("TANGENT"),  0,  R_Format_R32G32B32A32_Float, 0, 32, R_VertexInputClass_PerVertex, 0 },
-        { S8("TEXCOORD"), 0, R_Format_R32G32_Float,        0, 24, R_VertexInputClass_PerVertex, 0 },
+  R_PipelineDesc forward_ldr = {
+    .vs_path = L"../src/render/shaders/forward_basic.hlsl",
+    .ps_path = L"../src/render/shaders/forward_basic.hlsl",
+
+    .input_layout = mesh_layout,
+
+    .raster = {
+      .fill_mode = R_FillMode_Solid,
+      .cull_mode = R_CullMode_Back,
+      .front_ccw = 0,
+      .depth_clip_enable = 1,
+    },
+
+    .depth_stencil = {
+      .depth_enable = 1,
+      .depth_write_enable = 1,
+      .depth_compare = R_CompareOp_LessEqual,
+    },
+
+    .blend = {
+      .targets = {
+        { .blend_enable = 0, .write_mask = 0xF },
       },
-      .elements_count = 4,
-    };
+    },
 
-    #if 0
-    R_PipelineDesc forward_ldr = {
-      .vs_path = L"../src/render/shaders/forward_basic.hlsl",
-      .ps_path = L"../src/render/shaders/forward_basic.hlsl",
+    .topology = R_TopologyKind_Triangle,
 
-      .input_layout = mesh_layout,
+    // Backbuffer format
+    .rt_formats = { R_Format_R8G8B8A8_UNorm },
+    .rt_count = 1,
 
-      .raster = {
-        .fill_mode = R_FillMode_Solid,
-        .cull_mode = R_CullMode_Back,
-        .front_ccw = 0,
-        .depth_clip_enable = 1,
-      },
+    .depth_format = R_Format_D32_Float,
+    .sample_count = 1,
+  };
 
-      .depth_stencil = {
-        .depth_enable = 1,
-        .depth_write_enable = 1,
-        .depth_compare = R_CompareOp_LessEqual,
-      },
+  R_Handle forward_pipeline = r_create_pipeline(forward_ldr);
+  r_ctx.pipelines.forward = forward_pipeline;
 
-      .blend = {
-        .targets = {
-          { .blend_enable = 0, .write_mask = 0xF },
-        },
-      },
-
-      .topology = R_TopologyKind_Triangle,
-
-      // Backbuffer format
-      .rt_formats = { R_Format_R8G8B8A8_UNorm },
-      .rt_count = 1,
-
-      .depth_format = R_Format_D32_Float,
-      .sample_count = 1,
-    };
-
-    #endif
-  }
+  R_FrameData frame = {
+    .pass_arena = arena_alloc_default(),
+    .userdata_arena = arena_alloc_default(),
+  };
 
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
   AssetHandle a = assets_load_model(&assets, S8("DamagedHelmet"));
 
   {
-    model_list[0].model = a;
-    model_list[0].scale = v3f32(1.,1.,1.);
+    models[0].model = a;
+    models[0].scale = v3f32(1.,1.,1.);
   }
 
   Input input = {};
@@ -312,6 +306,20 @@ entry_point(void)
       }
     }
 
+    r_frame_begin(&frame);
+    {
+      r_pass_add_forward(&frame, &assets, models, models_count, camera);
+    }
+    r_frame_end(&frame);
+
+    #if 0
+    r_pass_add_forward(&frame);
+
+    r_frame_compile(&frame);
+    r_frame_execute(&frame);
+
+    r_frame_end(&frame);
+
     // Render
     {
       R_Context *ctx = &r_ctx;
@@ -323,7 +331,7 @@ entry_point(void)
       }
 
       // Do render passes
-      r_render_forward(&assets, &camera, model_list, 1); // @Note: Temporary count. Track w/ global model list.
+      r_render_forward(&assets, &camera, models, 1); // @Note: Temporary count. Track w/ global model list.
 
       // End frame
       {
@@ -331,9 +339,10 @@ entry_point(void)
         ID3D12CommandList *lists[] = { ctx->command_list };
         ctx->command_queue->ExecuteCommandLists(1, lists);
         ctx->swapchain->Present(1, 0);
-        r_wait_for_previous_frame();
+        r_d3d12_wait_for_previous_frame();
       }
     }
+    #endif
   }
 
   r_shutdown();

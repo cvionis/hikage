@@ -4,6 +4,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+// @Todo: Move these
 #pragma warning(push, 0)
 #include <windows.h>
 #include <d3d12.h>
@@ -13,47 +14,26 @@
 #include <shellapi.h>
 #pragma warning(pop, 0)
 
-#if 0
-struct R_Pass {
-  R_Handle pipeline;
-
-  ID3D12Resource *render_targets[8];
-  S32 render_targets_count;
-  ID3D12Resource *depth_target;
-
-  D3D12_VIEWPORT viewport;
-  D3D12_RECT scissor;
-
-  //void (* render)(R_Pass *);
-};
-#endif
-
-#if 0
-struct R_Pass {
-  R_Handle pipeline;
-
-  R_Handle render_targets[8];
-  S32 render_targets_count;
-
-  R_Handle depth_target;
-
-  R_Viewport viewport;
-  R_RectF32 scissor_rect;
-};
-#endif
-
-#if 0
-static void r_pass_add(String8 name, R_Handle pipeline, void (* render)(R_Pass ));
-
-for (S32 pass_idx = 0; pass_idx < passes_count; pass_idx += 1) {
-  R_Pass *pass = passes + pass_idx;
-  r_pass_begin_frame(pass);
-  pass->render(pass, cmdlist);
-  r_pass_end_frame(pass);
-}
-#endif
-
 #define R_D3D12_FRAME_COUNT 2
+
+global R_Layout mesh_layout = {
+  .elements = {
+    { S8("POSITION"), 0, R_Format_R32G32B32_Float,    0,  0, R_VertexInputClass_PerVertex, 0 },
+    { S8("NORMAL"),   0, R_Format_R32G32B32_Float,    0, 12, R_VertexInputClass_PerVertex, 0 },
+    { S8("TANGENT"),  0, R_Format_R32G32B32A32_Float, 0, 32, R_VertexInputClass_PerVertex, 0 },
+    { S8("TEXCOORD"), 0, R_Format_R32G32_Float,       0, 24, R_VertexInputClass_PerVertex, 0 },
+  },
+  .elements_count = 4,
+};
+
+// @Note: Not a fan of having a static set of pipelines like this, but it simplifies things for now (allows pass's execute procedures
+// to set pipeline directly without having to pass a pipeline)
+
+struct R_Pipelines {
+  R_Handle forward;
+  // ...
+};
+static void r_create_pipelines(void);
 
 // @Todo: -> R_D3D12_Context, move to backend/d3d12/render_context_d3d12.h
 struct R_Context {
@@ -63,6 +43,8 @@ struct R_Context {
   OS_Handle window;
   S32 width;
   S32 height;
+
+  R_Pipelines pipelines; // @Note: Temporary
 
   // Core pipeline objects
   IDXGISwapChain3 *swapchain;

@@ -1376,3 +1376,25 @@ rect_u32_dim(RectU32 rect)
 
   return v2u32(x, y);
 }
+
+// RectS32
+
+static RectS32
+rect_s32(S32 x0, S32 y0, S32 x1, S32 y1)
+{
+  RectS32 r = {0};
+  r.x0 = x0;
+  r.y0 = y0;
+  r.x1 = x1;
+  r.y1 = y1;
+  return r;
+}
+
+static V2S32
+rect_s32_dim(RectS32 rect)
+{
+  S32 x = rect.x1 - rect.x0;
+  S32 y = rect.y1 - rect.y0;
+
+  return v2s32(x, y);
+}

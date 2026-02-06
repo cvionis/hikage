@@ -1,18 +1,9 @@
-
-// Pipelines (@Todo: put in render_core.h; this will be stored in context.)
-// @Note: Not a fan of having a static set of pipelines like this, but it simplifies things for now (allows pass's execute procedures
-// to set pipeline directly without having to pass a pipeline)
-
-struct R_Pipelines {
-  R_Handle gbuffer;
-  R_Handle post;
-  // ...
-};
+#pragma once
 
 // Render passes
 
-typedef void R_PassExecuteProc(R_Pass *pass);
-#define R_PASS_EXECUTE_PROC(name) R_PassExecuteProc *name;
+typedef void R_PassExecuteProc(void *userdata);
+#define R_PASS_EXECUTE_PROC(name) void name(void *userdata)
 
 struct R_Pass {
   String8 name;
@@ -20,7 +11,7 @@ struct R_Pass {
 
   // Attachments
   R_Handle color_targets[8];
-  S32 color_target_count;
+  S32 color_targets_count;
   R_Handle depth_target;
 
   // Resource dependencies
@@ -29,12 +20,16 @@ struct R_Pass {
   R_Handle write_resources[16];
   S32 write_count;
 
+  // Viewport/scissor rects
+  RectF32 viewport;
+  RectS32 scissor;
+
   // Pass-specific data blob and procedure
-  void *user_data;
+  void *userdata;
   R_PassExecuteProc *execute;
 };
 
-static void r_pass_begin(R_Pass *pass);
+static void r_pass_begin(R_Pass *pass); // Bind pipeline, etc.
 static void r_pass_end(R_Pass *pass);
 
 // Render frames
@@ -45,21 +40,26 @@ struct R_CompiledPass {
   S32 barriers_count;
 };
 
-struct R_Frame {
-  Arena *arena;
+// @Note: per-frame cb allocator can be stored in here as well potentially.
+struct R_FrameData {
+  Arena *pass_arena;
+  Arena *userdata_arena;
 
-  // ... insert any shared resources built per-frame here (gbuffer, light buffer, etc.) .. //
-
-  R_Pass *passes;
-  R_CompiledPass *compiled_passes;
   S32 passes_count;
+  R_Pass *passes;
+  S32 compiled_passes_count;
+  R_CompiledPass *compiled_passes;
+
+  // Resources built per-frame and shared by passes
+  R_Handle forward_color;
+  R_Handle forward_depth;
 };
 
-static void r_frame_begin(R_Frame *frame); // Reset arena, command lists
-static R_Pass *r_frame_push_pass(R_Frame *frame); // Used internally by pass-specific builder functions (.e.g. r_pass_add_gbuffer(&frame))
-static void r_frame_compile(R_Frame *frame); // Determine transitions needed for resource dependencies, create a list of barriers to issue for each pass.
-static void r_frame_execute(R_Frame *frame); // Iterate over each pass, issuing its list of transition barriers, and calling pass_begin, execute, pass_end.
-static void r_frame_end(R_Frame *frame); // Close and execute command lists, present
+static void r_frame_begin(R_FrameData *frame); // Reset arena, command lists
+static R_Pass *r_frame_push_pass(R_FrameData *frame); // Used internally by pass-specific builder functions (.e.g. r_pass_add_gbuffer(&frame))
+static void r_frame_compile(R_FrameData *frame); // Determine transitions needed for resource dependencies, create a list of barriers to issue for each pass.
+static void r_frame_execute(R_FrameData *frame); // Iterate over each pass, issuing its list of transition barriers, and calling pass_begin, execute, pass_end.
+static void r_frame_end(R_FrameData *frame); // Close and execute command lists, present
 
 /*
 Example per-frame usage:

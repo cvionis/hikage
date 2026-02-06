@@ -73,7 +73,7 @@ r_upload_materials(R_MaterialGPU *materials, S32 materials_count)
 }
 
 static void
-r_wait_for_previous_frame(void)
+r_d3d12_wait_for_previous_frame(void)
 {
   R_Context *ctx = &r_ctx;
 

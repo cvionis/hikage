@@ -380,3 +380,21 @@ union RectU32 {
 
 static RectU32 rect_u32(U32 x0, U32 y0, U32 x1, U32 y1);
 static V2U32   rect_u32_dim(RectU32 rect);
+
+// RectS32
+
+union RectS32 {
+  struct {
+    S32 x0;
+    S32 y0;
+    S32 x1;
+    S32 y1;
+  };
+  struct {
+    V2S32 p0;
+    V2S32 p1;
+  };
+};
+
+static RectS32 rect_s32(S32 x0, S32 y0, S32 x1, S32 y1);
+static V2S32   rect_s32_dim(RectS32 rect);
