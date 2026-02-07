@@ -33,7 +33,6 @@ entry_point(void)
   };
 
   r_init(app.window);
-
   R_Context renderer = r_ctx_make(screen_w, screen_h);
   r_ctx_init_resources(&renderer);
 
@@ -44,7 +43,7 @@ entry_point(void)
   Input input = {};
 
   // @Todo: Store models and camera in a minimal scene context
-  ModelInstance models[SCENE_MODELS_COUNT] = {}
+  ModelInstance models[SCENE_MODELS_COUNT] = {};
   S32 models_count = 0;
   {
     models[0].model = a;

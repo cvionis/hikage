@@ -419,7 +419,34 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     IID_PPV_ARGS(&tex->resource)
   );
   Assert(SUCCEEDED(hr));
-  tex->state = D3D12_RESOURCE_STATE_COPY_DEST;
+
+  tex->state = D3D12_RESOURCE_STATE_COMMON;
+  switch (desc.init_state) {
+    case R_TextureInitState_RenderTarget: { tex->state = D3D12_RESOURCE_STATE_RENDER_TARGET;          }break;
+    case R_TextureInitState_DepthWrite:   { tex->state = D3D12_RESOURCE_STATE_DEPTH_WRITE;            }break;
+    case R_TextureInitState_CopyDest:     { tex->state = D3D12_RESOURCE_STATE_COPY_DEST;              }break;
+    case R_TextureInitState_ShaderRead:   { tex->state =  D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; }break;
+  }
+
+  D3D12_CLEAR_VALUE clear_value = {};
+  D3D12_CLEAR_VALUE *clear_ptr = 0;
+
+  if (desc.has_clear_value) {
+    clear_value.Format = dxgi_fmt;
+
+    if (desc.usage & R_TextureUsage_RenderTarget) {
+      clear_value.Color[0] = desc.clear_color.r;
+      clear_value.Color[1] = desc.clear_color.g;
+      clear_value.Color[2] = desc.clear_color.b;
+      clear_value.Color[3] = desc.clear_color.a;
+      clear_ptr = &clear_value;
+    }
+    else if (desc.usage & R_TextureUsage_DepthStencil) {
+      clear_value.DepthStencil.Depth = desc.clear_ds.depth;
+      clear_value.DepthStencil.Stencil = desc.clear_ds.stencil;
+      clear_ptr = &clear_value;
+    }
+  }
 
   if (desc.usage & R_TextureUsage_Sampled) {
     S32 srv_idx = r_alloc_texture_descriptor_idx_srv();
@@ -427,12 +454,12 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     result.srv_idx = srv_idx;
   }
   if (desc.usage & R_TextureUsage_RenderTarget) {
-    S32 rtv_idx = r_alloc_texture_descriptor_idx_srv();
+    S32 rtv_idx = r_alloc_texture_descriptor_idx_rtv();
     r_d3d12_write_rtv(tex->resource, dxgi_fmt, rtv_idx);
     result.rtv_idx = rtv_idx;
   }
   if (desc.usage & R_TextureUsage_DepthStencil) {
-    S32 dsv_idx = r_alloc_texture_descriptor_idx_srv();
+    S32 dsv_idx = r_alloc_texture_descriptor_idx_dsv();
     r_d3d12_write_dsv(tex->resource, dxgi_fmt, dsv_idx);
     result.dsv_idx = dsv_idx;
   }

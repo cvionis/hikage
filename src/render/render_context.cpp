@@ -9,6 +9,9 @@ r_ctx_make(S32 screen_w, S32 screen_h)
     .pass_arena = arena_alloc_default(),
     .userdata_arena = arena_alloc_default(),
 
+    .width = screen_w,
+    .height = screen_h,
+
     .default_viewport = {
       .rect = rect_f32(0, 0, (F32)screen_w, (F32)screen_h),
       .min_depth = 0.f,
@@ -64,14 +67,49 @@ r_ctx_init_resources(R_Context *ctx)
     .sample_count = 1,
   };
 
-  R_Handle forward_pipeline = r_create_pipeline(forward_pipeline_desc);
-  ctx->pipeline_forward = forward_pipeline;
+  ctx->pipeline_forward = r_create_pipeline(forward_pipeline_desc);
 
   //
   // Textures
   //
 
-  // @Todo
+  // @Resume: Test these
+
+  R_TextureDesc color_desc = {
+    .width  = ctx->width,
+    .height = ctx->height,
+    .depth  = 1,
+    .mips_count = 1,
+    .fmt    = R_Format_R8G8B8A8_UNorm,
+    .usage  = R_TextureUsage_RenderTarget | R_TextureUsage_Sampled,
+    .kind   = R_TextureKind_2D,
+
+    .init_state = R_TextureInitState_RenderTarget,
+
+    .has_clear_value = 1,
+    .clear_color = { 0.95f, 0.9f, 0.9f, 1.0f },
+  };
+
+  R_TextureDesc depth_desc = {
+    .width  = ctx->width,
+    .height = ctx->height,
+    .depth  = 1,
+    .mips_count = 1,
+    .fmt   = R_Format_D32_Float,
+    .usage = R_TextureUsage_DepthStencil,
+    .kind  = R_TextureKind_2D,
+
+    .init_state = R_TextureInitState_DepthWrite,
+
+    .has_clear_value = 1,
+    .clear_ds = {
+      .depth   = 1.0f,
+      .stencil = 0,
+    },
+  };
+
+  ctx->forward_color = r_create_texture(0, 0, color_desc);
+  ctx->forward_depth = r_create_texture(0, 0, depth_desc);
 }
 
 static void

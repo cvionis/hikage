@@ -164,6 +164,7 @@ assets_load_model(AssetContext *ctx, String8 name)
           .fmt = img->format,
           .usage = R_TextureUsage_Sampled, // @Note: Currently not used.
           .kind = R_TextureKind_2D,        // @Note: Currently not used.
+          .init_state = R_TextureInitState_CopyDest,
         };
 
         U32 mips_end = img->mips_begin + img->mip_count;

@@ -47,6 +47,9 @@ struct R_Context {
   Arena *pass_arena;
   Arena *userdata_arena;
 
+  S32 width;
+  S32 height;
+
   // Persstent resources: pipelines
   R_Handle pipeline_forward;
 

@@ -122,15 +122,34 @@ struct R_TextureInitData {
    * (kind == Cube_Array) --> depth % 6 == 0
    * (kind == 3D) --> depth > 1
  */
-struct R_TextureDesc {
+
+ enum R_TextureInitState {
+   R_TextureInitState_Default,
+   R_TextureInitState_RenderTarget,
+   R_TextureInitState_DepthWrite,
+   R_TextureInitState_CopyDest,
+   R_TextureInitState_ShaderRead,
+ };
+
+ struct R_TextureDesc {
   S32 width;
   S32 height;
   S32 depth; // depth for 3D, array size for array textures
   S32 mips_count;
 
   R_Format fmt;
-  R_TextureUsage usage;
+  U32 usage;
   R_TextureKind kind;
+  R_TextureInitState init_state;
+
+  B32 has_clear_value;
+  union {
+    V4F32 clear_color;
+    struct {
+      F32 depth;
+      U8 stencil;
+    }clear_ds;
+  };
 };
 
 // @Todo: init_count might be redundant as desc already contains `mips_count` (perhaps this makes the latter redundant instead)
