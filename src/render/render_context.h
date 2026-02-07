@@ -1,23 +1,5 @@
 #pragma once
 
-// @Todo: Put elsewhere.
-
-enum R_ClearFlags {
-  R_ClearFlag_None  = 0,
-  R_ClearFlag_Color = (1 << 0),
-  R_ClearFlag_Depth = (1 << 1),
-};
-
-struct R_Viewport {
-  RectF32 rect;
-  F32 min_depth;
-  F32 max_depth;
-};
-
-struct R_Scissor {
-  RectS32 rect;
-};
-
 // Render passes
 
 typedef void R_PassExecuteProc(void *userdata);

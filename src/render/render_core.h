@@ -1,5 +1,23 @@
 #pragma once
 
+// @Todo: render_core -> render_common ?
+
+enum R_ClearFlags {
+  R_ClearFlag_None  = 0,
+  R_ClearFlag_Color = (1 << 0),
+  R_ClearFlag_Depth = (1 << 1),
+};
+
+struct R_Viewport {
+  RectF32 rect;
+  F32 min_depth;
+  F32 max_depth;
+};
+
+struct R_Scissor {
+  RectS32 rect;
+};
+
 global R_Layout mesh_layout = {
   .elements = {
     { S8("POSITION"), 0, R_Format_R32G32B32_Float,    0,  0, R_VertexInputClass_PerVertex, 0 },

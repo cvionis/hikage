@@ -93,7 +93,6 @@ enum R_Format {
   R_Format_D24_UNorm_S8_UInt,
 };
 
-
 enum R_TextureUsage {
   R_TextureUsage_Default      = 0,
   R_TextureUsage_Sampled      = (1 << 0),

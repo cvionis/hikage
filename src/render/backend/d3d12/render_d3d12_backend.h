@@ -1,6 +1,7 @@
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
+
 #pragma warning(push, 0)
 #include <windows.h>
 #include <d3d12.h>
@@ -25,7 +26,6 @@
 #define R_D3D12_TEXTURE_TABLE_BASE   (R_D3D12_CBV_COUNT)
 #define R_D3D12_MATERIAL_BUFFER_BASE (R_D3D12_TEXTURE_TABLE_BASE + R_D3D12_TEXTURE_MAX) // @Note: +1 was crashing (noob)
 
-// @Todo: -> R_D3D12_Context, move to backend/d3d12/rendeR_D3D12_Backend_d3d12.h
 struct R_D3D12_Backend {
   Arena *arena;
 
