@@ -195,57 +195,8 @@ entry_point(void)
 
   r_init(app.window);
 
-  R_PipelineDesc forward_pipeline_desc = {
-    .vs_path = L"../src/render/shaders/forward_basic.hlsl",
-    .ps_path = L"../src/render/shaders/forward_basic.hlsl",
-
-    .input_layout = mesh_layout,
-
-    .raster = {
-      .fill_mode = R_FillMode_Solid,
-      .cull_mode = R_CullMode_Back,
-      .front_ccw = 0,
-      .depth_clip_enable = 1,
-    },
-
-    .depth_stencil = {
-      .depth_enable = 1,
-      .depth_write_enable = 1,
-      .depth_compare = R_CompareOp_LessEqual,
-    },
-
-    .blend = {
-      .targets = {
-        { .blend_enable = 0, .write_mask = 0xF },
-      },
-    },
-
-    .topology = R_TopologyKind_Triangle,
-
-    // Backbuffer format
-    .rt_formats = { R_Format_R8G8B8A8_UNorm },
-    .rt_count = 1,
-
-    .depth_format = R_Format_D32_Float,
-    .sample_count = 1,
-  };
-
-  R_Handle forward_pipeline = r_create_pipeline(forward_pipeline_desc);
-  r_ctx.pipelines.forward = forward_pipeline;
-
-  R_FrameData frame = {
-    .pass_arena = arena_alloc_default(),
-    .userdata_arena = arena_alloc_default(),
-
-    .default_viewport = {
-      .rect = rect_f32(0, 0, (F32)screen_w, (F32)screen_h),
-      .min_depth = 0.f,
-      .max_depth = 1.f,
-    },
-    .default_scissor = {
-      .rect = rect_s32(0, 0, screen_w, screen_h),
-    },
-  };
+  R_Context renderer = r_ctx_make(screen_w, screen_h);
+  r_ctx_init_resources(&renderer);
 
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
@@ -317,23 +268,22 @@ entry_point(void)
       }
     }
 
-    r_frame_begin(&frame);
-    {
-      r_pass_add_forward(&frame, &assets, models, models_count, camera);
-    }
-    r_frame_end(&frame);
+    r_frame_begin(&renderer);
+
+    r_pass_add_forward(&renderer, &assets, models, models_count, camera);
+
+    r_frame_compile(&renderer);
+    r_frame_execute(&renderer);
+
+    r_frame_end(&renderer);
 
     #if 0
-    r_pass_add_forward(&frame);
-
-    r_frame_compile(&frame);
-    r_frame_execute(&frame);
-
-    r_frame_end(&frame);
+    r_frame_compile(&renderer);
+    r_frame_execute(&renderer);
 
     // Render
     {
-      R_Context *ctx = &r_ctx;
+      R_D3D12_Backend *ctx = &r_ctx;
 
       // Begin frame
       {

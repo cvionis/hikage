@@ -50,41 +50,50 @@ struct R_Pass {
   R_PassExecuteProc *execute;
 };
 
-static void r_pass_begin(R_Pass *pass);
-static void r_pass_end(R_Pass *pass);
-
-// Render frames
-
 struct R_CompiledPass {
   R_Pass *pass;
   R_Handle barriers[16];
   S32 barriers_count;
 };
 
-// @Note: per-frame cb allocator can be stored in here as well potentially.
-struct R_FrameData {
+static void r_pass_begin(R_Pass *pass);
+static void r_pass_end(R_Pass *pass);
+
+// User-facing rendering context and per-frame drawing API
+
+struct R_Context {
   Arena *pass_arena;
   Arena *userdata_arena;
 
-  S32 passes_count;
-  R_Pass *passes;
-  S32 compiled_passes_count;
-  R_CompiledPass *compiled_passes;
+  // Persstent resources: pipelines
+  R_Handle pipeline_forward;
 
-  // Defaults that can be used by passes
+  // Persistent resources: textures
+  // @Note: Placeholders
+  R_Handle forward_color;
+  R_Handle forward_depth;
+
+  // Defaults
   R_Viewport default_viewport;
   R_Scissor default_scissor;
 
-  // Resources built per-frame and shared by passes
-  R_Handle forward_color;
-  R_Handle forward_depth;
+  // Render passes
+  S32 passes_count;
+  R_Pass *passes;
+
+  S32 compiled_passes_count;
+  R_CompiledPass *compiled_passes;
 };
 
-static void r_frame_begin(R_FrameData *frame); // Reset arena, command lists
-static R_Pass *r_frame_push_pass(R_FrameData *frame); // Used internally by pass-specific builder functions (.e.g. r_pass_add_gbuffer(&frame))
-static void r_frame_compile(R_FrameData *frame); // Determine transitions needed for resource dependencies, create a list of barriers to issue for each pass.
-static void r_frame_execute(R_FrameData *frame); // Iterate over each pass, issuing its list of transition barriers, and calling pass_begin, execute, pass_end.
-static void r_frame_end(R_FrameData *frame); // Close and execute command lists, present
+static R_Context r_ctx_make(S32 screen_w, S32 screen_h);
+static void r_ctx_init_resources(R_Context *ctx);
+static void r_ctx_release(R_Context *ctx);
+
+static void r_frame_begin(R_Context *ctx); // Reset arena, command lists
+static R_Pass *r_frame_push_pass(R_Context *ctx); // Used internally by pass-specific builder functions (.e.g. r_pass_add_gbuffer(&frame))
+static void r_frame_compile(R_Context *ctx); // Determine transitions needed for resource dependencies, create a list of barriers to issue for each pass.
+static void r_frame_execute(R_Context *ctx); // Iterate over each pass, issuing its list of transition barriers, and calling pass_begin, execute, pass_end.
+static void r_frame_end(R_Context *ctx); // Close and execute command lists, present
 
 /*
 Example per-frame usage:

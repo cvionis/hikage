@@ -1,21 +1,5 @@
 #pragma once
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-// @Todo: Move these
-#pragma warning(push, 0)
-#include <windows.h>
-#include <d3d12.h>
-#include "third_party/D3DX12/d3dx12.h"
-#include <dxgi1_6.h>
-#include <d3dcompiler.h>
-#include <shellapi.h>
-#pragma warning(pop, 0)
-
-#define R_D3D12_FRAME_COUNT 2
-
 global R_Layout mesh_layout = {
   .elements = {
     { S8("POSITION"), 0, R_Format_R32G32B32_Float,    0,  0, R_VertexInputClass_PerVertex, 0 },
@@ -25,104 +9,6 @@ global R_Layout mesh_layout = {
   },
   .elements_count = 4,
 };
-
-// @Note: Not a fan of having a static set of pipelines like this, but it simplifies things for now (allows pass's execute procedures
-// to set pipeline directly without having to pass a pipeline)
-
-struct R_Pipelines {
-  R_Handle forward;
-  // ...
-};
-static void r_create_pipelines(void);
-
-// @Todo: -> R_D3D12_Context, move to backend/d3d12/render_context_d3d12.h
-struct R_Context {
-  Arena *arena;
-
-  // Window
-  OS_Handle window;
-  S32 width;
-  S32 height;
-
-  R_Pipelines pipelines; // @Note: Temporary
-
-  // Core pipeline objects
-  IDXGISwapChain3 *swapchain;
-  ID3D12Device *device;
-
-  ID3D12Resource *render_targets[R_D3D12_FRAME_COUNT];
-
-  ID3D12PipelineState *pipeline_state;
-
-  ID3D12CommandAllocator *command_allocators[R_D3D12_FRAME_COUNT];
-  ID3D12CommandQueue *command_queue; // @Todo: Rename gfx or draw queue or something to differentiate from upload/copy queue
-  ID3D12GraphicsCommandList *command_list;
-  ID3D12RootSignature *root_signature;
-
-  // Depth/stencil buffers
-  ID3D12Resource *depth_buffer;
-
-  // Color buffer
-  ID3D12Resource *color_buffer;
-
-  // Cached for shader reload
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc;
-  D3D12_INPUT_ELEMENT_DESC input_desc[4];
-
-  // Frame synchronization
-  U32 frame_idx;
-  HANDLE fence_event;
-  ID3D12Fence *fence;
-  U64 fence_values[R_D3D12_FRAME_COUNT];
-
-  //                                         //
-  // ============ NEW STUFF ================ //
-  //                                         //
-
-  ID3D12Resource *material_buffer;
-  U32 material_srv_idx; // @Todo: Remove. Redundant. Use #define you already have.
-  U32 material_capacity;
-
-  ID3D12Resource *frame_cb;
-  U8 *frame_cb_mapped;
-
-  ID3D12Resource *draw_cb_buffer;
-  U8 *draw_cb_buffer_mapped;
-  U32 draw_cb_stride;        // always 256
-  U32 draw_cb_capacity;      // number of slots
-  U32 draw_cb_write_idx;     // cursor
-
-  ID3D12Fence *copy_fence;
-  HANDLE copy_fence_event;
-  U64 copy_fence_value;
-
-  ID3D12GraphicsCommandList *copy_cmd_list;
-  ID3D12CommandAllocator *copy_cmd_allocator;
-
-  /*
-  SRV heap:
-
-  0–1        CBVs
-  2–1025     textures (fixed region)
-  1026       material buffer
-  ...
-  */
-
-  ID3D12DescriptorHeap *srv_heap;       // Per-frame and per-draw data, texture table, material table
-  ID3D12DescriptorHeap *rtv_heap;
-  ID3D12DescriptorHeap *dsv_heap;
-  ID3D12DescriptorHeap *sampler_heap;   // @Note: Just using a static sampler for now.
-
-  // Descriptor allocation (for texture views)
-  S32 srv_descriptor_size;
-  S32 rtv_descriptor_size;
-  S32 dsv_descriptor_size;
-  S32 srv_next_idx;
-  S32 rtv_next_idx;
-  S32 dsv_next_idx;
-};
-
-global R_Context r_ctx;
 
 struct R_MaterialGPU {
   V4F32 base_color;
@@ -140,7 +26,19 @@ struct R_MaterialGPU {
   U32 tex_emissive;
 };
 
-// @Todo: Move somewhere more permanent (probably outside render layer?)
+struct R_FrameCB {
+  Mat4x4 viewproj;
+  V4F32  camera_ws;
+};
+
+struct R_DrawCB {
+  Mat4x4 model;
+  Mat4x4 normal;
+  U32 material;
+  U32 _pad[3];
+};
+
+// @Todo: Move somewhere more permanent: scene.h
 struct Camera {
   Mat4x4 view;
   Mat4x4 proj;

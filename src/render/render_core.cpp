@@ -15,7 +15,7 @@
 static void
 r_upload_materials(R_MaterialGPU *materials, S32 materials_count)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
   ID3D12Resource *upload;
 
   ctx->copy_cmd_allocator->Reset();
@@ -62,7 +62,7 @@ r_upload_materials(R_MaterialGPU *materials, S32 materials_count)
 static void
 r_d3d12_wait_for_previous_frame(void)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   // Signal GPU to mark current work complete using this fence value.
   U64 fence_to_signal = ctx->fence_values[ctx->frame_idx];
@@ -135,23 +135,10 @@ r_d3d12_get_hardware_adapter(IDXGIFactory1 *factory)
   return adapter;
 }
 
-// @Todo: Rename and move these
-struct R_FrameCB {
-  Mat4x4 viewproj;
-  V4F32  camera_ws;
-};
-
-struct R_DrawCB {
-  Mat4x4 model;
-  Mat4x4 normal;
-  U32 material;
-  U32 _pad[3];
-};
-
 static void
 r_init(OS_Handle window)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
   ctx->arena = arena_alloc_default();
 
   HWND hwnd = os_win32_window_from_handle(window)->hwnd;
@@ -595,7 +582,7 @@ r_init(OS_Handle window)
 static void
 r_render_forward(AssetContext *assets, Camera *camera, ModelInstance *models, S32 models_count)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   // Update per-frame CB (b0)
   {

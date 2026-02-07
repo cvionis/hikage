@@ -54,7 +54,7 @@ struct R_D3D12_Buffer {
 static S32
 r_alloc_texture_descriptor_idx_srv(void)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   // @Todo: Free list
   S32 idx = ctx->srv_next_idx;
@@ -66,7 +66,7 @@ r_alloc_texture_descriptor_idx_srv(void)
 static S32
 r_alloc_texture_descriptor_idx_rtv(void)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   // @Todo: Free list
   S32 idx = ctx->rtv_next_idx;
@@ -78,7 +78,7 @@ r_alloc_texture_descriptor_idx_rtv(void)
 static S32
 r_alloc_texture_descriptor_idx_dsv(void)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   // @Todo: Free list
   S32 idx = ctx->dsv_next_idx;
@@ -140,7 +140,7 @@ r_d3d12_fmt_from_r_fmt(R_Format fmt)
 static void
 r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 mips_count, S32 descriptor_idx)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
   srv_desc.Format = fmt;
@@ -159,7 +159,7 @@ r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 mips_count, S32
 static void
 r_d3d12_write_rtv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 descriptor_idx)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
   rtv_desc.Format = fmt;
@@ -178,7 +178,7 @@ r_d3d12_write_rtv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 descriptor_idx)
 static void
 r_d3d12_write_dsv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 descriptor_idx)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {};
   dsv_desc.Format = fmt;
@@ -197,7 +197,7 @@ r_d3d12_write_dsv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 descriptor_idx)
 static U64
 r_d3d12_calc_upload_size(ID3D12Resource *dst, S32 subresource_count, D3D12_PLACED_SUBRESOURCE_FOOTPRINT *out_layouts, U64 *out_total_size)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   D3D12_RESOURCE_DESC desc = dst->GetDesc();
   ctx->device->GetCopyableFootprints(
@@ -252,7 +252,7 @@ bc_bytes_per_block(DXGI_FORMAT fmt)
 static void
 r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData *init, S32 init_count)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
   D3D12_PLACED_SUBRESOURCE_FOOTPRINT layouts[16];
   U64 upload_size = 0;
@@ -381,7 +381,7 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
 static R_CreateResource
 r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
   R_CreateResource result = {};
 
   DXGI_FORMAT dxgi_fmt = r_d3d12_fmt_from_r_fmt(desc.fmt);
@@ -506,7 +506,7 @@ r_d3d12_buffer_flags_state_from_desc(R_BufferDesc desc, D3D12_RESOURCE_FLAGS *ou
 static R_CreateResource
 r_create_buffer_impl(R_BufferInitData init, R_BufferDesc desc)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
   R_CreateResource result = {};
 
   R_D3D12_Buffer *buf = ArenaPushStruct(ctx->arena, R_D3D12_Buffer);
@@ -921,7 +921,7 @@ r_d3d12_compile_hlsl(LPCWSTR path, char *entry, char *version)
 static R_CreateResource
 r_create_pipeline_impl(R_PipelineDesc desc)
 {
-  R_Context *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
   R_CreateResource result = {};
 
   R_D3D12_Pipeline *pipe = ArenaPushStruct(ctx->arena, R_D3D12_Pipeline);

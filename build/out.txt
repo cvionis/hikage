@@ -1,453 +1,915 @@
 [debug]
 main.cpp
-R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(225,13): warning C4189: 'bpb': local variable is initialized but not referenced
-        U32 bpb = bc_bytes_per_block(fmt);
-            ^
-R:\KageEngine\src\render\render_frame.cpp(6,22): warning C4100: 'pass': unreferenced formal parameter
-r_pass_begin(R_Pass *pass)
-                     ^
-R:\KageEngine\src\render\render_frame.cpp(11,20): warning C4100: 'pass': unreferenced formal parameter
-r_pass_end(R_Pass *pass)
-                   ^
-R:\KageEngine\src\render\render_frame.cpp(35,32): warning C4100: 'frame': unreferenced formal parameter
-r_frame_push_pass(R_FrameData *frame)
-                               ^
-R:\KageEngine\src\render\render_frame.cpp(42,30): warning C4100: 'frame': unreferenced formal parameter
-r_frame_compile(R_FrameData *frame)
-                             ^
-R:\KageEngine\src\render\render_frame.cpp(48,30): warning C4100: 'frame': unreferenced formal parameter
-r_frame_execute(R_FrameData *frame)
-                             ^
-R:\KageEngine\src\render\render_frame.cpp(56,26): warning C4100: 'frame': unreferenced formal parameter
-r_frame_end(R_FrameData *frame)
-                         ^
-R:\KageEngine\src\render\render_passes.cpp(2,1): error C2447: '{': missing function header (old-style formal list?)
-{
-^
-R:\KageEngine\src\render\render_passes.cpp(8,1): error C2182: 'r_pass_add_forward': this use of 'void' is not valid
-r_pass_add_forward(R_Frame *frame)
-^
-R:\KageEngine\src\render\render_passes.cpp(8,20): error C2065: 'R_Frame': undeclared identifier
-r_pass_add_forward(R_Frame *frame)
-                   ^
-R:\KageEngine\src\render\render_passes.cpp(8,29): error C2065: 'frame': undeclared identifier
-r_pass_add_forward(R_Frame *frame)
+R:\KageEngine\src\render\backend\d3d12\render_core_d3d12.h(28,8): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+global R_Layout mesh_layout = {
+       ^
+R:\KageEngine\src\render\backend\d3d12\render_core_d3d12.h(28,17): error C2146: syntax error: missing ';' before identifier 'mesh_layout'
+global R_Layout mesh_layout = {
+                ^
+R:\KageEngine\src\render\backend\d3d12\render_core_d3d12.h(28,29): error C2059: syntax error: '='
+global R_Layout mesh_layout = {
                             ^
-R:\KageEngine\src\render\render_passes.cpp(9,1): error C2143: syntax error: missing ';' before '{'
+R:\KageEngine\src\render\backend\d3d12\render_core_d3d12.h(28,31): error C2143: syntax error: missing ';' before '{'
+global R_Layout mesh_layout = {
+                              ^
+R:\KageEngine\src\render\backend\d3d12\render_core_d3d12.h(28,31): error C2447: '{': missing function header (old-style formal list?)
+R:\KageEngine\src\render\render_resource.h(325,12): error C3646: 'input_layout': unknown override specifier
+  R_Layout input_layout;
+           ^
+R:\KageEngine\src\render\render_resource.h(325,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  R_Layout input_layout;
+  ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(778,1): error C2182: 'r_d3d12_input_layout_from_r': this use of 'void' is not valid
+r_d3d12_input_layout_from_r(R_Layout *layout, D3D12_INPUT_ELEMENT_DESC *out, S32 *out_count)
+^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(778,39): error C2065: 'layout': undeclared identifier
+r_d3d12_input_layout_from_r(R_Layout *layout, D3D12_INPUT_ELEMENT_DESC *out, S32 *out_count)
+                                      ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(778,73): error C2065: 'out': undeclared identifier
+r_d3d12_input_layout_from_r(R_Layout *layout, D3D12_INPUT_ELEMENT_DESC *out, S32 *out_count)
+                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(778,47): error C2275: 'D3D12_INPUT_ELEMENT_DESC': expected an expression instead of a type
+r_d3d12_input_layout_from_r(R_Layout *layout, D3D12_INPUT_ELEMENT_DESC *out, S32 *out_count)
+                                              ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(778,83): error C2065: 'out_count': undeclared identifier
+r_d3d12_input_layout_from_r(R_Layout *layout, D3D12_INPUT_ELEMENT_DESC *out, S32 *out_count)
+                                                                                  ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(778,78): error C2275: 'S32': expected an expression instead of a type
+r_d3d12_input_layout_from_r(R_Layout *layout, D3D12_INPUT_ELEMENT_DESC *out, S32 *out_count)
+                                                                             ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(779,1): error C2143: syntax error: missing ';' before '{'
 {
 ^
-R:\KageEngine\src\render\render_passes.cpp(12,36): error C2065: 'frame': undeclared identifier
-  R_Pass *pass = r_frame_push_pass(frame);
-                                   ^
-R:\KageEngine\src\render\render_passes.cpp(14,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  pass->name = S8("forward");
-  ^
-R:\KageEngine\src\render\render_passes.cpp(14,9): error C3613: missing return type after '->' ('int' assumed)
-  pass->name = S8("forward");
-        ^
-R:\KageEngine\src\render\render_passes.cpp(14,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  pass->name = S8("forward");
-  ^
-R:\KageEngine\src\render\render_passes.cpp(14,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
-R:\KageEngine\src\render\render_passes.cpp(14,9): error C2146: syntax error: missing ';' before identifier 'name'
-  pass->name = S8("forward");
-        ^
-R:\KageEngine\src\render\render_passes.cpp(14,16): error C2143: syntax error: missing ';' before '{'
-  pass->name = S8("forward");
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(780,16): error C2065: 'layout': undeclared identifier
+  S32 n = (S32)layout->elements_count;
                ^
-R:\KageEngine\src\render\render_passes.cpp(14,16): error C2447: '{': missing function header (old-style formal list?)
-R:\KageEngine\src\render\render_passes.cpp(15,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  pass->pipeline = ctx->pipelines.forward; // @Note: Temporary
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(781,3): error C2059: syntax error: 'if'
+  if (n > 16) {
   ^
-R:\KageEngine\src\render\render_passes.cpp(15,9): error C3613: missing return type after '->' ('int' assumed)
-  pass->pipeline = ctx->pipelines.forward; // @Note: Temporary
-        ^
-R:\KageEngine\src\render\render_passes.cpp(15,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  pass->pipeline = ctx->pipelines.forward; // @Note: Temporary
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(781,15): error C2143: syntax error: missing ';' before '{'
+  if (n > 16) {
+              ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(781,15): error C2447: '{': missing function header (old-style formal list?)
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,3): error C2059: syntax error: 'for'
+  for (S32 i = 0; i < n; i += 1) {
   ^
-R:\KageEngine\src\render\render_passes.cpp(15,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
-R:\KageEngine\src\render\render_passes.cpp(15,9): error C2146: syntax error: missing ';' before identifier 'pipeline'
-  pass->pipeline = ctx->pipelines.forward; // @Note: Temporary
-        ^
-R:\KageEngine\src\render\render_passes.cpp(20,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  pass->color_targets[0] = frame->forward_color;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(20,9): error C3613: missing return type after '->' ('int' assumed)
-  pass->color_targets[0] = frame->forward_color;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(20,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  pass->color_targets[0] = frame->forward_color;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(20,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
-R:\KageEngine\src\render\render_passes.cpp(20,9): error C2146: syntax error: missing ';' before identifier 'color_targets'
-  pass->color_targets[0] = frame->forward_color;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(21,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  pass->color_targets_count = 1;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(21,9): error C3613: missing return type after '->' ('int' assumed)
-  pass->color_targets_count = 1;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(21,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  pass->color_targets_count = 1;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(21,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
-R:\KageEngine\src\render\render_passes.cpp(21,9): error C2146: syntax error: missing ';' before identifier 'color_targets_count'
-  pass->color_targets_count = 1;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(22,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  pass->depth_target = frame->forward_depth;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(22,9): error C3613: missing return type after '->' ('int' assumed)
-  pass->depth_target = frame->forward_depth;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(22,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  pass->depth_target = frame->forward_depth;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(22,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
-R:\KageEngine\src\render\render_passes.cpp(22,9): error C2146: syntax error: missing ';' before identifier 'depth_target'
-  pass->depth_target = frame->forward_depth;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(25,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  pass->writes[0] = frame->gbuf_albedo;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(25,9): error C3613: missing return type after '->' ('int' assumed)
-  pass->writes[0] = frame->gbuf_albedo;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(25,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  pass->writes[0] = frame->gbuf_albedo;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(25,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
-R:\KageEngine\src\render\render_passes.cpp(25,9): error C2146: syntax error: missing ';' before identifier 'writes'
-  pass->writes[0] = frame->gbuf_albedo;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(26,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  pass->writes_count = 1;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(26,9): error C3613: missing return type after '->' ('int' assumed)
-  pass->writes_count = 1;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(26,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  pass->writes_count = 1;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(26,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
-R:\KageEngine\src\render\render_passes.cpp(26,9): error C2146: syntax error: missing ';' before identifier 'writes_count'
-  pass->writes_count = 1;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(28,21): error C2143: syntax error: missing ';' before '*'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                    ^
-R:\KageEngine\src\render\render_passes.cpp(28,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-  ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\render\render_passes.cpp(28,29): error C2059: syntax error: ')'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                            ^
-R:\KageEngine\src\render\render_passes.cpp(29,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  data->assets = frame->assets;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(29,9): error C3613: missing return type after '->' ('int' assumed)
-  data->assets = frame->assets;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(29,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  data->assets = frame->assets;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(29,3): error C2040: 'data': 'int' differs in levels of indirection from 'int *'
-R:\KageEngine\src\render\render_passes.cpp(29,9): error C2146: syntax error: missing ';' before identifier 'assets'
-  data->assets = frame->assets;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(30,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  data->models = frame->models;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(30,9): error C3613: missing return type after '->' ('int' assumed)
-  data->models = frame->models;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(30,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  data->models = frame->models;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(30,3): error C2040: 'data': 'int' differs in levels of indirection from 'int *'
-R:\KageEngine\src\render\render_passes.cpp(30,9): error C2146: syntax error: missing ';' before identifier 'models'
-  data->models = frame->models;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(31,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  data->models_count = frame->models_count;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(31,9): error C3613: missing return type after '->' ('int' assumed)
-  data->models_count = frame->models_count;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(31,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  data->models_count = frame->models_count;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(31,3): error C2040: 'data': 'int' differs in levels of indirection from 'int *'
-R:\KageEngine\src\render\render_passes.cpp(31,9): error C2146: syntax error: missing ';' before identifier 'models_count'
-  data->models_count = frame->models_count;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(32,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  data->camera = frame->camera;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(32,9): error C3613: missing return type after '->' ('int' assumed)
-  data->camera = frame->camera;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(32,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  data->camera = frame->camera;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(32,3): error C2040: 'data': 'int' differs in levels of indirection from 'int *'
-R:\KageEngine\src\render\render_passes.cpp(32,9): error C2146: syntax error: missing ';' before identifier 'camera'
-  data->camera = frame->camera;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(34,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  pass->userdata = data;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(34,9): error C3613: missing return type after '->' ('int' assumed)
-  pass->userdata = data;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(34,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  pass->userdata = data;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(34,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
-R:\KageEngine\src\render\render_passes.cpp(34,9): error C2146: syntax error: missing ';' before identifier 'userdata'
-  pass->userdata = data;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(35,3): error C3927: '->': trailing return type is not allowed after a non-function declarator
-  pass->execute = r_pass_execute_forward;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(35,9): error C3613: missing return type after '->' ('int' assumed)
-  pass->execute = r_pass_execute_forward;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(35,3): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
-  pass->execute = r_pass_execute_forward;
-  ^
-R:\KageEngine\src\render\render_passes.cpp(35,3): error C2040: 'pass': 'int' differs in levels of indirection from 'R_Pass *'
-R:\KageEngine\src\render\render_passes.cpp(35,9): error C2146: syntax error: missing ';' before identifier 'execute'
-  pass->execute = r_pass_execute_forward;
-        ^
-R:\KageEngine\src\render\render_passes.cpp(36,1): error C2059: syntax error: '}'
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,17): error C2143: syntax error: missing ')' before ';'
+  for (S32 i = 0; i < n; i += 1) {
+                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,24): error C2143: syntax error: missing '>' before ';'
+  for (S32 i = 0; i < n; i += 1) {
+                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,19): error C7568: argument list missing after assumed function template 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                  ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,19): warning C4091: '': ignored on left of 'unknown-type' when no variable is declared
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,28): error C2143: syntax error: missing ';' before '+='
+  for (S32 i = 0; i < n; i += 1) {
+                           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,28): error C2059: syntax error: '+='
+  for (S32 i = 0; i < n; i += 1) {
+                           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,32): error C2059: syntax error: ')'
+  for (S32 i = 0; i < n; i += 1) {
+                               ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,34): error C2143: syntax error: missing ';' before '{'
+  for (S32 i = 0; i < n; i += 1) {
+                                 ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,34): error C2447: '{': missing function header (old-style formal list?)
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(806,4): error C4430: missing type specifier - int assumed. Note: C++ does not support default-int
+  *out_count = n;
+   ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(806,14): error C2440: 'initializing': cannot convert from 'S32' to 'int *'
+  *out_count = n;
+             ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(806,14): note: Conversion from integral type to pointer type requires reinterpret_cast, C-style cast or parenthesized function-style cast
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(807,1): error C2059: syntax error: '}'
 }
 ^
-R:\KageEngine\src\render\render_passes.cpp(36,1): error C2143: syntax error: missing ';' before '}'
-C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\ucrt\assert.h(17,1): error C2143: syntax error: missing ';' before '{'
-_CRT_BEGIN_C_HEADER
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(807,1): error C2143: syntax error: missing ';' before '}'
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(811,1): error C2143: syntax error: missing ';' before '{'
+{
 ^
-C:\Program Files (x86)\Windows Kits\10\include\10.0.22621.0\ucrt\assert.h(17,1): error C2447: '{': missing function header (old-style formal list?)
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1040,186): warning C4459: declaration of 'data' hides global declaration
-static cgltf_result cgltf_default_file_read(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, const char* path, cgltf_size* size, void** data)
-                                                                                                                                                                                         ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1103,144): warning C4459: declaration of 'data' hides global declaration
-static void cgltf_default_file_release(const struct cgltf_memory_options* memory_options, const struct cgltf_file_options* file_options, void* data, cgltf_size size)
-                                                                                                                                               ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1113,68): warning C4459: declaration of 'data' hides global declaration
-cgltf_result cgltf_parse(const cgltf_options* options, const void* data, cgltf_size size, cgltf_data** out_data)
-                                                                   ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1328,17): warning C4459: declaration of 'data' hides global declaration
-	unsigned char* data = (unsigned char*)memory_alloc(options->memory.user_data, size);
-	               ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1481,75): warning C4459: declaration of 'data' hides global declaration
-cgltf_result cgltf_load_buffers(const cgltf_options* options, cgltf_data* data, const char* gltf_path)
-                                                                          ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1553,8): warning C4459: declaration of 'data' hides global declaration
-	char* data = (char*)buffer_view->buffer->data + offset + buffer_view->offset;
-	      ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1595,41): warning C4459: declaration of 'data' hides global declaration
-cgltf_result cgltf_validate(cgltf_data* data)
-                                        ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1806,55): warning C4459: declaration of 'data' hides global declaration
-cgltf_result cgltf_copy_extras_json(const cgltf_data* data, const cgltf_extras* extras, char* dest, cgltf_size* dest_size)
-                                                      ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1834,43): warning C4459: declaration of 'data' hides global declaration
-static void cgltf_free_extras(cgltf_data* data, cgltf_extras* extras)
-                                          ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1839,47): warning C4459: declaration of 'data' hides global declaration
-static void cgltf_free_extensions(cgltf_data* data, cgltf_extension* extensions, cgltf_size extensions_count)
-                                              ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(1849,29): warning C4459: declaration of 'data' hides global declaration
-void cgltf_free(cgltf_data* data)
-                            ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2580,47): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_mesh_index(const cgltf_data* data, const cgltf_mesh* object)
-                                              ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2586,51): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_material_index(const cgltf_data* data, const cgltf_material* object)
-                                                  ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2592,51): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_accessor_index(const cgltf_data* data, const cgltf_accessor* object)
-                                                  ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2598,54): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_buffer_view_index(const cgltf_data* data, const cgltf_buffer_view* object)
-                                                     ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2604,49): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_buffer_index(const cgltf_data* data, const cgltf_buffer* object)
-                                                ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2610,48): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_image_index(const cgltf_data* data, const cgltf_image* object)
-                                               ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2616,50): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_texture_index(const cgltf_data* data, const cgltf_texture* object)
-                                                 ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2622,50): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_sampler_index(const cgltf_data* data, const cgltf_sampler* object)
-                                                 ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2628,47): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_skin_index(const cgltf_data* data, const cgltf_skin* object)
-                                              ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2634,49): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_camera_index(const cgltf_data* data, const cgltf_camera* object)
-                                                ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2640,48): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_light_index(const cgltf_data* data, const cgltf_light* object)
-                                               ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2646,47): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_node_index(const cgltf_data* data, const cgltf_node* object)
-                                              ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2652,48): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_scene_index(const cgltf_data* data, const cgltf_scene* object)
-                                               ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(2658,52): warning C4459: declaration of 'data' hides global declaration
-cgltf_size cgltf_animation_index(const cgltf_data* data, const cgltf_animation* object)
-                                                   ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(6633,14): warning C4459: declaration of 'data' hides global declaration
-	cgltf_data* data = (cgltf_data*)options->memory.alloc_func(options->memory.user_data, sizeof(cgltf_data));
-	            ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\third_party\cgltf\cgltf.h(6675,45): warning C4459: declaration of 'data' hides global declaration
-static int cgltf_fixup_pointers(cgltf_data* data)
-                                            ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\asset\asset_caching.cpp(9,9): warning C4459: declaration of 'data' hides global declaration
-    U8 *data = ArenaPushArray(arena, U8, count + 1);
-        ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\asset\asset_caching.cpp(119,15): warning C4459: declaration of 'data' hides global declaration
-  cgltf_data *data = 0;
-              ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\asset\asset_caching.cpp(135,26): warning C4459: declaration of 'data' hides global declaration
-ac_free_gltf(cgltf_data *data)
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(811,1): error C2447: '{': missing function header (old-style formal list?)
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(871,12): warning C4459: declaration of 'i' hides global declaration
+  for (S32 i = 0; i < 8; i += 1) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
                          ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\asset\asset_caching.cpp(1073,11): warning C4459: declaration of 'data' hides global declaration
-      U8 *data = ArenaPushArray(arena, U8, file_read.count);
-          ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\asset\asset_storage.cpp(11,30): warning C4459: declaration of 'ctx' hides global declaration
-assets_release(AssetContext *ctx)
-                             ^
-R:\KageEngine\src\render\render_passes.cpp(10,14): note: see declaration of 'ctx'
-  R_Context *ctx = &r_ctx;
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(941,37): error C2039: 'input_layout': is not a member of 'R_PipelineDesc'
+  r_d3d12_input_layout_from_r(&desc.input_layout, pipe->input_layout, &pipe->input_layout_count);
+                                    ^
+R:\KageEngine\src\render\render_resource.h(320,8): note: see declaration of 'R_PipelineDesc'
+struct R_PipelineDesc {
+       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(941,3): error C2064: term does not evaluate to a function taking 3 arguments
+  r_d3d12_input_layout_from_r(&desc.input_layout, pipe->input_layout, &pipe->input_layout_count);
+  ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(943,25): error C3861: 'r_d3d12_raster_from_r': identifier not found
+  pipe->raster        = r_d3d12_raster_from_r(&desc.raster);
+                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(950,12): warning C4459: declaration of 'i' hides global declaration
+  for (S32 i = 0; i < pipe->rtv_count; i += 1) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(976,12): warning C4459: declaration of 'i' hides global declaration
+  for (S32 i = 0; i < 8; i += 1) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\render\render_context.cpp(36,21): error C2065: 'mesh_layout': undeclared identifier
+    .input_layout = mesh_layout,
+                    ^
+R:\KageEngine\src\render\render_context.cpp(153,12): warning C4459: declaration of 'i' hides global declaration
+  for (S32 i = 0; i < pass->color_targets_count; ++i) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\render\render_context.cpp(173,14): warning C4459: declaration of 'i' hides global declaration
+    for (S32 i = 0; i < pass->color_targets_count; i += 1) {
              ^
-R:\KageEngine\src\asset\asset_storage.cpp(18,36): warning C4459: declaration of 'ctx' hides global declaration
-assets_set_root_path(AssetContext *ctx, String8 path)
-                                   ^
-R:\KageEngine\src\render\render_passes.cpp(10,14): note: see declaration of 'ctx'
-  R_Context *ctx = &r_ctx;
-             ^
-R:\KageEngine\src\asset\asset_storage.cpp(26,33): warning C4459: declaration of 'ctx' hides global declaration
-assets_load_model(AssetContext *ctx, String8 name)
-                                ^
-R:\KageEngine\src\render\render_passes.cpp(10,14): note: see declaration of 'ctx'
-  R_Context *ctx = &r_ctx;
-             ^
-R:\KageEngine\src\asset\asset_storage.cpp(54,11): warning C4459: declaration of 'data' hides global declaration
-      U8 *data = (U8 *)blob.data;
-          ^
-R:\KageEngine\src\render\render_passes.cpp(28,22): note: see declaration of 'data'
-  R_ForwardPassData *data = ArenaPushStruct(frame->arena, R_ForwardPassData);
-                     ^
-R:\KageEngine\src\asset\asset_storage.cpp(234,32): warning C4459: declaration of 'ctx' hides global declaration
-assets_get_model(AssetContext *ctx, AssetHandle handle)
-                               ^
-R:\KageEngine\src\render\render_passes.cpp(10,14): note: see declaration of 'ctx'
-  R_Context *ctx = &r_ctx;
-             ^
-R:\KageEngine\src\main.cpp(310,7): error C2064: term does not evaluate to a function taking 1 arguments
-      r_pass_add_forward(&frame);
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\render\render_core.cpp(233,15): warning C4459: declaration of 'n' hides global declaration
+    for (UINT n = 0; n < R_D3D12_FRAME_COUNT; n += 1) {
+              ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(780,7): note: see declaration of 'n'
+  S32 n = (S32)layout->elements_count;
       ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1337,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < size; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1416,20): warning C4459: declaration of 'i' hides global declaration
+			for (cgltf_size i = 0; i < 4; ++i)
+			                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1453,8): warning C4459: declaration of 'i' hides global declaration
+	char* i = uri;
+	      ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1499,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->buffers_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1559,15): warning C4459: declaration of 'i' hides global declaration
+		for (size_t i = 0; i < count; ++i)
+		            ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1567,15): warning C4459: declaration of 'i' hides global declaration
+		for (size_t i = 0; i < count; ++i)
+		            ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1575,15): warning C4459: declaration of 'i' hides global declaration
+		for (size_t i = 0; i < count; ++i)
+		            ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1597,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->accessors_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1637,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->buffer_views_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1669,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->meshes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1729,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->nodes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1750,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->nodes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1764,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->scenes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1772,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->animations_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1798,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->variants_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1841,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < extensions_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1866,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->accessors_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1875,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->buffer_views_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1885,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->buffers_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1905,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->meshes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1967,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->materials_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1977,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->images_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1989,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->textures_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(1999,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->samplers_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2009,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->skins_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2020,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->cameras_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2039,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->lights_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2048,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->nodes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2070,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->scenes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2081,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->animations_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2104,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->variants_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2116,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->extensions_used_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2123,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->extensions_required_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2192,12): warning C4459: declaration of 'i' hides global declaration
+		for (int i = 0; i < 4; ++i)
+		         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2326,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < num_components; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2348,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < prim->attributes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2530,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < num_components; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2801,57): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_skip_json(jsmntok_t const* tokens, int i)
+                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2839,70): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_float_array(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, float* out_array, int size)
+                                                                     ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2856,89): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_string(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, char** out_string)
+                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2875,88): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_array(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, size_t element_size, void** out_array, cgltf_size* out_size)
+                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2897,95): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_string_array(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, char*** out_array, cgltf_size* out_size)
+                                                                                              ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(2972,97): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_attribute_list(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_attribute** out_attributes, cgltf_size* out_attributes_count)
+                                                                                                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3009,89): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_extras(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_extras* out_extras)
+                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3034,104): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_unprocessed_extension(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_extension* out_extension)
+                                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3068,105): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_unprocessed_extensions(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_size* out_extensions_count, cgltf_extension** out_extensions)
+                                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3105,105): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_draco_mesh_compression(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_draco_mesh_compression* out_draco_mesh_compression)
+                                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3140,102): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_mesh_gpu_instancing(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_mesh_gpu_instancing* out_mesh_gpu_instancing)
+                                                                                                     ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3169,104): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_material_mapping_data(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_material_mapping* out_mappings, cgltf_size* offset)
+                                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3256,100): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_material_mappings(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_primitive* out_prim)
+                                                                                                   ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3326,92): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_primitive(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_primitive* out_prim)
+                                                                                           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3440,87): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_mesh(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_mesh* out_mesh)
+                                                                                      ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3536,89): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_meshes(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3578,74): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_accessor_sparse(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_accessor_sparse* out_sparse)
+                                                                         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3685,91): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_accessor(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_accessor* out_accessor)
+                                                                                          ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3807,76): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_texture_transform(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_texture_transform* out_texture_transform)
+                                                                           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3853,95): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_texture_view(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_texture_view* out_texture_view)
+                                                                                              ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3936,105): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_pbr_metallic_roughness(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_pbr_metallic_roughness* out_pbr)
+                                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(3987,106): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_pbr_specular_glossiness(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_pbr_specular_glossiness* out_pbr)
+                                                                                                         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4033,92): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_clearcoat(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_clearcoat* out_clearcoat)
+                                                                                           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4081,62): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_ior(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_ior* out_ior)
+                                                             ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4114,91): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_specular(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_specular* out_specular)
+                                                                                          ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4160,95): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_transmission(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_transmission* out_transmission)
+                                                                                              ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4194,89): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_volume(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_volume* out_volume)
+                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4238,88): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_sheen(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_sheen* out_sheen)
+                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4280,76): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_emissive_strength(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_emissive_strength* out_emissive_strength)
+                                                                           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4313,94): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_iridescence(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_iridescence* out_iridescence)
+                                                                                             ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4374,103): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_diffuse_transmission(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_diffuse_transmission* out_diff_transmission)
+                                                                                                      ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4420,93): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_anisotropy(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_anisotropy* out_anisotropy)
+                                                                                            ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4461,69): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_dispersion(jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_dispersion* out_dispersion)
+                                                                    ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4492,88): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_image(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_image* out_image)
+                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4543,90): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_sampler(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_sampler* out_sampler)
+                                                                                         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4612,90): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_texture(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_texture* out_texture)
+                                                                                         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4748,91): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_material(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_material* out_material)
+                                                                                          ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4948,92): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_accessors(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4967,92): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_materials(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(4986,89): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_images(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5005,91): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_textures(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                          ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5024,91): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_samplers(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                          ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5043,102): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_meshopt_compression(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_meshopt_compression* out_meshopt_compression)
+                                                                                                     ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5137,94): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_buffer_view(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_buffer_view* out_buffer_view)
+                                                                                             ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5256,95): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_buffer_views(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                              ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5275,89): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_buffer(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_buffer* out_buffer)
+                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5323,90): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_buffers(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5342,87): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_skin(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_skin* out_skin)
+                                                                                      ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5407,88): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_skins(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5426,89): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_camera(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_camera* out_camera)
+                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5583,90): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_cameras(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5602,88): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_light(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_light* out_light)
+                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5712,89): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_lights(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5731,87): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_node(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_node* out_node)
+                                                                                      ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5910,88): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_nodes(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5929,88): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_scene(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_scene* out_scene)
+                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5980,89): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_scenes(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                        ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(5999,100): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_animation_sampler(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_animation_sampler* out_sampler)
+                                                                                                   ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6062,100): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_animation_channel(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_animation_channel* out_channel)
+                                                                                                   ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6153,92): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_animation(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_animation* out_animation)
+                                                                                           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6224,93): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_animations(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                            ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6243,90): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_variant(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_material_variant* out_variant)
+                                                                                         ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6276,91): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_variants(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                          ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6295,88): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_asset(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_asset* out_asset)
+                                                                                       ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6405,87): warning C4459: declaration of 'i' hides global declaration
+static int cgltf_parse_json_root(cgltf_options* options, jsmntok_t const* tokens, int i, const uint8_t* json_chunk, cgltf_data* out_data)
+                                                                                      ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6645,6): warning C4459: declaration of 'i' hides global declaration
+	int i = cgltf_parse_json_root(options, tokens, 0, json_chunk, data);
+	    ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6677,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->meshes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6713,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->accessors_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6734,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->textures_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6742,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->images_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6747,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->materials_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6782,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->buffer_views_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6792,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->skins_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6803,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->nodes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6831,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->scenes_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(6846,18): warning C4459: declaration of 'i' hides global declaration
+	for (cgltf_size i = 0; i < data->animations_count; ++i)
+	                ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(7002,8): warning C4459: declaration of 'i' hides global declaration
+			int i;
+			    ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\third_party\cgltf\cgltf.h(7041,6): warning C4459: declaration of 'i' hides global declaration
+	int i;
+	    ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(180,12): warning C4459: declaration of 'i' hides global declaration
+  for (U32 i = 0; i < prim->attributes_count; ++i) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(214,12): warning C4459: declaration of 'i' hides global declaration
+  for (U32 i = 0; i < node->children_count; ++i) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(228,12): warning C4459: declaration of 'i' hides global declaration
+  for (U32 i = 0; i < gltf->meshes_count; ++i) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(241,14): warning C4459: declaration of 'i' hides global declaration
+    for (U32 i = 0; i < scene->nodes_count; ++i) {
+             ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(246,14): warning C4459: declaration of 'i' hides global declaration
+    for (U32 i = 0; i < gltf->nodes_count; ++i) {
+             ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(290,12): warning C4459: declaration of 'i' hides global declaration
+  for (U32 i = 0; i < mesh_count; ++i) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(345,12): warning C4459: declaration of 'i' hides global declaration
+  for (U32 i = 0; i < p->attributes_count; ++i) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(377,12): warning C4459: declaration of 'i' hides global declaration
+  for (U32 i = 0; i < count; ++i) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(437,14): warning C4459: declaration of 'i' hides global declaration
+    for (U32 i = 0; i < index_count; i += 3) {
+             ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(454,14): warning C4459: declaration of 'i' hides global declaration
+    for (U32 i = 0; i < index_count; i += 3) {
+             ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(482,12): warning C4459: declaration of 'i' hides global declaration
+  for (U32 i = 0; i < index_count; i += 3) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(530,12): warning C4459: declaration of 'i' hides global declaration
+  for (S32 i = 0; i < prims.count; ++i) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
+R:\KageEngine\src\asset\asset_caching.cpp(569,12): warning C4459: declaration of 'i' hides global declaration
+  for (S32 i = 0; i < prims.count; ++i) {
+           ^
+R:\KageEngine\src\render\backend\d3d12\render_resource_d3d12.cpp(785,26): note: see declaration of 'i'
+  for (S32 i = 0; i < n; i += 1) {
+                         ^
