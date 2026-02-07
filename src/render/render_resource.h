@@ -17,6 +17,9 @@ struct R_Handle {
 };
 
 struct R_CreateResource {
+  S32 srv_idx = -1;
+  S32 rtv_idx = -1;
+  S32 dsv_idx = -1;
   S64 fence_value;
   void *backend;
 };
@@ -33,7 +36,11 @@ struct R_ResourceSlot {
   S32 gen;
   B32 alive;
 
-  S32 descriptor_idx; // @Note: Optional
+  // @Note: Kind of a leaky abstraction, but it works for now.
+  S32 srv_idx;
+  S32 rtv_idx;
+  S32 dsv_idx;
+
   S64 fence_value; // @Note: need a value that indicates a fence is ready by default (e.g. 0)
   void *backend_rsrc;
 };
@@ -49,8 +56,7 @@ global R_ResourceTable r_resource_table; // @Todo: Store in r_ctx
 // Textures
 //
 
-enum R_Format
-{
+enum R_Format {
   R_Format_Invalid,
 
   // 8-bit normalized color

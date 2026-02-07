@@ -99,10 +99,9 @@ struct R_Context {
   ID3D12GraphicsCommandList *copy_cmd_list;
   ID3D12CommandAllocator *copy_cmd_allocator;
 
-  ID3D12DescriptorHeap *dsv_heap;
-  ID3D12DescriptorHeap *rtv_heap;
-
   /*
+  SRV heap:
+
   0–1        CBVs
   2–1025     textures (fixed region)
   1026       material buffer
@@ -110,12 +109,17 @@ struct R_Context {
   */
 
   ID3D12DescriptorHeap *srv_heap;       // Per-frame and per-draw data, texture table, material table
+  ID3D12DescriptorHeap *rtv_heap;
+  ID3D12DescriptorHeap *dsv_heap;
   ID3D12DescriptorHeap *sampler_heap;   // @Note: Just using a static sampler for now.
 
-  S32 rtv_descriptor_size;
+  // Descriptor allocation (for texture views)
   S32 srv_descriptor_size;
-
-  S32 srv_next_idx; // @Todo: Rename. Used exclusively for texture table entries.
+  S32 rtv_descriptor_size;
+  S32 dsv_descriptor_size;
+  S32 srv_next_idx;
+  S32 rtv_next_idx;
+  S32 dsv_next_idx;
 };
 
 global R_Context r_ctx;

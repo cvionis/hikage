@@ -1,5 +1,23 @@
 #pragma once
 
+// @Todo: Put elsewhere.
+
+enum R_ClearFlags {
+  R_ClearFlag_None  = 0,
+  R_ClearFlag_Color = (1 << 0),
+  R_ClearFlag_Depth = (1 << 1),
+};
+
+struct R_Viewport {
+  RectF32 rect;
+  F32 min_depth;
+  F32 max_depth;
+};
+
+struct R_Scissor {
+  RectS32 rect;
+};
+
 // Render passes
 
 typedef void R_PassExecuteProc(void *userdata);
@@ -20,16 +38,19 @@ struct R_Pass {
   R_Handle write_resources[16];
   S32 write_count;
 
-  // Viewport/scissor rects
-  RectF32 viewport;
-  RectS32 scissor;
+  R_Viewport viewport;
+  R_Scissor scissor;
+
+  U32 clear_flags;
+  V4F32 clear_color;
+  F32 clear_depth;
 
   // Pass-specific data blob and procedure
   void *userdata;
   R_PassExecuteProc *execute;
 };
 
-static void r_pass_begin(R_Pass *pass); // Bind pipeline, etc.
+static void r_pass_begin(R_Pass *pass);
 static void r_pass_end(R_Pass *pass);
 
 // Render frames
@@ -49,6 +70,10 @@ struct R_FrameData {
   R_Pass *passes;
   S32 compiled_passes_count;
   R_CompiledPass *compiled_passes;
+
+  // Defaults that can be used by passes
+  R_Viewport default_viewport;
+  R_Scissor default_scissor;
 
   // Resources built per-frame and shared by passes
   R_Handle forward_color;

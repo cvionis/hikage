@@ -15,11 +15,13 @@ r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
 
   slot->gen += 1;
   slot->kind = R_ResourceKind_Texture;
-  slot->descriptor_idx = r_alloc_texture_descriptor_idx();
 
-  R_CreateResource create = r_create_texture_impl(init, init_count, desc, slot->descriptor_idx);
-  slot->backend_rsrc = create.backend;
+  R_CreateResource create = r_create_texture_impl(init, init_count, desc);
+  slot->srv_idx = create.srv_idx;
+  slot->rtv_idx = create.rtv_idx;
+  slot->dsv_idx = create.dsv_idx;
   slot->fence_value = create.fence_value;
+  slot->backend_rsrc = create.backend;
 
   R_Handle result = {
     .idx = slot_idx,
@@ -39,8 +41,8 @@ r_create_buffer(R_BufferInitData init, R_BufferDesc desc)
   slot->kind = R_ResourceKind_Buffer;
 
   R_CreateResource create = r_create_buffer_impl(init, desc);
-  slot->backend_rsrc = create.backend;
   slot->fence_value = create.fence_value;
+  slot->backend_rsrc = create.backend;
 
   R_Handle result = {
     .idx = slot_idx,
@@ -63,11 +65,10 @@ r_create_pipeline(R_PipelineDesc desc)
     slot->gen += 1;
     slot->alive = 1;
     slot->kind = R_ResourceKind_Pipeline;
-    slot->descriptor_idx = -1;
 
     R_CreateResource create = r_create_pipeline_impl(desc);
-    slot->backend_rsrc = create.backend;
     slot->fence_value  = create.fence_value;
+    slot->backend_rsrc = create.backend;
 
     result.idx = slot_idx;
     result.gen = slot->gen;

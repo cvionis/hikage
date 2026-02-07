@@ -177,7 +177,7 @@ mouse_down(Input *input, MouseButton btn)
 }
 
 global ModelInstance models[SCENE_MODELS_COUNT];
-global S32 models_count = 1;
+global S32 models_count;
 
 void
 entry_point(void)
@@ -195,7 +195,7 @@ entry_point(void)
 
   r_init(app.window);
 
-  R_PipelineDesc forward_ldr = {
+  R_PipelineDesc forward_pipeline_desc = {
     .vs_path = L"../src/render/shaders/forward_basic.hlsl",
     .ps_path = L"../src/render/shaders/forward_basic.hlsl",
 
@@ -230,12 +230,21 @@ entry_point(void)
     .sample_count = 1,
   };
 
-  R_Handle forward_pipeline = r_create_pipeline(forward_ldr);
+  R_Handle forward_pipeline = r_create_pipeline(forward_pipeline_desc);
   r_ctx.pipelines.forward = forward_pipeline;
 
   R_FrameData frame = {
     .pass_arena = arena_alloc_default(),
     .userdata_arena = arena_alloc_default(),
+
+    .default_viewport = {
+      .rect = rect_f32(0, 0, (F32)screen_w, (F32)screen_h),
+      .min_depth = 0.f,
+      .max_depth = 1.f,
+    },
+    .default_scissor = {
+      .rect = rect_s32(0, 0, screen_w, screen_h),
+    },
   };
 
   AssetContext assets = assets_make();
@@ -245,6 +254,7 @@ entry_point(void)
   {
     models[0].model = a;
     models[0].scale = v3f32(1.,1.,1.);
+    models_count = 1;
   }
 
   Input input = {};
@@ -289,7 +299,8 @@ entry_point(void)
       pos_delta.y -= camera_move_speed * key_down(&input, Key_Q);
       pos_delta = v3f32_scale(pos_delta, delta_time);
 
-      camera_update_position_aspect(&camera, pos_delta, 1920.f/1080.f, delta_time);
+      F32 aspect = (F32)screen_w/(F32)screen_h;
+      camera_update_position_aspect(&camera, pos_delta, aspect, delta_time);
     }
     {
       static S32 prev_x = input.mouse.x;

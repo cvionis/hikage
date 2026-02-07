@@ -52,7 +52,7 @@ struct R_D3D12_Buffer {
 //
 
 static S32
-r_alloc_texture_descriptor_idx(void)
+r_alloc_texture_descriptor_idx_srv(void)
 {
   R_Context *ctx = &r_ctx;
 
@@ -61,6 +61,45 @@ r_alloc_texture_descriptor_idx(void)
   ctx->srv_next_idx += 1;
 
   return idx;
+}
+
+static S32
+r_alloc_texture_descriptor_idx_rtv(void)
+{
+  R_Context *ctx = &r_ctx;
+
+  // @Todo: Free list
+  S32 idx = ctx->rtv_next_idx;
+  ctx->rtv_next_idx += 1;
+
+  return idx;
+}
+
+static S32
+r_alloc_texture_descriptor_idx_dsv(void)
+{
+  R_Context *ctx = &r_ctx;
+
+  // @Todo: Free list
+  S32 idx = ctx->dsv_next_idx;
+  ctx->dsv_next_idx += 1;
+
+  return idx;
+}
+
+// @Todo: Implement these helpers
+static D3D12_CPU_DESCRIPTOR_HANDLE r_d3d12_rtv_from_texture(R_Handle handle)
+{
+  (void)handle;
+  D3D12_CPU_DESCRIPTOR_HANDLE result = {};
+  return result;
+}
+
+static D3D12_CPU_DESCRIPTOR_HANDLE r_d3d12_dsv_from_texture(R_Handle handle)
+{
+  (void)handle;
+  D3D12_CPU_DESCRIPTOR_HANDLE result = {};
+  return result;
 }
 
 static DXGI_FORMAT
@@ -98,7 +137,6 @@ r_d3d12_fmt_from_r_fmt(R_Format fmt)
   return result;
 }
 
-
 static void
 r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 mips_count, S32 descriptor_idx)
 {
@@ -106,6 +144,7 @@ r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 mips_count, S32
 
   D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
   srv_desc.Format = fmt;
+  // @Note: Assumes 2D
   srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
   srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
   srv_desc.Texture2D.MipLevels = mips_count;
@@ -115,6 +154,44 @@ r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 mips_count, S32
   handle.ptr += (SIZE_T)descriptor_idx * ctx->srv_descriptor_size;
 
   ctx->device->CreateShaderResourceView(resource, &srv_desc, handle);
+}
+
+static void
+r_d3d12_write_rtv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 descriptor_idx)
+{
+  R_Context *ctx = &r_ctx;
+
+  D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
+  rtv_desc.Format = fmt;
+  // @Note: Assumes 2D
+  rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+  rtv_desc.Texture2D.MipSlice = 0;
+  rtv_desc.Texture2D.PlaneSlice = 0;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE handle =
+    ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart();
+  handle.ptr += (SIZE_T)descriptor_idx * ctx->rtv_descriptor_size;
+
+  ctx->device->CreateRenderTargetView(resource, &rtv_desc, handle);
+}
+
+static void
+r_d3d12_write_dsv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 descriptor_idx)
+{
+  R_Context *ctx = &r_ctx;
+
+  D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {};
+  dsv_desc.Format = fmt;
+  // @Note: Assumes 2D
+  dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+  dsv_desc.Flags = D3D12_DSV_FLAG_NONE;
+  dsv_desc.Texture2D.MipSlice = 0;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE handle =
+    ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart();
+  handle.ptr += (SIZE_T)descriptor_idx * ctx->dsv_descriptor_size;
+
+  ctx->device->CreateDepthStencilView(resource, &dsv_desc, handle);
 }
 
 static U64
@@ -223,32 +300,10 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
 
       if (is_block_compressed(fmt)) {
         U32 bpb = bc_bytes_per_block(fmt);
-
-        #if 0
-        U32 w = layouts[i].Footprint.Width;
-        U32 h = layouts[i].Footprint.Height;
-
-        U32 blocks_x = (w + 3) / 4; if (blocks_x == 0) blocks_x = 1;
-        U32 blocks_y = (h + 3) / 4; if (blocks_y == 0) blocks_y = 1;
-
-        U32 src_row_bytes = blocks_x * bpb;
-        Assert(src_row_bytes <= dst_row_pitch);
-
-        for (U32 y = 0; y < blocks_y; y += 1) {
-          MemoryCopy(
-            dst_base + (U64)y * dst_row_pitch,
-            src_base + (U64)y * src_row_bytes,
-            // src_base + (U64)y * init[i].row_pitch,
-            src_row_bytes
-          );
-        }
-        #endif
         U32 dst_row_pitch = layouts[i].Footprint.RowPitch;
 
-        // Source layout must come from your init data (DirectXTex)
         U32 src_row_bytes = (U32)init[i].row_pitch;
         U32 rows          = (U32)(init[i].slice_pitch / init[i].row_pitch);
-
         Assert(src_row_bytes <= dst_row_pitch);
 
         for (U32 y = 0; y < rows; y += 1) {
@@ -322,9 +377,9 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
 }
 
 // @Todo: Test; error-checking and input validation.
-// @Todo: Limited to 2D sampled textures right now.
+// @Todo: Limited to 2D textures right now.
 static R_CreateResource
-r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc desc, S32 descriptor_idx)
+r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
 {
   R_Context *ctx = &r_ctx;
   R_CreateResource result = {};
@@ -339,13 +394,22 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   rdesc.Format = dxgi_fmt;
   rdesc.SampleDesc.Count = 1;
   rdesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-  rdesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+  D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+  if (desc.usage & R_TextureUsage_RenderTarget) {
+    flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+  }
+  if (desc.usage & R_TextureUsage_DepthStencil) {
+    flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+  }
+  if (desc.usage & R_TextureUsage_Unordered) {
+    flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+  }
+  rdesc.Flags = flags;
 
   D3D12_HEAP_PROPERTIES heap = {};
   heap.Type = D3D12_HEAP_TYPE_DEFAULT;
-
   R_D3D12_Texture *tex = ArenaPushStruct(ctx->arena, R_D3D12_Texture);
-
   HRESULT hr = ctx->device->CreateCommittedResource(
     &heap,
     D3D12_HEAP_FLAG_NONE,
@@ -357,7 +421,21 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   Assert(SUCCEEDED(hr));
   tex->state = D3D12_RESOURCE_STATE_COPY_DEST;
 
-  r_d3d12_write_srv(tex->resource, dxgi_fmt, init_count, descriptor_idx);
+  if (desc.usage & R_TextureUsage_Sampled) {
+    S32 srv_idx = r_alloc_texture_descriptor_idx_srv();
+    r_d3d12_write_srv(tex->resource, dxgi_fmt, init_count, srv_idx);
+    result.srv_idx = srv_idx;
+  }
+  if (desc.usage & R_TextureUsage_RenderTarget) {
+    S32 rtv_idx = r_alloc_texture_descriptor_idx_srv();
+    r_d3d12_write_rtv(tex->resource, dxgi_fmt, rtv_idx);
+    result.rtv_idx = rtv_idx;
+  }
+  if (desc.usage & R_TextureUsage_DepthStencil) {
+    S32 dsv_idx = r_alloc_texture_descriptor_idx_srv();
+    r_d3d12_write_dsv(tex->resource, dxgi_fmt, dsv_idx);
+    result.dsv_idx = dsv_idx;
+  }
 
   if (init_count > 0) {
     r_d3d12_upload_texture(tex, dxgi_fmt, init, init_count);

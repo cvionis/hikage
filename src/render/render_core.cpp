@@ -10,21 +10,8 @@
 
 // -------------------------------------------------------------------------------------------------------------------------------------------
 
-#define R_D3D12_MAX_DRAWS 4096
-
-#define R_D3D12_FRAME_CBV_COUNT 1
-#define R_D3D12_DRAW_CBV_COUNT  1
-#define R_D3D12_CBV_COUNT       (R_D3D12_FRAME_CBV_COUNT + R_D3D12_DRAW_CBV_COUNT)
-#define R_D3D12_MATERIAL_MAX    4096
-#define R_D3D12_TEXTURE_MAX     1024
-#define R_D3D12_SRV_HEAP_SIZE   (R_D3D12_CBV_COUNT + R_D3D12_TEXTURE_MAX + 1) // +1: material buffer
-
-#define R_D3D12_FRAME_CBV_SLOT  0
-#define R_D3D12_DRAW_CBV_SLOT   1
-#define R_D3D12_TEXTURE_TABLE_BASE   (R_D3D12_CBV_COUNT)
-#define R_D3D12_MATERIAL_BUFFER_BASE (R_D3D12_TEXTURE_TABLE_BASE + R_D3D12_TEXTURE_MAX) // @Note: +1 was crashing (noob)
-
-// @Todo: Put in render_resource.h, render_resource_d3d12.cpp (can use r_create_buffer_impl() maybe if you flesh it out for structured buffs)
+// @Todo: Put in render_resource.h, render_resource_d3d12.cpp (or put in render_core.h and use r_create_buffer_impl()
+// if you flesh it out for structured buffs)
 static void
 r_upload_materials(R_MaterialGPU *materials, S32 materials_count)
 {
@@ -236,6 +223,8 @@ r_init(OS_Handle window)
     dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     hr = ctx->device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&ctx->dsv_heap));
     Assert(SUCCEEDED(hr));
+    ctx->dsv_descriptor_size =
+      ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
   }
 
   // Back buffers and command allocators
@@ -255,6 +244,7 @@ r_init(OS_Handle window)
     }
   }
 
+  // @Todo: Use texture creation API (this will also use correct rtv heap idx)
   // Color buffer
   {
     D3D12_RESOURCE_DESC color_desc = {};
@@ -303,6 +293,7 @@ r_init(OS_Handle window)
     ctx->device->CreateRenderTargetView(ctx->color_buffer, &rtv_desc, rtv);
   }
 
+  // @Todo: Use texture creation API (this will also use correct dsv heap idx)
   // Depth buffer
   {
     CD3DX12_RESOURCE_DESC depth_desc =
