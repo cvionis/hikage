@@ -1,24 +1,5 @@
 #pragma once
 
-// @Todo: Move
-enum R_ResourceState {
-  R_ResourceState_Invalid,
-
-  R_ResourceState_Common,
-
-  R_ResourceState_RenderTarget,
-  R_ResourceState_DepthWrite,
-  R_ResourceState_DepthRead,
-
-  R_ResourceState_ShaderRead,
-  R_ResourceState_ShaderReadWrite,
-
-  R_ResourceState_CopySrc,
-  R_ResourceState_CopyDst,
-
-  R_ResourceState_Present,
-};
-
 // Render passes
 
 typedef void R_PassExecuteProc(void *userdata);
@@ -56,19 +37,13 @@ struct R_Pass {
   R_PassExecuteProc *execute;
 };
 
-struct R_TransitionBarrier {
-  R_Handle rsrc;
-  R_ResourceState state_before;
-  R_ResourceState state_after;
-};
-
+// @Note: Not worrying about transitioning depth resources yet
 struct R_CompiledPass {
   R_Pass *pass;
-  // @Note: Not worrying about transitioning depth yet
-  S32 pre_barriers_count;
-  R_TransitionBarrier pre_barriers[16];
-  S32 post_barriers_count;
-  R_TransitionBarrier post_barriers[16];
+  S32 pre_transitions_count;
+  R_ResourceTransition pre_transitions[16];
+  S32 post_transitions_count;
+  R_ResourceTransition post_transitions[16];
 };
 
 static void r_pass_begin(R_Pass *pass);

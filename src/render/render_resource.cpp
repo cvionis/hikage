@@ -32,6 +32,7 @@ r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
   slot->kind = R_ResourceKind_Texture;
 
   R_CreateResource create = r_create_texture_impl(init, init_count, desc);
+  slot->state = create.state;
   slot->srv_idx = create.srv_idx;
   slot->rtv_idx = create.rtv_idx;
   slot->dsv_idx = create.dsv_idx;
@@ -57,6 +58,7 @@ r_create_buffer(R_BufferInitData init, R_BufferDesc desc)
   slot->kind = R_ResourceKind_Buffer;
 
   R_CreateResource create = r_create_buffer_impl(init, desc);
+  slot->state = create.state;
   slot->fence_value = create.fence_value;
   slot->backend_rsrc = create.backend;
 

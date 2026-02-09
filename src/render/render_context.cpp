@@ -225,7 +225,7 @@ r_pass_begin(R_Pass *pass)
     );
   }
 
-  // @Todo: Process barriers produced in r_frame_compile().
+  // @Todo: Process transitions produced in r_frame_compile().
 
   // Input assembler
 
@@ -270,7 +270,7 @@ r_frame_push_pass(R_Context *ctx)
 }
 
 // Determine transitions needed for resource dependencies, produce a list of compiled passes each with a list of
-// barriers to issue before execution.
+// transitions to issue before execution.
 static void
 r_frame_compile(R_Context *ctx)
 {
@@ -288,8 +288,8 @@ r_frame_compile(R_Context *ctx)
       R_ResourceState state_post = pass->color_final_state;
 
       if (state_pre != state_mid) {
-        R_TransitionBarrier *pre = &compiled->pre_barriers[compiled->pre_barriers_count];
-        compiled->pre_barriers_count += 1;
+        R_ResourceTransition *pre = &compiled->pre_transitions[compiled->pre_transitions_count];
+        compiled->pre_transitions_count += 1;
 
         pre->rsrc = color_target;
         pre->state_before = state_pre;
@@ -297,8 +297,8 @@ r_frame_compile(R_Context *ctx)
       }
 
       if (state_mid != state_post) {
-        R_TransitionBarrier *post = &compiled->post_barriers[compiled->post_barriers_count];
-        compiled->post_barriers_count += 1;
+        R_ResourceTransition *post = &compiled->post_transitions[compiled->post_transitions_count];
+        compiled->post_transitions_count += 1;
 
         post->rsrc = color_target;
         post->state_before = state_mid;
@@ -313,50 +313,64 @@ r_frame_compile(R_Context *ctx)
   }
 }
 
-static void
-r_d3d12_barriers_from_r(D3D12_RESOURCE_BARRIER *dst, R_TransitionBarrier *src, S32 count)
+// @Todo: Move
+static D3D12_RESOURCE_BARRIER
+r_d3d12_barrier_from_r_transition(R_ResourceTransition tr)
 {
-  for (S32 idx = 0; idx < count; idx += 1) {
-    R_TransitionBarrier *src_barrier = &src[idx];
-    ID3D12Resource *d3d12_rsrc = r_d3d12_rsrc(src_barrier->rsrc);
+  D3D12_RESOURCE_BARRIER result = {};
 
-    D3D12_RESOURCE_BARRIER *b = &dst[idx];
-    b->Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
-    b->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+  ID3D12Resource *d3d12_rsrc = r_d3d12_rsrc(tr.rsrc);
+  result.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+  result.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
 
-    b->Transition.pResource = d3d12_rsrc;
-    b->Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    b->Transition.StateBefore = r_d3d12_state_from_r_state(src_barrier->state_before);
-    b->Transition.StateAfter = r_d3d12_state_from_r_state(src_barrier->state_after);
-  }
+  result.Transition.pResource = d3d12_rsrc;
+  result.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+  result.Transition.StateBefore = r_d3d12_state_from_r_state(tr.state_before);
+  result.Transition.StateAfter = r_d3d12_state_from_r_state(tr.state_after);
+
+  return result;
 }
 
-// Iterate over each pass, issuing its list of transition barriers, and calling pass_begin, execute, pass_end.
+// @Todo: Move
+static void
+r_transition_resource(R_ResourceTransition tr)
+{
+  // Update CPU-side representation of resource state
+  R_Handle h = tr.rsrc;
+  R_ResourceSlot *slot = &r_resource_table.slots[h.idx];
+  slot->state = tr.state_after;
+  // Push transition barrier to the GPU command list
+  R_D3D12_Backend *backend = &r_ctx;
+  D3D12_RESOURCE_BARRIER barrier = r_d3d12_barrier_from_r_transition(tr);
+  backend->command_list->ResourceBarrier(1, &barrier);
+}
+
+// Iterate over each pass, issuing its list of transition transitions, and calling pass_begin, execute, pass_end.
 static void
 r_frame_execute(R_Context *ctx)
 {
-  R_D3D12_Backend *backend = &r_ctx;
   TempArena tmp = arena_scratch_begin(0,0);
 
   for (S32 compiled_idx = 0; compiled_idx < ctx->compiled_passes_count; compiled_idx += 1) {
     R_CompiledPass *compiled = &ctx->compiled_passes[compiled_idx];
     R_Pass *pass = compiled->pass;
 
-    if (compiled->pre_barriers_count) {
-      D3D12_RESOURCE_BARRIER pre_barriers[16] = {};
-      r_d3d12_barriers_from_r(pre_barriers, compiled->pre_barriers, compiled->pre_barriers_count);
-      backend->command_list->ResourceBarrier((UINT)compiled->pre_barriers_count, pre_barriers);
+    if (compiled->pre_transitions_count) {
+      for (S32 pre_transition_idx = 0; pre_transition_idx < compiled->pre_transitions_count; pre_transition_idx += 1) {
+        R_ResourceTransition tr = compiled->pre_transitions[pre_transition_idx];
+        r_transition_resource(tr);
+      }
     }
 
-    // @Resume: when clearing rtv / dsv, state of texture is copy dest, not render target. Interesting.
     r_pass_begin(pass);
     pass->execute(pass->userdata);
     r_pass_end(pass);
 
-    if (compiled->post_barriers_count) {
-      D3D12_RESOURCE_BARRIER post_barriers[16] = {};
-      r_d3d12_barriers_from_r(post_barriers, compiled->post_barriers, compiled->post_barriers_count);
-      backend->command_list->ResourceBarrier((UINT)compiled->post_barriers_count, post_barriers);
+    if (compiled->post_transitions_count) {
+      for (S32 post_transition_idx = 0; post_transition_idx < compiled->post_transitions_count; post_transition_idx += 1) {
+        R_ResourceTransition tr = compiled->post_transitions[post_transition_idx];
+        r_transition_resource(tr);
+      }
     }
   }
 

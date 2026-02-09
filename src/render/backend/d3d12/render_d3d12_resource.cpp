@@ -2,6 +2,10 @@
 // D3D12 Resources
 //
 
+
+// @Todo: the "state" members for these (where applicable) are more like "initial state";
+// kind of deceiving. Should get rid of this as I store current state in resource slot.
+
 struct R_D3D12_Pipeline {
   // Runtime
   ID3D12PipelineState *pso;
@@ -133,21 +137,8 @@ static R_ResourceState
 r_resource_state(R_Handle handle)
 {
   R_ResourceState result = R_ResourceState_Invalid;
-
   R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
-  switch (slot->kind) {
-    case R_ResourceKind_Texture: {
-      R_D3D12_Texture *rsrc = (R_D3D12_Texture *)slot->backend_rsrc;
-      D3D12_RESOURCE_STATES d3d12_state = rsrc->state;
-      result = r_state_from_d3d12_state(d3d12_state);
-    }break;
-    case R_ResourceKind_Buffer: {
-      R_D3D12_Buffer *rsrc = (R_D3D12_Buffer *)slot->backend_rsrc;
-      D3D12_RESOURCE_STATES d3d12_state = rsrc->state;
-      result = r_state_from_d3d12_state(d3d12_state);
-    }break;
-  }
-
+  result = slot->state;
   return result;
 }
 
@@ -548,6 +539,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     case R_TextureInitState_CopyDest:     { tex->state = D3D12_RESOURCE_STATE_COPY_DEST;              }break;
     case R_TextureInitState_ShaderRead:   { tex->state =  D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; }break;
   }
+  result.state = r_state_from_d3d12_state(tex->state);
 
   D3D12_HEAP_PROPERTIES heap = {};
   heap.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -669,6 +661,8 @@ r_create_buffer_impl(R_BufferInitData init, R_BufferDesc desc)
   D3D12_RESOURCE_STATES initial_state;
   r_d3d12_buffer_flags_state_from_desc(desc, &flags, &initial_state);
   res_desc.Flags = flags;
+
+  result.state = r_state_from_d3d12_state(initial_state);
 
   // ---------------------------------------------------------------------------
   // Heap type selection

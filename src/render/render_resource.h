@@ -16,14 +16,6 @@ struct R_Handle {
   S64 fence_value;
 };
 
-struct R_CreateResource {
-  S32 srv_idx = -1;
-  S32 rtv_idx = -1;
-  S32 dsv_idx = -1;
-  S64 fence_value;
-  void *backend;
-};
-
 enum R_ResourceKind {
   R_ResourceKind_None,
   R_ResourceKind_Pipeline,
@@ -31,8 +23,42 @@ enum R_ResourceKind {
   R_ResourceKind_Buffer,
 };
 
+enum R_ResourceState {
+  R_ResourceState_Invalid,
+
+  R_ResourceState_Common,
+
+  R_ResourceState_RenderTarget,
+  R_ResourceState_DepthWrite,
+  R_ResourceState_DepthRead,
+
+  R_ResourceState_ShaderRead,
+  R_ResourceState_ShaderReadWrite,
+
+  R_ResourceState_CopySrc,
+  R_ResourceState_CopyDst,
+
+  R_ResourceState_Present,
+};
+
+struct R_ResourceTransition {
+  R_Handle rsrc;
+  R_ResourceState state_before;
+  R_ResourceState state_after;
+};
+
+struct R_CreateResource {
+  R_ResourceState state;
+  S32 srv_idx = -1;
+  S32 rtv_idx = -1;
+  S32 dsv_idx = -1;
+  S64 fence_value;
+  void *backend;
+};
+
 struct R_ResourceSlot {
   R_ResourceKind kind;
+  R_ResourceState state; // @Note: Not used by all resource types (e.g. pipelines)
 
   S32 gen;
   B32 alive; // @Todo: Make sure this is set properly.
