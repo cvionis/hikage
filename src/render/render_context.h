@@ -27,6 +27,8 @@ struct R_Pass {
   V4F32 clear_color;
   F32 clear_depth;
 
+  R_Topology topology;
+
   // Pass-specific data blob and procedure
   void *userdata;
   R_PassExecuteProc *execute;

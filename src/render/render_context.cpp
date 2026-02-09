@@ -162,8 +162,6 @@ r_pass_begin(R_Pass *pass)
   backend->command_list->RSSetViewports(1, &vp);
   backend->command_list->RSSetScissorRects(1, &sc);
 
-  // Descriptor heaps (bound once per pass)
-
   // Bind unified descriptor heap
   {
     ID3D12DescriptorHeap *heaps[] = { backend->srv_heap };
@@ -223,6 +221,11 @@ r_pass_begin(R_Pass *pass)
       pass->clear_depth, 0, 0, 0
     );
   }
+
+  // Input assembler
+
+  D3D12_PRIMITIVE_TOPOLOGY d3d12_topology = r_d3d12_topology_from_r(pass->topology);
+  backend->command_list->IASetPrimitiveTopology(d3d12_topology);
 }
 
 static void

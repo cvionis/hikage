@@ -114,6 +114,18 @@ entry_point(void)
     r_pass_add_forward(&renderer, &assets, models, models_count, camera);
 
     r_frame_compile(&renderer);
+
+    // Update per-frame CB (b0)
+    {
+      R_D3D12_Backend *backend = &r_ctx;
+      R_FrameCB cb = {
+        .viewproj = camera.viewproj,
+        .camera_ws = v4f32(camera.position.x, camera.position.y, camera.position.z, 0.f),
+      };
+      MemoryCopy(backend->frame_cb_mapped, &cb, sizeof(cb));
+      backend->draw_cb_write_idx = 0;
+    }
+
     r_frame_execute(&renderer);
 
     r_frame_end(&renderer);

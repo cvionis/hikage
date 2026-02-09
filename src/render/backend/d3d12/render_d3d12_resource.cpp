@@ -87,18 +87,29 @@ r_alloc_texture_descriptor_idx_dsv(void)
   return idx;
 }
 
-// @Todo: Implement these helpers
-static D3D12_CPU_DESCRIPTOR_HANDLE r_d3d12_rtv_from_texture(R_Handle handle)
+static D3D12_CPU_DESCRIPTOR_HANDLE
+r_d3d12_rtv_from_texture(R_Handle handle)
 {
-  (void)handle;
-  D3D12_CPU_DESCRIPTOR_HANDLE result = {};
+  R_D3D12_Backend *backend = &r_ctx;
+
+  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
+  S32 rtv_idx = slot->rtv_idx;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE result = backend->rtv_heap->GetCPUDescriptorHandleForHeapStart();
+  result.ptr += (SIZE_T)rtv_idx * (SIZE_T)backend->rtv_descriptor_size;
   return result;
 }
 
-static D3D12_CPU_DESCRIPTOR_HANDLE r_d3d12_dsv_from_texture(R_Handle handle)
+static D3D12_CPU_DESCRIPTOR_HANDLE
+r_d3d12_dsv_from_texture(R_Handle handle)
 {
-  (void)handle;
-  D3D12_CPU_DESCRIPTOR_HANDLE result = {};
+  R_D3D12_Backend *backend = &r_ctx;
+
+  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
+  S32 dsv_idx = slot->dsv_idx;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE result = backend->dsv_heap->GetCPUDescriptorHandleForHeapStart();
+  result.ptr += (SIZE_T)dsv_idx * (SIZE_T)backend->dsv_descriptor_size;
   return result;
 }
 
@@ -686,14 +697,30 @@ r_create_buffer_impl(R_BufferInitData init, R_BufferDesc desc)
 //
 
 static D3D12_PRIMITIVE_TOPOLOGY_TYPE
-r_d3d12_topology_from_r(R_TopologyKind kind)
+r_d3d12_topology_kind_from_r(R_TopologyKind kind)
 {
   D3D12_PRIMITIVE_TOPOLOGY_TYPE result = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
 
-  switch(kind) {
+  switch (kind) {
     case R_TopologyKind_Triangle: { result = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE; }break;
     case R_TopologyKind_Line:     { result = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE; }break;
     case R_TopologyKind_Point:    { result = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT; }break;
+  }
+
+  return result;
+}
+
+static D3D12_PRIMITIVE_TOPOLOGY
+r_d3d12_topology_from_r(R_Topology topology)
+{
+  D3D12_PRIMITIVE_TOPOLOGY result = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+  switch (topology) {
+    case R_Topology_TriangleList:  { result = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST; }break;
+    case R_Topology_TriangleStrip: { result = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP; }break;
+    case R_Topology_LineList:      { result = D3D_PRIMITIVE_TOPOLOGY_LINELIST; }break;
+    case R_Topology_LineStrip:     { result = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP; }break;
+    case R_Topology_PointList:     { result = D3D_PRIMITIVE_TOPOLOGY_POINTLIST; }break;
   }
 
   return result;
@@ -970,7 +997,7 @@ r_create_pipeline_impl(R_PipelineDesc desc)
   pipe->raster        = r_d3d12_raster_from_r(&desc.raster);
   pipe->depth_stencil = r_d3d12_depthstencil_from_r(&desc.depth_stencil);
   pipe->blend         = r_d3d12_blend_from_r(&desc.blend);
-  pipe->topology_type = r_d3d12_topology_from_r(desc.topology);
+  pipe->topology_type = r_d3d12_topology_kind_from_r(desc.topology);
 
   pipe->rtv_count = desc.rt_count;
 

@@ -18,14 +18,12 @@ struct R_Scissor {
   RectS32 rect;
 };
 
-global R_Layout mesh_layout = {
-  .elements = {
-    { S8("POSITION"), 0, R_Format_R32G32B32_Float,    0,  0, R_VertexInputClass_PerVertex, 0 },
-    { S8("NORMAL"),   0, R_Format_R32G32B32_Float,    0, 12, R_VertexInputClass_PerVertex, 0 },
-    { S8("TANGENT"),  0, R_Format_R32G32B32A32_Float, 0, 32, R_VertexInputClass_PerVertex, 0 },
-    { S8("TEXCOORD"), 0, R_Format_R32G32_Float,       0, 24, R_VertexInputClass_PerVertex, 0 },
-  },
-  .elements_count = 4,
+enum R_Topology {
+  R_Topology_TriangleList,
+  R_Topology_TriangleStrip,
+  R_Topology_LineList,
+  R_Topology_LineStrip,
+  R_Topology_PointList,
 };
 
 struct R_MaterialGPU {
@@ -55,6 +53,17 @@ struct R_DrawCB {
   U32 material;
   U32 _pad[3];
 };
+
+global R_Layout mesh_layout = {
+  .elements = {
+    { S8("POSITION"), 0, R_Format_R32G32B32_Float,    0,  0, R_VertexInputClass_PerVertex, 0 },
+    { S8("NORMAL"),   0, R_Format_R32G32B32_Float,    0, 12, R_VertexInputClass_PerVertex, 0 },
+    { S8("TANGENT"),  0, R_Format_R32G32B32A32_Float, 0, 32, R_VertexInputClass_PerVertex, 0 },
+    { S8("TEXCOORD"), 0, R_Format_R32G32_Float,       0, 24, R_VertexInputClass_PerVertex, 0 },
+  },
+  .elements_count = 4,
+};
+
 
 // @Todo: Move somewhere more permanent: scene.h
 struct Camera {

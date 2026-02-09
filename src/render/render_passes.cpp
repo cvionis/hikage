@@ -14,8 +14,7 @@ struct R_ForwardPassData {
 R_PASS_EXECUTE_PROC(r_pass_execute_forward)
 {
   R_D3D12_Backend *backend = &r_ctx;
-  (void *)backend;
-  (void *)userdata;
+  R_ForwardPassData *data = (R_ForwardPassData *)userdata;
 }
 
 static void
@@ -23,7 +22,7 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
 {
   R_Pass *pass = r_frame_push_pass(ctx);
   pass->name = S8("forward");
-  pass->pipeline = ctx->pipeline_forward; // @Note: Temporary
+  pass->pipeline = ctx->pipeline_forward;
 
   // @Note: Used for rendering. Needs to match PSO desc.
   pass->color_targets[0] = ctx->forward_color;
@@ -39,6 +38,8 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
   pass->clear_flags = (R_ClearFlag_Color | R_ClearFlag_Depth);
   pass->clear_color = v4f32(0.95f,0.9f, 0.9f, 1.f);
   pass->clear_depth = 1.0f;
+
+  pass->topology = R_Topology_TriangleList;
 
   R_ForwardPassData *data = ArenaPushStruct(ctx->userdata_arena, R_ForwardPassData);
   data->assets = assets;
