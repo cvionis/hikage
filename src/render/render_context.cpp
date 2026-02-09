@@ -186,6 +186,8 @@ r_pass_begin(R_Pass *pass)
 
   B32 has_depth_target = r_texture_has_depth_stencil_view(pass->depth_target);
 
+  R_ResourceState _state = r_resource_state(pass->color_targets[0]);
+
   D3D12_CPU_DESCRIPTOR_HANDLE rtv_handles[8] = {};
   for (S32 i = 0; i < pass->color_targets_count; ++i) {
     rtv_handles[i] =
@@ -346,6 +348,7 @@ r_frame_execute(R_Context *ctx)
       backend->command_list->ResourceBarrier((UINT)compiled->pre_barriers_count, pre_barriers);
     }
 
+    // @Resume: when clearing rtv / dsv, state of texture is copy dest, not render target. Interesting.
     r_pass_begin(pass);
     pass->execute(pass->userdata);
     r_pass_end(pass);

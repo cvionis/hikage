@@ -540,19 +540,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     }
   }
 
-  D3D12_HEAP_PROPERTIES heap = {};
-  heap.Type = D3D12_HEAP_TYPE_DEFAULT;
   R_D3D12_Texture *tex = ArenaPushStruct(ctx->arena, R_D3D12_Texture);
-  HRESULT hr = ctx->device->CreateCommittedResource(
-    &heap,
-    D3D12_HEAP_FLAG_NONE,
-    &rdesc,
-    D3D12_RESOURCE_STATE_COPY_DEST,
-    clear_ptr,
-    IID_PPV_ARGS(&tex->resource)
-  );
-  Assert(SUCCEEDED(hr));
-
   tex->state = D3D12_RESOURCE_STATE_COMMON;
   switch (desc.init_state) {
     case R_TextureInitState_RenderTarget: { tex->state = D3D12_RESOURCE_STATE_RENDER_TARGET;          }break;
@@ -560,6 +548,18 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     case R_TextureInitState_CopyDest:     { tex->state = D3D12_RESOURCE_STATE_COPY_DEST;              }break;
     case R_TextureInitState_ShaderRead:   { tex->state =  D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; }break;
   }
+
+  D3D12_HEAP_PROPERTIES heap = {};
+  heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+  HRESULT hr = ctx->device->CreateCommittedResource(
+    &heap,
+    D3D12_HEAP_FLAG_NONE,
+    &rdesc,
+    tex->state,
+    clear_ptr,
+    IID_PPV_ARGS(&tex->resource)
+  );
+  Assert(SUCCEEDED(hr));
 
   if (desc.usage & R_TextureUsage_Sampled) {
     S32 srv_idx = r_alloc_texture_descriptor_idx_srv();

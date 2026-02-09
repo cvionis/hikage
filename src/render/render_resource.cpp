@@ -52,6 +52,7 @@ r_create_buffer(R_BufferInitData init, R_BufferDesc desc)
   S32 slot_idx = r_alloc_resource_slot();
   R_ResourceSlot *slot = &r_resource_table.slots[slot_idx];
 
+  // @Todo: texture view indices should be -1... why are they 0 for buffers?
   slot->gen += 1;
   slot->kind = R_ResourceKind_Buffer;
 

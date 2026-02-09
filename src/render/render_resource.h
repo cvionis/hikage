@@ -25,6 +25,7 @@ struct R_CreateResource {
 };
 
 enum R_ResourceKind {
+  R_ResourceKind_None,
   R_ResourceKind_Pipeline,
   R_ResourceKind_Texture,
   R_ResourceKind_Buffer,
@@ -34,7 +35,7 @@ struct R_ResourceSlot {
   R_ResourceKind kind;
 
   S32 gen;
-  B32 alive;
+  B32 alive; // @Todo: Make sure this is set properly.
 
   // @Note: Kind of a leaky abstraction, but it works for now.
   S32 srv_idx;
@@ -115,14 +116,7 @@ struct R_TextureInitData {
   S32 slice_pitch;
 };
 
-/* @Note:
-   Will need to enforce these:
-   * (kind == 2D) --> depth == 1
-   * (kind == Cube) --> depth = 6
-   * (kind == Cube_Array) --> depth % 6 == 0
-   * (kind == 3D) --> depth > 1
- */
-
+ // @Todo: Deprecate, replace with newer R_ResourceState wherever used.
  enum R_TextureInitState {
    R_TextureInitState_Default,
    R_TextureInitState_RenderTarget,
@@ -131,6 +125,13 @@ struct R_TextureInitData {
    R_TextureInitState_ShaderRead,
  };
 
+ /* @Note:
+    Will need to enforce these:
+    * (kind == 2D) --> depth == 1
+    * (kind == Cube) --> depth = 6
+    * (kind == Cube_Array) --> depth % 6 == 0
+    * (kind == 3D) --> depth > 1
+  */
  struct R_TextureDesc {
   S32 width;
   S32 height;
