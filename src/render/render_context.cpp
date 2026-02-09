@@ -135,6 +135,7 @@ r_pass_begin(R_Pass *pass)
 
   R_D3D12_Pipeline *pipeline = (R_D3D12_Pipeline *)r_resource_table.slots[pass->pipeline.idx].backend_rsrc; // @Note: Temporary
   backend->command_list->SetPipelineState(pipeline->pso);
+  Assert(pipeline->root_sig == backend->root_signature);
   backend->command_list->SetGraphicsRootSignature(backend->root_signature); // Use a single authoritive root signature for now
 
   // Viewport & scissor
@@ -183,7 +184,7 @@ r_pass_begin(R_Pass *pass)
 
   // Bind render targets
 
-  B32 has_depth_target = 1; // @Todo: Determine from depth target handle.
+  B32 has_depth_target = r_texture_has_depth_stencil_view(pass->depth_target);
 
   D3D12_CPU_DESCRIPTOR_HANDLE rtv_handles[8];
   for (S32 i = 0; i < pass->color_targets_count; ++i) {
@@ -221,6 +222,8 @@ r_pass_begin(R_Pass *pass)
       pass->clear_depth, 0, 0, 0
     );
   }
+
+  // @Todo: Process barriers produced in r_frame_compile().
 
   // Input assembler
 
@@ -269,15 +272,50 @@ r_frame_push_pass(R_Context *ctx)
 static void
 r_frame_compile(R_Context *ctx)
 {
-  // @Todo: Create barriers
   for (S32 pass_idx = 0; pass_idx < ctx->passes_count; pass_idx += 1) {
     R_Pass *pass = &ctx->passes[pass_idx];
 
     R_CompiledPass *compiled = &ctx->compiled_passes[ctx->compiled_passes_count];
     ctx->compiled_passes_count += 1;
 
+    for (S32 ct_idx = 0; ct_idx < pass->color_targets_count; ct_idx += 1) {
+      R_Handle color_target = pass->color_targets[ct_idx];
+
+      R_TransitionBarrier *pre = &compiled->pre_barriers[compiled->barriers_count];
+      pre->rsrc = color_target;
+      pre->state_before = r_resource_state(color_target);
+      pre->state_after = R_ResourceState_RenderTarget;
+
+      R_TransitionBarrier *post = &compiled->post_barriers[compiled->barriers_count];
+      post->rsrc = color_target;
+      post->state_before = R_ResourceState_RenderTarget;
+      post->state_after = pass->color_final_state;
+
+      compiled->barriers_count += 1;
+
+      // @Todo: Read resources transitions
+      // @Todo: Depth state transition (when needed)
+    }
+
     compiled->pass = pass;
-    compiled->barriers_count = 0;
+  }
+}
+
+static void
+r_d3d12_barriers_from_r(D3D12_RESOURCE_BARRIER *dst, R_TransitionBarrier *src, S32 count)
+{
+  for (S32 idx = 0; idx < count; idx += 1) {
+    R_TransitionBarrier *src_barrier = &src[idx];
+    ID3D12Resource *d3d12_rsrc = r_d3d12_rsrc(src_barrier->rsrc);
+
+    D3D12_RESOURCE_BARRIER *b = &dst[idx];
+    b->Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    b->Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+
+    b->Transition.pResource = d3d12_rsrc;
+    b->Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    b->Transition.StateBefore = r_d3d12_state_from_r_state(src_barrier->state_before);
+    b->Transition.StateAfter = r_d3d12_state_from_r_state(src_barrier->state_after);
   }
 }
 
@@ -285,15 +323,31 @@ r_frame_compile(R_Context *ctx)
 static void
 r_frame_execute(R_Context *ctx)
 {
+  R_D3D12_Backend *backend = &r_ctx;
+  TempArena tmp = arena_scratch_begin(0,0);
+
   for (S32 compiled_idx = 0; compiled_idx < ctx->compiled_passes_count; compiled_idx += 1) {
-    // @Todo: Issue barriers
     R_CompiledPass *compiled = &ctx->compiled_passes[compiled_idx];
     R_Pass *pass = compiled->pass;
+
+    if (compiled->barriers_count) {
+      D3D12_RESOURCE_BARRIER pre_barriers[16] = {};
+      r_d3d12_barriers_from_r(pre_barriers, compiled->pre_barriers, compiled->barriers_count);
+      backend->command_list->ResourceBarrier((UINT)compiled->barriers_count, pre_barriers);
+    }
 
     r_pass_begin(pass);
     pass->execute(pass->userdata);
     r_pass_end(pass);
+
+    if (compiled->barriers_count) {
+      D3D12_RESOURCE_BARRIER post_barriers[16] = {};
+      r_d3d12_barriers_from_r(post_barriers, compiled->post_barriers, compiled->barriers_count);
+      backend->command_list->ResourceBarrier((UINT)compiled->barriers_count, post_barriers);
+    }
   }
+
+  arena_scratch_end(tmp);
 }
 
 static void r_d3d12_wait_for_previous_frame(void);

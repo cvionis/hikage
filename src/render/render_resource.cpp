@@ -1,3 +1,18 @@
+static B32
+r_texture_valid(R_Handle handle)
+{
+  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
+  B32 valid = (slot->srv_idx >= 0 && slot->rtv_idx >= 0 && slot->dsv_idx >= 0);
+  return valid;
+}
+
+static B32
+r_texture_has_depth_stencil_view(R_Handle handle)
+{
+  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
+  return (slot->dsv_idx >= 0);
+}
+
 static S32
 r_alloc_resource_slot(void)
 {

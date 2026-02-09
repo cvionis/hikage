@@ -1,5 +1,24 @@
 #pragma once
 
+// @Todo: Move
+enum R_ResourceState {
+  R_ResourceState_Invalid,
+
+  R_ResourceState_Common,
+
+  R_ResourceState_RenderTarget,
+  R_ResourceState_DepthWrite,
+  R_ResourceState_DepthRead,
+
+  R_ResourceState_ShaderRead,
+  R_ResourceState_ShaderReadWrite,
+
+  R_ResourceState_CopySrc,
+  R_ResourceState_CopyDst,
+
+  R_ResourceState_Present,
+};
+
 // Render passes
 
 typedef void R_PassExecuteProc(void *userdata);
@@ -14,7 +33,10 @@ struct R_Pass {
   S32 color_targets_count;
   R_Handle depth_target;
 
-  // Resource dependencies
+  R_ResourceState color_final_state; // @Note: All color targets share the same final state for now (covers most cases).
+  R_ResourceState depth_final_state; // @Todo: Actually use this (when needed; e.g. shadow pass)
+
+  // Resource dependencies (@Todo: handle passes reading from outputs of previous passes)
   R_Handle read_resources[16];
   S32 read_count;
   R_Handle write_resources[16];
@@ -34,9 +56,17 @@ struct R_Pass {
   R_PassExecuteProc *execute;
 };
 
+struct R_TransitionBarrier {
+  R_Handle rsrc;
+  R_ResourceState state_before;
+  R_ResourceState state_after;
+};
+
 struct R_CompiledPass {
   R_Pass *pass;
-  R_Handle barriers[16];
+  // @Note: Not worrying about transitioning depth yet
+  R_TransitionBarrier pre_barriers[16];
+  R_TransitionBarrier post_barriers[16];
   S32 barriers_count;
 };
 

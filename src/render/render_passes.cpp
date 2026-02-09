@@ -15,6 +15,56 @@ R_PASS_EXECUTE_PROC(r_pass_execute_forward)
 {
   R_D3D12_Backend *backend = &r_ctx;
   R_ForwardPassData *data = (R_ForwardPassData *)userdata;
+
+  AssetContext *assets = (AssetContext *)data->assets;
+  ModelInstance *models = (ModelInstance *)data->models;
+  S32 models_count = data->models_count;
+  Camera camera = data->camera;
+
+  // Draw models
+  for (S32 model_idx = 0; model_idx < models_count; model_idx += 1) {
+    ModelInstance *m = &models[model_idx];
+    Model *model = assets_get_model(assets, m->model);
+
+    // @Todo: rotation
+    Mat4x4 tr = translation_m4x4(m->position);
+    Mat4x4 sc = scale_m4x4(m->scale);
+    Mat4x4 mmat = m4x4_mul(sc, tr);
+
+    Mat4x4 inv = m4x4_inverse(mmat);
+    Mat4x4 normal = m4x4_transpose(inv);
+
+    auto vertex_buffer_view = r_d3d12_vertex_buffer_view_from_buffer(model->vertex_buffer);
+    auto index_buffer_view = r_d3d12_index_buffer_view_from_buffer(model->index_buffer);
+    backend->command_list->IASetVertexBuffers(0, 1, &vertex_buffer_view);
+    backend->command_list->IASetIndexBuffer(&index_buffer_view);
+
+    for (S32 mesh_idx = 0; mesh_idx < model->meshes_count; mesh_idx += 1) {
+      Mesh *mesh = &model->meshes[mesh_idx];
+
+      R_DrawCB draw_cb_data = {
+        .model  = mmat,
+        .normal = normal,
+        .material = (U32)mesh->material,
+      };
+
+      U32 slot = backend->draw_cb_write_idx;
+      backend->draw_cb_write_idx += 1;
+      backend->draw_cb_write_idx = Min(backend->draw_cb_write_idx, backend->draw_cb_capacity);
+
+      U64 offset = (U64)slot * (U64)backend->draw_cb_stride;
+      U8 *dst = backend->draw_cb_buffer_mapped + offset;
+      MemoryCopy(dst, &draw_cb_data, sizeof(draw_cb_data));
+
+      D3D12_GPU_VIRTUAL_ADDRESS gpu_addr = backend->draw_cb_buffer->GetGPUVirtualAddress() + offset;
+      backend->command_list->SetGraphicsRootConstantBufferView(1, gpu_addr);
+
+      S32 index_off = mesh->ib_off;
+      S32 index_count = mesh->ib_count;
+
+      backend->command_list->DrawIndexedInstanced(index_count, 1, index_off, mesh->vb_off, 0);
+    }
+  }
 }
 
 static void
@@ -31,6 +81,9 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
   // @Note: Used for barrier generation.
   pass->write_resources[0] = ctx->forward_color;
   pass->write_count = 1;
+
+  pass->color_final_state = R_ResourceState_Present;
+  // @Note: Don't care about depth state transitions yet;
 
   pass->viewport = ctx->default_viewport;
   pass->scissor = ctx->default_scissor;

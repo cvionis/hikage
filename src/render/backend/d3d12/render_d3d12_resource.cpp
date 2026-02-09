@@ -47,6 +47,110 @@ struct R_D3D12_Buffer {
   S64 size;
 };
 
+static D3D12_RESOURCE_STATES
+r_d3d12_state_from_r_state(R_ResourceState state)
+{
+  D3D12_RESOURCE_STATES result = D3D12_RESOURCE_STATE_COMMON;
+
+  switch(state) {
+    case R_ResourceState_Invalid:         { result = D3D12_RESOURCE_STATE_COMMON; } break;
+    case R_ResourceState_Common:          { result = D3D12_RESOURCE_STATE_COMMON; } break;
+    case R_ResourceState_RenderTarget:    { result = D3D12_RESOURCE_STATE_RENDER_TARGET; } break;
+    case R_ResourceState_DepthWrite:      { result = D3D12_RESOURCE_STATE_DEPTH_WRITE; } break;
+    case R_ResourceState_DepthRead:       { result = D3D12_RESOURCE_STATE_DEPTH_READ; } break;
+    case R_ResourceState_ShaderRead:{
+      result = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+    } break;
+    case R_ResourceState_ShaderReadWrite: { result = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; } break;
+    case R_ResourceState_CopySrc:         { result = D3D12_RESOURCE_STATE_COPY_SOURCE; } break;
+    case R_ResourceState_CopyDst:         { result = D3D12_RESOURCE_STATE_COPY_DEST; } break;
+    case R_ResourceState_Present:         { result = D3D12_RESOURCE_STATE_PRESENT; } break;
+  }
+
+  return result;
+}
+
+static R_ResourceState
+r_state_from_d3d12_state(D3D12_RESOURCE_STATES state)
+{
+  R_ResourceState result = R_ResourceState_Invalid;
+
+  if (state & D3D12_RESOURCE_STATE_PRESENT) {
+    result = R_ResourceState_Present;
+  }
+  else if (state & D3D12_RESOURCE_STATE_RENDER_TARGET) {
+    result = R_ResourceState_RenderTarget;
+  }
+  else if (state & D3D12_RESOURCE_STATE_DEPTH_WRITE) {
+    result = R_ResourceState_DepthWrite;
+  }
+  else if (state & D3D12_RESOURCE_STATE_DEPTH_READ) {
+    result = R_ResourceState_DepthRead;
+  }
+  else if (state & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
+    result = R_ResourceState_ShaderReadWrite;
+  }
+  else if (
+    state & (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
+      D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) {
+    result = R_ResourceState_ShaderRead;
+  }
+  else if (state & D3D12_RESOURCE_STATE_COPY_SOURCE) {
+    result = R_ResourceState_CopySrc;
+  }
+  else if (state & D3D12_RESOURCE_STATE_COPY_DEST) {
+    result = R_ResourceState_CopyDst;
+  }
+  else if (state & D3D12_RESOURCE_STATE_COMMON) {
+    result = R_ResourceState_Common;
+  }
+
+  return result;
+}
+
+static ID3D12Resource *
+r_d3d12_rsrc(R_Handle handle)
+{
+  ID3D12Resource *result = 0;
+
+  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
+  switch (slot->kind) {
+    case R_ResourceKind_Texture: {
+      R_D3D12_Texture *rsrc = (R_D3D12_Texture *)slot->backend_rsrc;
+      result = rsrc->resource;
+    }break;
+    case R_ResourceKind_Buffer: {
+      R_D3D12_Buffer *rsrc = (R_D3D12_Buffer *)slot->backend_rsrc;
+      result = rsrc->resource;
+    }break;
+  }
+
+  return result;
+}
+
+static R_ResourceState
+r_resource_state(R_Handle handle)
+{
+  R_ResourceState result = R_ResourceState_Invalid;
+
+  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
+  switch (slot->kind) {
+    case R_ResourceKind_Texture: {
+      R_D3D12_Texture *rsrc = (R_D3D12_Texture *)slot->backend_rsrc;
+      D3D12_RESOURCE_STATES d3d12_state = rsrc->state;
+      result = r_state_from_d3d12_state(d3d12_state);
+    }break;
+    case R_ResourceKind_Buffer: {
+      R_D3D12_Buffer *rsrc = (R_D3D12_Buffer *)slot->backend_rsrc;
+      D3D12_RESOURCE_STATES d3d12_state = rsrc->state;
+      result = r_state_from_d3d12_state(d3d12_state);
+    }break;
+  }
+
+  return result;
+}
+
 //
 // Textures
 //
