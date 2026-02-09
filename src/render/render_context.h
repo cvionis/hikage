@@ -65,9 +65,10 @@ struct R_TransitionBarrier {
 struct R_CompiledPass {
   R_Pass *pass;
   // @Note: Not worrying about transitioning depth yet
+  S32 pre_barriers_count;
   R_TransitionBarrier pre_barriers[16];
+  S32 post_barriers_count;
   R_TransitionBarrier post_barriers[16];
-  S32 barriers_count;
 };
 
 static void r_pass_begin(R_Pass *pass);

@@ -505,7 +505,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   rdesc.Width = desc.width;
   rdesc.Height = desc.height;
   rdesc.DepthOrArraySize = 1;
-  rdesc.MipLevels = (U16)init_count; //(U16)desc.mips_count;
+  rdesc.MipLevels = (U16)desc.mips_count;
   rdesc.Format = dxgi_fmt;
   rdesc.SampleDesc.Count = 1;
   rdesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
@@ -522,33 +522,10 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   }
   rdesc.Flags = flags;
 
-  D3D12_HEAP_PROPERTIES heap = {};
-  heap.Type = D3D12_HEAP_TYPE_DEFAULT;
-  R_D3D12_Texture *tex = ArenaPushStruct(ctx->arena, R_D3D12_Texture);
-  HRESULT hr = ctx->device->CreateCommittedResource(
-    &heap,
-    D3D12_HEAP_FLAG_NONE,
-    &rdesc,
-    D3D12_RESOURCE_STATE_COPY_DEST,
-    0,
-    IID_PPV_ARGS(&tex->resource)
-  );
-  Assert(SUCCEEDED(hr));
-
-  tex->state = D3D12_RESOURCE_STATE_COMMON;
-  switch (desc.init_state) {
-    case R_TextureInitState_RenderTarget: { tex->state = D3D12_RESOURCE_STATE_RENDER_TARGET;          }break;
-    case R_TextureInitState_DepthWrite:   { tex->state = D3D12_RESOURCE_STATE_DEPTH_WRITE;            }break;
-    case R_TextureInitState_CopyDest:     { tex->state = D3D12_RESOURCE_STATE_COPY_DEST;              }break;
-    case R_TextureInitState_ShaderRead:   { tex->state =  D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; }break;
-  }
-
   D3D12_CLEAR_VALUE clear_value = {};
   D3D12_CLEAR_VALUE *clear_ptr = 0;
-
   if (desc.has_clear_value) {
     clear_value.Format = dxgi_fmt;
-
     if (desc.usage & R_TextureUsage_RenderTarget) {
       clear_value.Color[0] = desc.clear_color.r;
       clear_value.Color[1] = desc.clear_color.g;
@@ -563,9 +540,30 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     }
   }
 
+  D3D12_HEAP_PROPERTIES heap = {};
+  heap.Type = D3D12_HEAP_TYPE_DEFAULT;
+  R_D3D12_Texture *tex = ArenaPushStruct(ctx->arena, R_D3D12_Texture);
+  HRESULT hr = ctx->device->CreateCommittedResource(
+    &heap,
+    D3D12_HEAP_FLAG_NONE,
+    &rdesc,
+    D3D12_RESOURCE_STATE_COPY_DEST,
+    clear_ptr,
+    IID_PPV_ARGS(&tex->resource)
+  );
+  Assert(SUCCEEDED(hr));
+
+  tex->state = D3D12_RESOURCE_STATE_COMMON;
+  switch (desc.init_state) {
+    case R_TextureInitState_RenderTarget: { tex->state = D3D12_RESOURCE_STATE_RENDER_TARGET;          }break;
+    case R_TextureInitState_DepthWrite:   { tex->state = D3D12_RESOURCE_STATE_DEPTH_WRITE;            }break;
+    case R_TextureInitState_CopyDest:     { tex->state = D3D12_RESOURCE_STATE_COPY_DEST;              }break;
+    case R_TextureInitState_ShaderRead:   { tex->state =  D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; }break;
+  }
+
   if (desc.usage & R_TextureUsage_Sampled) {
     S32 srv_idx = r_alloc_texture_descriptor_idx_srv();
-    r_d3d12_write_srv(tex->resource, dxgi_fmt, init_count, srv_idx);
+    r_d3d12_write_srv(tex->resource, dxgi_fmt, desc.mips_count, srv_idx);
     result.srv_idx = srv_idx;
   }
   if (desc.usage & R_TextureUsage_RenderTarget) {

@@ -186,7 +186,7 @@ r_pass_begin(R_Pass *pass)
 
   B32 has_depth_target = r_texture_has_depth_stencil_view(pass->depth_target);
 
-  D3D12_CPU_DESCRIPTOR_HANDLE rtv_handles[8];
+  D3D12_CPU_DESCRIPTOR_HANDLE rtv_handles[8] = {};
   for (S32 i = 0; i < pass->color_targets_count; ++i) {
     rtv_handles[i] =
       r_d3d12_rtv_from_texture(pass->color_targets[i]);
@@ -281,19 +281,29 @@ r_frame_compile(R_Context *ctx)
     for (S32 ct_idx = 0; ct_idx < pass->color_targets_count; ct_idx += 1) {
       R_Handle color_target = pass->color_targets[ct_idx];
 
-      R_TransitionBarrier *pre = &compiled->pre_barriers[compiled->barriers_count];
-      pre->rsrc = color_target;
-      pre->state_before = r_resource_state(color_target);
-      pre->state_after = R_ResourceState_RenderTarget;
+      R_ResourceState state_pre = r_resource_state(color_target);
+      R_ResourceState state_mid = R_ResourceState_RenderTarget;
+      R_ResourceState state_post = pass->color_final_state;
 
-      R_TransitionBarrier *post = &compiled->post_barriers[compiled->barriers_count];
-      post->rsrc = color_target;
-      post->state_before = R_ResourceState_RenderTarget;
-      post->state_after = pass->color_final_state;
+      if (state_pre != state_mid) {
+        R_TransitionBarrier *pre = &compiled->pre_barriers[compiled->pre_barriers_count];
+        compiled->pre_barriers_count += 1;
 
-      compiled->barriers_count += 1;
+        pre->rsrc = color_target;
+        pre->state_before = state_pre;
+        pre->state_after = state_mid;
+      }
 
-      // @Todo: Read resources transitions
+      if (state_mid != state_post) {
+        R_TransitionBarrier *post = &compiled->post_barriers[compiled->post_barriers_count];
+        compiled->post_barriers_count += 1;
+
+        post->rsrc = color_target;
+        post->state_before = state_mid;
+        post->state_after = state_post;
+      }
+
+      // @Todo: Read-resources transitions
       // @Todo: Depth state transition (when needed)
     }
 
@@ -330,20 +340,20 @@ r_frame_execute(R_Context *ctx)
     R_CompiledPass *compiled = &ctx->compiled_passes[compiled_idx];
     R_Pass *pass = compiled->pass;
 
-    if (compiled->barriers_count) {
+    if (compiled->pre_barriers_count) {
       D3D12_RESOURCE_BARRIER pre_barriers[16] = {};
-      r_d3d12_barriers_from_r(pre_barriers, compiled->pre_barriers, compiled->barriers_count);
-      backend->command_list->ResourceBarrier((UINT)compiled->barriers_count, pre_barriers);
+      r_d3d12_barriers_from_r(pre_barriers, compiled->pre_barriers, compiled->pre_barriers_count);
+      backend->command_list->ResourceBarrier((UINT)compiled->pre_barriers_count, pre_barriers);
     }
 
     r_pass_begin(pass);
     pass->execute(pass->userdata);
     r_pass_end(pass);
 
-    if (compiled->barriers_count) {
+    if (compiled->post_barriers_count) {
       D3D12_RESOURCE_BARRIER post_barriers[16] = {};
-      r_d3d12_barriers_from_r(post_barriers, compiled->post_barriers, compiled->barriers_count);
-      backend->command_list->ResourceBarrier((UINT)compiled->barriers_count, post_barriers);
+      r_d3d12_barriers_from_r(post_barriers, compiled->post_barriers, compiled->post_barriers_count);
+      backend->command_list->ResourceBarrier((UINT)compiled->post_barriers_count, post_barriers);
     }
   }
 
