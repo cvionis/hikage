@@ -531,6 +531,8 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     }
   }
 
+  // @Todo: This is more like "initial state". Just stop storing this in the backend resource struct; I store it and update it
+  // in resource slot now.
   R_D3D12_Texture *tex = ArenaPushStruct(ctx->arena, R_D3D12_Texture);
   tex->state = D3D12_RESOURCE_STATE_COMMON;
   switch (desc.init_state) {

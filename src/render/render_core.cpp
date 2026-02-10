@@ -214,26 +214,26 @@ r_init(OS_Handle window)
       ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
   }
 
-  // @Resume
-
-  // Create a backbuffer for each frame
+  // Create a backbuffer texture for each frame
   for (S32 frame_idx = 0; frame_idx < R_FRAME_COUNT; frame_idx += 1) {
-    ID3D12Resource *rsrc = ctx->render_targets[frame_idx];
-    ctx->swapchain->GetBuffer(frame_idx, IID_PPV_ARGS(&rsrc));
+    ctx->swapchain->GetBuffer(frame_idx, IID_PPV_ARGS(&ctx->render_targets[frame_idx]));
 
     S32 descriptor_idx = r_alloc_texture_descriptor_idx_rtv();
-
     D3D12_CPU_DESCRIPTOR_HANDLE handle =
-      ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart();
+    ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart();
     handle.ptr += (SIZE_T)descriptor_idx * ctx->rtv_descriptor_size;
-    ctx->device->CreateRenderTargetView(rsrc, 0, handle);
+    ctx->device->CreateRenderTargetView(ctx->render_targets[frame_idx], 0, handle);
+
+    R_D3D12_Texture *tex = ArenaPushStruct(ctx->arena, R_D3D12_Texture);
+    tex->resource = ctx->render_targets[frame_idx];
 
     R_ResourceSlot *slot = &r_resource_table.slots[frame_idx];
     slot->kind = R_ResourceKind_Texture;
     slot->rtv_idx = descriptor_idx;
     slot->alive = 1;
     slot->state = R_ResourceState_Present;
-    // @Todo: Not sure if this is necessary for back buffer textures: slot->backend_rsrc = ...;
+    slot->backend_rsrc = (void *)tex;
+    r_resource_table.count += 1;
   }
 
   // Create a command allocator for each frame
@@ -244,101 +244,6 @@ r_init(OS_Handle window)
     );
     Assert(SUCCEEDED(hr));
   }
-
-  #if 0
-  // Back buffers and command allocators
-  {
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart());
-    for (UINT n = 0; n < R_D3D12_FRAME_COUNT; n += 1) {
-      hr = ctx->swapchain->GetBuffer(n, IID_PPV_ARGS(&ctx->render_targets[n]));
-      Assert(SUCCEEDED(hr));
-      ctx->device->CreateRenderTargetView(ctx->render_targets[n], 0, rtv_handle);
-      rtv_handle.Offset(1, ctx->rtv_descriptor_size);
-
-      hr = ctx->device->CreateCommandAllocator(
-        D3D12_COMMAND_LIST_TYPE_DIRECT,
-        IID_PPV_ARGS(&ctx->command_allocators[n])
-      );
-      Assert(SUCCEEDED(hr));
-    }
-  }
-  #endif
-
-  #if 0
-  // @Todo: Use texture creation API (this will also use correct rtv heap idx)
-  // Color buffer
-  {
-    D3D12_RESOURCE_DESC color_desc = {};
-    color_desc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
-    color_desc.Alignment = 0;
-    color_desc.Width = ctx->width;
-    color_desc.Height = ctx->height;
-    color_desc.DepthOrArraySize = 1;
-    color_desc.MipLevels = 1;
-    color_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    color_desc.SampleDesc.Count = 1;
-    color_desc.SampleDesc.Quality = 0;
-    color_desc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-    color_desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
-
-    D3D12_CLEAR_VALUE clear_value = {};
-    clear_value.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    clear_value.Color[0] = 0.95f;
-    clear_value.Color[1] = 0.9f;
-    clear_value.Color[2] = 0.9f;
-    clear_value.Color[3] = 1.0f;
-
-    CD3DX12_HEAP_PROPERTIES heap_props(D3D12_HEAP_TYPE_DEFAULT);
-    hr = ctx->device->CreateCommittedResource(
-      &heap_props,
-      D3D12_HEAP_FLAG_NONE,
-      &color_desc,
-      D3D12_RESOURCE_STATE_RENDER_TARGET,
-      &clear_value,
-      IID_PPV_ARGS(&ctx->color_buffer)
-    );
-    Assert(SUCCEEDED(hr));
-
-    CD3DX12_CPU_DESCRIPTOR_HANDLE rtv(
-      ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart(),
-      R_D3D12_FRAME_COUNT,
-      ctx->rtv_descriptor_size
-    );
-
-    D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
-    rtv_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-    rtv_desc.Texture2D.MipSlice = 0;
-    rtv_desc.Texture2D.PlaneSlice = 0;
-
-    ctx->device->CreateRenderTargetView(ctx->color_buffer, &rtv_desc, rtv);
-  }
-
-  // @Todo: Use texture creation API (this will also use correct dsv heap idx)
-  // Depth buffer
-  {
-    CD3DX12_RESOURCE_DESC depth_desc =
-      CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_D32_FLOAT, ctx->width, ctx->height, 1, 1,
-        1, 0, D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL);
-
-    D3D12_CLEAR_VALUE depth_clear = {};
-    depth_clear.Format = DXGI_FORMAT_D32_FLOAT;
-    depth_clear.DepthStencil.Depth = 1.0f;
-
-    CD3DX12_HEAP_PROPERTIES heap_props(D3D12_HEAP_TYPE_DEFAULT);
-    hr = ctx->device->CreateCommittedResource(
-      &heap_props, D3D12_HEAP_FLAG_NONE, &depth_desc,
-      D3D12_RESOURCE_STATE_DEPTH_WRITE, &depth_clear,
-      IID_PPV_ARGS(&ctx->depth_buffer)
-    );
-    Assert(SUCCEEDED(hr));
-
-    ctx->device->CreateDepthStencilView(
-      ctx->depth_buffer, 0,
-      ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart()
-    );
-  }
-  #endif
 
   // Unified shader-visible heap: [frame CBVs] + [bindless textures]
   {

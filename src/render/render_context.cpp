@@ -25,11 +25,12 @@ r_ctx_make(S32 screen_w, S32 screen_h)
   return result;
 }
 
+// @Todo: Move
 static R_Handle
 r_current_back_buffer(void)
 {
   R_Handle result = {};
-  // @Note: Assuming that [0, frame_idx-1] of resource table consists of the back buffer textures.
+  // @Note: Assumes that [0, frame_idx-1] of resource table consists of the back buffer textures.
   result.idx = r_ctx.frame_idx;
   return result;
 }
