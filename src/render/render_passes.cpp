@@ -75,11 +75,12 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
   pass->pipeline = ctx->pipeline_forward;
 
   // @Note: Used for rendering. Needs to match PSO desc.
-  pass->color_targets[0] = ctx->forward_color;
+  R_Handle col_target = r_current_back_buffer();
+  pass->color_targets[0] = col_target;
   pass->color_targets_count = 1;
-  pass->depth_target = ctx->forward_depth;
+  pass->depth_target = ctx->final_depth;
   // @Note: Used for barrier generation.
-  pass->write_resources[0] = ctx->forward_color;
+  pass->write_resources[0] = col_target;
   pass->write_count = 1;
 
   pass->color_final_state = R_ResourceState_Present;

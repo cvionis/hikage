@@ -109,6 +109,9 @@ entry_point(void)
       }
     }
 
+
+    // @Resume: Check D3D12 output
+
     r_frame_begin(&renderer);
 
     r_pass_add_forward(&renderer, &assets, models, models_count, camera);

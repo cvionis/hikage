@@ -214,6 +214,38 @@ r_init(OS_Handle window)
       ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
   }
 
+  // @Resume
+
+  // Create a backbuffer for each frame
+  for (S32 frame_idx = 0; frame_idx < R_FRAME_COUNT; frame_idx += 1) {
+    ID3D12Resource *rsrc = ctx->render_targets[frame_idx];
+    ctx->swapchain->GetBuffer(frame_idx, IID_PPV_ARGS(&rsrc));
+
+    S32 descriptor_idx = r_alloc_texture_descriptor_idx_rtv();
+
+    D3D12_CPU_DESCRIPTOR_HANDLE handle =
+      ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart();
+    handle.ptr += (SIZE_T)descriptor_idx * ctx->rtv_descriptor_size;
+    ctx->device->CreateRenderTargetView(rsrc, 0, handle);
+
+    R_ResourceSlot *slot = &r_resource_table.slots[frame_idx];
+    slot->kind = R_ResourceKind_Texture;
+    slot->rtv_idx = descriptor_idx;
+    slot->alive = 1;
+    slot->state = R_ResourceState_Present;
+    // @Todo: Not sure if this is necessary for back buffer textures: slot->backend_rsrc = ...;
+  }
+
+  // Create a command allocator for each frame
+  for (S32 frame_idx = 0; frame_idx < R_FRAME_COUNT; frame_idx += 1) {
+    hr = ctx->device->CreateCommandAllocator(
+      D3D12_COMMAND_LIST_TYPE_DIRECT,
+      IID_PPV_ARGS(&ctx->command_allocators[frame_idx])
+    );
+    Assert(SUCCEEDED(hr));
+  }
+
+  #if 0
   // Back buffers and command allocators
   {
     CD3DX12_CPU_DESCRIPTOR_HANDLE rtv_handle(ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart());
@@ -230,7 +262,9 @@ r_init(OS_Handle window)
       Assert(SUCCEEDED(hr));
     }
   }
+  #endif
 
+  #if 0
   // @Todo: Use texture creation API (this will also use correct rtv heap idx)
   // Color buffer
   {
@@ -304,6 +338,7 @@ r_init(OS_Handle window)
       ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart()
     );
   }
+  #endif
 
   // Unified shader-visible heap: [frame CBVs] + [bindless textures]
   {
@@ -472,6 +507,7 @@ r_init(OS_Handle window)
     if (err_blob) err_blob->Release();
   }
 
+  #if 0
   // Compile shaders
   ID3DBlob *vs_blob = 0;
   ID3DBlob *ps_blob = 0;
@@ -532,6 +568,7 @@ r_init(OS_Handle window)
   Assert(SUCCEEDED(hr));
   vs_blob->Release();
   ps_blob->Release();
+  #endif
 
   // Main command list
   hr = ctx->device->CreateCommandList(

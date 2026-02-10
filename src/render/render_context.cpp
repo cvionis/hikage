@@ -25,6 +25,15 @@ r_ctx_make(S32 screen_w, S32 screen_h)
   return result;
 }
 
+static R_Handle
+r_current_back_buffer(void)
+{
+  R_Handle result = {};
+  // @Note: Assuming that [0, frame_idx-1] of resource table consists of the back buffer textures.
+  result.idx = r_ctx.frame_idx;
+  return result;
+}
+
 static void
 r_ctx_init_resources(R_Context *ctx)
 {
@@ -73,22 +82,7 @@ r_ctx_init_resources(R_Context *ctx)
   // Textures
   //
 
-  // @Resume: Test these
-
-  R_TextureDesc color_desc = {
-    .width  = ctx->width,
-    .height = ctx->height,
-    .depth  = 1,
-    .mips_count = 1,
-    .fmt    = R_Format_R8G8B8A8_UNorm,
-    .usage  = R_TextureUsage_RenderTarget | R_TextureUsage_Sampled,
-    .kind   = R_TextureKind_2D,
-
-    .init_state = R_TextureInitState_RenderTarget,
-
-    .has_clear_value = 1,
-    .clear_color = { 0.95f, 0.9f, 0.9f, 1.0f },
-  };
+  // Depth
 
   R_TextureDesc depth_desc = {
     .width  = ctx->width,
@@ -107,9 +101,7 @@ r_ctx_init_resources(R_Context *ctx)
       .stencil = 0,
     },
   };
-
-  ctx->forward_color = r_create_texture(0, 0, color_desc);
-  ctx->forward_depth = r_create_texture(0, 0, depth_desc);
+  ctx->final_depth = r_create_texture(0, 0, depth_desc);
 }
 
 static void
@@ -185,8 +177,6 @@ r_pass_begin(R_Pass *pass)
   // Bind render targets
 
   B32 has_depth_target = r_texture_has_depth_stencil_view(pass->depth_target);
-
-  R_ResourceState _state = r_resource_state(pass->color_targets[0]);
 
   D3D12_CPU_DESCRIPTOR_HANDLE rtv_handles[8] = {};
   for (S32 i = 0; i < pass->color_targets_count; ++i) {

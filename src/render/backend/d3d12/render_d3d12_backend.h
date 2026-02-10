@@ -38,6 +38,7 @@ struct R_D3D12_Backend {
   IDXGISwapChain3 *swapchain;
   ID3D12Device *device;
 
+  // @Todo: Rename -> back buffers
   ID3D12Resource *render_targets[R_D3D12_FRAME_COUNT];
 
   ID3D12PipelineState *pipeline_state;

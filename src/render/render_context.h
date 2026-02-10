@@ -1,5 +1,7 @@
 #pragma once
 
+#define R_FRAME_COUNT 2
+
 // Render passes
 
 typedef void R_PassExecuteProc(void *userdata);
@@ -62,9 +64,8 @@ struct R_Context {
   R_Handle pipeline_forward;
 
   // Persistent resources: textures
-  // @Note: Placeholders
-  R_Handle forward_color;
-  R_Handle forward_depth;
+  R_Handle backbuffers[R_FRAME_COUNT];
+  R_Handle final_depth;
 
   // Defaults
   R_Viewport default_viewport;
