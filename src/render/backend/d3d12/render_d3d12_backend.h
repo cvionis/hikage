@@ -41,32 +41,16 @@ struct R_D3D12_Backend {
   // @Todo: Rename -> back buffers
   ID3D12Resource *render_targets[R_D3D12_FRAME_COUNT];
 
-  ID3D12PipelineState *pipeline_state;
-
   ID3D12CommandAllocator *command_allocators[R_D3D12_FRAME_COUNT];
   ID3D12CommandQueue *command_queue; // @Todo: Rename gfx or draw queue or something to differentiate from upload/copy queue
   ID3D12GraphicsCommandList *command_list;
   ID3D12RootSignature *root_signature;
-
-  // Depth/stencil buffers
-  ID3D12Resource *depth_buffer;
-
-  // Color buffer
-  ID3D12Resource *color_buffer;
-
-  // Cached for shader reload
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc;
-  D3D12_INPUT_ELEMENT_DESC input_desc[4];
 
   // Frame synchronization
   U32 frame_idx;
   HANDLE fence_event;
   ID3D12Fence *fence;
   U64 fence_values[R_D3D12_FRAME_COUNT];
-
-  //                                         //
-  // ============ NEW STUFF ================ //
-  //                                         //
 
   ID3D12Resource *material_buffer;
   U32 material_srv_idx; // @Todo: Remove. Redundant. Use #define you already have.

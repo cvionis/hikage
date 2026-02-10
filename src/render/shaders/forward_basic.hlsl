@@ -158,7 +158,6 @@ float4 ps_main(PS_Input input) : SV_TARGET
   if (mtl.flags & MaterialFlag_Occlusion) {
     occlusion = g_textures[NU(mtl.tex_occlusion)].Sample(g_sampler, uv).r;
   }
-
   float3 lig = float3(0.9, 0.2, 0.4);
 
   float3 N = normalize(normal_ws);
