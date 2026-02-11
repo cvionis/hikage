@@ -57,6 +57,7 @@ r_upload_materials(R_MaterialGPU *materials, S32 materials_count)
   ctx->command_queue->Signal(ctx->copy_fence, ctx->copy_fence_value);
 
   // @Todo: Release upload buffer
+   //ctx->command_queue->Wait(ctx->copy_fence, ctx->copy_fence_value);
 }
 
 static void
@@ -220,7 +221,7 @@ r_init(OS_Handle window)
 
     S32 descriptor_idx = r_alloc_texture_descriptor_idx_rtv();
     D3D12_CPU_DESCRIPTOR_HANDLE handle =
-    ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart();
+      ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart();
     handle.ptr += (SIZE_T)descriptor_idx * ctx->rtv_descriptor_size;
     ctx->device->CreateRenderTargetView(ctx->render_targets[frame_idx], 0, handle);
 
@@ -229,6 +230,8 @@ r_init(OS_Handle window)
 
     R_ResourceSlot *slot = &r_resource_table.slots[frame_idx];
     slot->kind = R_ResourceKind_Texture;
+    slot->srv_idx = -1;
+    slot->dsv_idx = -1;
     slot->rtv_idx = descriptor_idx;
     slot->alive = 1;
     slot->state = R_ResourceState_Present;

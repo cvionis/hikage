@@ -46,7 +46,7 @@ r_ctx_init_resources(R_Context *ctx)
     .vs_path = L"../src/render/shaders/forward_basic.hlsl",
     .ps_path = L"../src/render/shaders/forward_basic.hlsl",
 
-    .input_layout = mesh_layout,
+    .input_layout = r_mesh_layout,
 
     .raster = {
       .fill_mode = R_FillMode_Solid,
@@ -82,6 +82,23 @@ r_ctx_init_resources(R_Context *ctx)
   //
   // Textures
   //
+
+  R_TextureDesc color_desc = {
+    .width  = ctx->width,
+    .height = ctx->height,
+    .depth  = 1,
+    .mips_count = 1,
+    .fmt    = R_Format_R8G8B8A8_UNorm,
+    .usage  = R_TextureUsage_RenderTarget,
+    .kind   = R_TextureKind_2D,
+
+    .init_state = R_TextureInitState_RenderTarget,
+
+    .has_clear_value = 1,
+    .clear_color = { 0.95f, 0.9f, 0.9f, 1.0f },
+  };
+  R_Handle forward_color = r_create_texture(0, 0, color_desc);
+  (void)forward_color;
 
   // Depth
 
@@ -129,7 +146,7 @@ r_pass_begin(R_Pass *pass)
   R_D3D12_Pipeline *pipeline = (R_D3D12_Pipeline *)r_resource_table.slots[pass->pipeline.idx].backend_rsrc; // @Note: Temporary
   backend->command_list->SetPipelineState(pipeline->pso);
   Assert(pipeline->root_sig == backend->root_signature);
-  backend->command_list->SetGraphicsRootSignature(backend->root_signature); // Use a single authoritive root signature for now
+  backend->command_list->SetGraphicsRootSignature(pipeline->root_sig); // Use a single authoritive root signature for now
 
   // Viewport & scissor
 
@@ -215,8 +232,6 @@ r_pass_begin(R_Pass *pass)
       pass->clear_depth, 0, 0, 0
     );
   }
-
-  // @Todo: Process transitions produced in r_frame_compile().
 
   // Input assembler
 
@@ -340,8 +355,6 @@ r_transition_resource(R_ResourceTransition tr)
 static void
 r_frame_execute(R_Context *ctx)
 {
-  TempArena tmp = arena_scratch_begin(0,0);
-
   for (S32 compiled_idx = 0; compiled_idx < ctx->compiled_passes_count; compiled_idx += 1) {
     R_CompiledPass *compiled = &ctx->compiled_passes[compiled_idx];
     R_Pass *pass = compiled->pass;
@@ -364,8 +377,6 @@ r_frame_execute(R_Context *ctx)
       }
     }
   }
-
-  arena_scratch_end(tmp);
 }
 
 static void r_d3d12_wait_for_previous_frame(void);
