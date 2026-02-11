@@ -93,6 +93,9 @@ struct R_D3D12_Backend {
   S32 srv_next_idx;
   S32 rtv_next_idx;
   S32 dsv_next_idx;
+
+  // Material table slot allocation
+  S32 mtl_next_idx;
 };
 
 global R_D3D12_Backend r_ctx;

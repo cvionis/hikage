@@ -131,6 +131,9 @@ assets_load_model(AssetContext *ctx, String8 name)
         model->index_buffer = r_create_buffer(init, desc);
       }
 
+      // @Note: Used to transform mesh-local material indices to absolute indices into the material table
+      S32 mtl_base_idx = r_get_current_base_material_idx();
+
       // Per-submesh slices into vertex/index buffers
       for (U32 mesh_idx = 0; mesh_idx < mesh_count; mesh_idx += 1) {
         Mesh *dst = &model->meshes[mesh_idx];
@@ -141,12 +144,13 @@ assets_load_model(AssetContext *ctx, String8 name)
         dst->ib_off = src->index_offset_bytes / model_index_size_bytes;
         dst->ib_count = src->index_count;
 
-        dst->material = src->material_index;
+        dst->material = src->material_index + mtl_base_idx;
+        r_ctx.mtl_next_idx += 1; // @Todo: Temporary
       }
 
       R_MaterialGPU *gpu_materials = ArenaPushArray(arena_get_scratch(0,0), R_MaterialGPU, mtl_count);
 
-      // @Note: Used to transform material local texture indices to actual indices into the texture table
+      // @Note: Used to transform material-local texture indices to absolute indices into the texture table
       S32 tex_base_idx = r_get_current_base_texture_idx();
 
       for (U32 mtl_idx = 0; mtl_idx < mtl_count; mtl_idx += 1) {

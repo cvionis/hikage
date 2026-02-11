@@ -18,6 +18,14 @@ r_get_current_base_texture_idx(void)
   return current_base;
 }
 
+static S32
+r_get_current_base_material_idx(void)
+{
+  R_D3D12_Backend *backend = &r_ctx;
+  S32 current_base = backend->mtl_next_idx;
+  return current_base;
+}
+
 // @Todo: Put in render_resource.h, render_resource_d3d12.cpp (or put in render_core.h and use r_create_buffer_impl()
 // if you flesh it out for structured buffs)
 static void
