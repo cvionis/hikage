@@ -113,19 +113,21 @@ R_PASS_EXECUTE_PROC(r_pass_execute_post)
 {
   R_D3D12_Backend *backend = &r_ctx;
 
-  #if 0
   // @Note: Temporary. Create helpers.
   R_Handle hdr_color = pass->read_resources[0];  // @Note: Temporary
   R_ResourceSlot *slot = &r_resource_table.slots[hdr_color.idx];
-  S32 hdr_color_idx = slot->srv_idx;
-  {
-    R_PostProcessCB cb = {
-      .tex_hdr_color = hdr_color_idx,
-    };
-    MemoryCopy(backend->frame_cb_mapped, &cb, sizeof(cb));
-    //backend->draw_cb_write_idx = 0;
-  }
-  #endif
+  S32 hdr_color_idx = slot->srv_idx - R_D3D12_TEXTURE_TABLE_BASE; // @Todo: Create helper.
+  // @Todo: Make this visible to the shader (i.e. constant buffer).
+
+  // @Resume: Remove CBVs from SRV heap and use root constants + linear buffer API exclusively.
+  struct R_PostProcessCB {
+    U32 tex_hdr_color;
+  };
+
+  R_PostProcessCB *cb = (R_PostProcessCB *)r_alloc_push(&r_allocator, sizeof(R_PostProcessCB));
+  cb->tex_hdr_color = hdr_color_idx;
+
+  backend->command_list->SetGraphicsRootConstantBufferView(0, r_allocator.gpu_base);
 
   backend->command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   backend->command_list->DrawInstanced(3, 1, 0, 0);

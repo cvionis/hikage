@@ -55,13 +55,6 @@ static void r_pass_end(R_Pass *pass);
 
 // User-facing rendering context and per-frame drawing API
 
-// @Todo: For persistent resources used across frames,
-// consider making that application/usage dependent instead of hardcoding them here.
-// I.e. the app using R_Context defines its own struct containing handles to these kinds of
-// resources (pipelines, textures/render targets), and passes it as void *appdata to r_frame_X() API's.
-// This allows resources to be added/removed/changed easily from main.cpp without digging into renderer files.
-// An alternative would be to store a table of named {name, R_Handle} entries that the r_frame_X() API's can
-// just look up by name.
 struct R_Context {
   Arena *pass_arena;
   Arena *userdata_arena;

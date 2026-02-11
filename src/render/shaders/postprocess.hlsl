@@ -37,12 +37,11 @@ struct Material {
 // Constant buffers
 //
 
-#if 0
-cbuffer PostCB : register(b0) {
-  uint hdr_color;
+cbuffer PostProcessCB : register(b0) {
+  uint tex_hdr_color;
 };
-#endif
 
+#if 0
 cbuffer FrameCB : register(b0) {
   float4x4 viewproj;
   float4 camera_ws;
@@ -53,6 +52,7 @@ cbuffer DrawCB : register(b1) {
   float4x4 normal_matrix;
   uint material;
 };
+#endif
 
 //
 // Resources
@@ -111,12 +111,14 @@ VS_Out vs_main(uint id : SV_VertexID)
 
 float4 ps_main(VS_Out i) : SV_Target
 {
-  float3 hdr = g_textures[NU(0)].Sample(g_sampler, i.uv).rgb;
+  float3 hdr = g_textures[NU(tex_hdr_color)].Sample(g_sampler, i.uv).rgb;
 
   float3 tot = hdr;
+
   // Tonemap
   tot = tot /(1.0 + tot);
   // Gamma correct
   tot = pow(tot, 0.4545);
+
   return float4(tot, 1.0);
 }

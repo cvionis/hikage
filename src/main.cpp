@@ -36,6 +36,8 @@ entry_point(void)
   R_Context renderer = r_ctx_make(screen_w, screen_h);
   r_ctx_init_resources(&renderer);
 
+  r_allocator = r_alloc_make(256);
+
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
   AssetHandle a = assets_load_model(&assets, S8("Sponza"));
@@ -133,8 +135,10 @@ entry_point(void)
     r_frame_execute(&renderer);
 
     r_frame_end(&renderer);
+    r_alloc_reset(&r_allocator);
   }
 
+  r_alloc_release(&r_allocator);
   // @Todo: Release asset context
   r_ctx_release(&renderer);
   r_shutdown();

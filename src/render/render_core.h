@@ -26,6 +26,7 @@ enum R_Topology {
   R_Topology_PointList,
 };
 
+// @Todo: Not sure where to store this. I don't think this is a good place.
 struct R_MaterialGPU {
   V4F32 base_color;
   V3F32 emissive;
@@ -42,13 +43,11 @@ struct R_MaterialGPU {
   U32 tex_emissive;
 };
 
+// @Todo: Stuff like can be defined locally at usage sites.
+
 struct R_FrameCB {
   Mat4x4 viewproj;
   V4F32  camera_ws;
-};
-
-struct R_PostProcessCB {
-  U32 tex_hdr_color;
 };
 
 struct R_DrawCB {
@@ -57,6 +56,88 @@ struct R_DrawCB {
   U32 material;
   U32 _pad[3];
 };
+
+// Linear GPU allocator
+
+struct R_LinearAllocator {
+  void *backend;
+  U8 *cpu_base;
+  U64 gpu_base;
+  U64 pos;
+  U64 capacity;
+};
+
+global R_LinearAllocator r_allocator; // @Note: Temporary
+
+static R_LinearAllocator r_alloc_make(U64 size); // Backend-specific impl
+static void r_alloc_release(R_LinearAllocator *alloc); // Backend-specific impl
+static void r_alloc_reset(R_LinearAllocator *alloc);
+static void *r_alloc_push(R_LinearAllocator *alloc, U64 size);
+
+static R_LinearAllocator
+r_alloc_make(U64 size)
+{
+  R_LinearAllocator result = {};
+
+  R_D3D12_Backend *backend = &r_ctx;
+  U64 size_aligned = AlignPow2(size, 256);
+
+  CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
+  CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(size_aligned);
+
+  ID3D12Resource *rsrc = 0;
+  HRESULT hr = backend->device->CreateCommittedResource(
+    &heap, D3D12_HEAP_FLAG_NONE, &desc,
+    D3D12_RESOURCE_STATE_GENERIC_READ, 0,
+    IID_PPV_ARGS(&rsrc)
+  );
+  Assert(SUCCEEDED(hr));
+
+  hr = rsrc->Map(0, 0, (void **)&result.cpu_base);
+  Assert(SUCCEEDED(hr));
+
+  result.backend = (void *)rsrc;
+  result.gpu_base = (U64)rsrc->GetGPUVirtualAddress();
+  result.pos = 0;
+  result.capacity = size_aligned;
+
+  return result;
+}
+
+static void
+r_alloc_release(R_LinearAllocator *alloc)
+{
+  // @Todo
+  ID3D12Resource *rsrc = (ID3D12Resource *)alloc->backend;
+  if (rsrc) {
+    rsrc->Unmap(0,0);
+    // @Todo: Destroy resource?
+    MemoryZeroStruct(alloc);
+  }
+}
+
+static void
+r_alloc_reset(R_LinearAllocator *alloc)
+{
+  alloc->pos = 0;
+}
+
+// @Todo: basic checks and enforcing capacity
+// @Todo: How do I detect overflow?
+static void *
+r_alloc_push(R_LinearAllocator *alloc, U64 size)
+{
+  U64 size_aligned = AlignPow2(size, 256); // Align to 256 bytes (@Todo: is this necessary for individual allocations as long as creation size !%256?)
+  U8 *mapped = alloc->cpu_base + alloc->pos;
+  alloc->pos += size_aligned;
+
+  void *memory = (void *)mapped;
+  return memory;
+}
+
+//
+// Globals
+//
 
 global R_Layout r_mesh_layout = {
   .elements = {
@@ -67,6 +148,10 @@ global R_Layout r_mesh_layout = {
   },
   .elements_count = 4,
 };
+
+//
+// TEMPORARY LOCATION
+//
 
 // @Todo: Move somewhere more permanent: scene.h
 struct Camera {
