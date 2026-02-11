@@ -144,6 +144,42 @@ assets_load_model(AssetContext *ctx, String8 name)
         dst->material = src->material_index;
       }
 
+      R_MaterialGPU *gpu_materials = ArenaPushArray(arena_get_scratch(0,0), R_MaterialGPU, mtl_count);
+
+      // @Note: Used to transform material local texture indices to actual indices into the texture table
+      S32 tex_base_idx = r_get_current_base_texture_idx();
+
+      for (U32 mtl_idx = 0; mtl_idx < mtl_count; mtl_idx += 1) {
+        Material *dst = &ctx->materials[mtl_idx].material;
+        AC_MaterialEntry *src = &mtl_table[mtl_idx];
+        R_MaterialGPU *gpu = &gpu_materials[mtl_idx];
+
+        dst->flags = src->flags;
+        dst->base_color = src->base_color;
+        dst->emissive = src->emissive;
+        dst->metallic = src->metallic;
+        dst->roughness = src->roughness;
+        dst->tex_base_color = src->base_color_tex + tex_base_idx;
+        dst->tex_normal = src->normal_tex + tex_base_idx;
+        dst->tex_metal_rough = src->metallic_roughness_tex + tex_base_idx;
+        dst->tex_occlusion = src->occlusion_tex + tex_base_idx;
+        dst->tex_emissive = src->emissive_tex + tex_base_idx;
+
+        gpu->flags = src->flags;
+        gpu->base_color = src->base_color;
+        gpu->emissive = src->emissive;
+        gpu->metallic = src->metallic;
+        gpu->roughness = src->roughness;
+        gpu->tex_base_color = src->base_color_tex + tex_base_idx;
+        gpu->tex_normal = src->normal_tex + tex_base_idx;
+        gpu->tex_metal_rough = src->metallic_roughness_tex + tex_base_idx;
+        gpu->tex_occlusion = src->occlusion_tex + tex_base_idx;
+        gpu->tex_emissive = src->emissive_tex + tex_base_idx;
+
+        ctx->materials_count += 1;
+      }
+      r_upload_materials(gpu_materials, mtl_count);
+
       // Load textures
       for (U32 tex_idx = 0; tex_idx < tex_count; tex_idx += 1) {
         Texture *dst = &ctx->textures[tex_idx].texture;
@@ -175,7 +211,7 @@ assets_load_model(AssetContext *ctx, String8 name)
           AC_MipEntry *mip = &mip_table[mip_idx];
           U32 img_base_off = img_data_off + img->data_offset_bytes;
           U32 mip_off = img_base_off + mip->image_offset_bytes;
-          U8 *mip_data = data + mip_off; // @Todo: Verify
+          U8 *mip_data = data + mip_off;
 
           init[init_idx] = {
             .data = mip_data,
@@ -188,40 +224,6 @@ assets_load_model(AssetContext *ctx, String8 name)
         dst->tex = r_create_texture(init, img->mip_count, desc);
         ctx->textures_count += 1;
       }
-
-      R_MaterialGPU *gpu_materials = ArenaPushArray(arena_get_scratch(0,0), R_MaterialGPU, mtl_count);
-
-      for (U32 mtl_idx = 0; mtl_idx < mtl_count; mtl_idx += 1) {
-        Material *dst = &ctx->materials[mtl_idx].material;
-        AC_MaterialEntry *src = &mtl_table[mtl_idx];
-        R_MaterialGPU *gpu = &gpu_materials[mtl_idx];
-
-        dst->flags = src->flags;
-        dst->base_color = src->base_color;
-        dst->emissive = src->emissive;
-        dst->metallic = src->metallic;
-        dst->roughness = src->roughness;
-        dst->tex_base_color = src->base_color_tex;
-        dst->tex_normal = src->normal_tex;
-        dst->tex_metal_rough = src->metallic_roughness_tex;
-        dst->tex_occlusion = src->occlusion_tex;
-        dst->tex_emissive = src->emissive_tex;
-
-        gpu->flags = src->flags;
-        gpu->base_color = src->base_color;
-        gpu->emissive = src->emissive;
-        gpu->metallic = src->metallic;
-        gpu->roughness = src->roughness;
-        gpu->tex_base_color = src->base_color_tex;
-        gpu->tex_normal = src->normal_tex;
-        gpu->tex_metal_rough = src->metallic_roughness_tex;
-        gpu->tex_occlusion = src->occlusion_tex;
-        gpu->tex_emissive = src->emissive_tex;
-
-        ctx->materials_count += 1;
-      }
-
-      r_upload_materials(gpu_materials, mtl_count);
 
       result.idx = ctx->models_count;
       ctx->models_count += 1;

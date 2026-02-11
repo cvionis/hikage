@@ -83,13 +83,14 @@ r_ctx_init_resources(R_Context *ctx)
   // Textures
   //
 
+  #if 0
   R_TextureDesc color_desc = {
     .width  = ctx->width,
     .height = ctx->height,
     .depth  = 1,
     .mips_count = 1,
     .fmt    = R_Format_R8G8B8A8_UNorm,
-    .usage  = R_TextureUsage_RenderTarget,
+    .usage  = R_TextureUsage_RenderTarget|R_TextureUsage_Sampled,
     .kind   = R_TextureKind_2D,
 
     .init_state = R_TextureInitState_RenderTarget,
@@ -99,6 +100,7 @@ r_ctx_init_resources(R_Context *ctx)
   };
   R_Handle forward_color = r_create_texture(0, 0, color_desc);
   (void)forward_color;
+  #endif
 
   // Depth
 
