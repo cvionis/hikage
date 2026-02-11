@@ -13,6 +13,8 @@ struct R_ForwardPassData {
 
 R_PASS_EXECUTE_PROC(r_pass_execute_forward)
 {
+  (void *)pass;
+
   R_D3D12_Backend *backend = &r_ctx;
   R_ForwardPassData *data = (R_ForwardPassData *)userdata;
 
@@ -75,15 +77,17 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
   pass->pipeline = ctx->pipeline_forward;
 
   // @Note: Used for rendering. Needs to match PSO desc.
-  R_Handle col_target = r_current_back_buffer();
+  R_Handle col_target = ctx->hdr_color; //r_current_back_buffer();
   pass->color_targets[0] = col_target;
   pass->color_targets_count = 1;
-  pass->depth_target = ctx->final_depth;
+  pass->depth_target = ctx->forward_depth;
+
   // @Note: Used for barrier generation.
+  // @Todo: wrap in something like r_pass_add_read(R_Handle h), r_pass_add_write(R_Handle h).
   pass->write_resources[0] = col_target;
   pass->write_count = 1;
 
-  pass->color_final_state = R_ResourceState_Present;
+  pass->color_final_state = R_ResourceState_ShaderRead;
   // @Note: Don't care about depth state transitions yet;
 
   pass->viewport = ctx->default_viewport;
@@ -103,4 +107,57 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
 
   pass->userdata = data;
   pass->execute = r_pass_execute_forward;
+}
+
+R_PASS_EXECUTE_PROC(r_pass_execute_post)
+{
+  R_D3D12_Backend *backend = &r_ctx;
+
+  #if 0
+  // @Note: Temporary. Create helpers.
+  R_Handle hdr_color = pass->read_resources[0];  // @Note: Temporary
+  R_ResourceSlot *slot = &r_resource_table.slots[hdr_color.idx];
+  S32 hdr_color_idx = slot->srv_idx;
+  {
+    R_PostProcessCB cb = {
+      .tex_hdr_color = hdr_color_idx,
+    };
+    MemoryCopy(backend->frame_cb_mapped, &cb, sizeof(cb));
+    //backend->draw_cb_write_idx = 0;
+  }
+  #endif
+
+  backend->command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+  backend->command_list->DrawInstanced(3, 1, 0, 0);
+}
+
+static void
+r_pass_add_post(R_Context *ctx)
+{
+  R_Pass *pass = r_frame_push_pass(ctx);
+  pass->name = S8("postprocess");
+  pass->pipeline = ctx->pipeline_post;
+
+  R_Handle col_target = r_current_back_buffer();
+  pass->color_targets[0] = col_target;
+  pass->color_targets_count = 1;
+
+  // @Todo: wrap in something like r_pass_add_read(R_Handle h), r_pass_add_write(R_Handle h).
+  pass->read_resources[0] = ctx->hdr_color;
+  pass->read_count = 1;
+  pass->write_resources[0] = col_target;
+  pass->write_count = 1;
+
+  pass->color_final_state = R_ResourceState_Present;
+
+  pass->viewport = ctx->default_viewport;
+  pass->scissor = ctx->default_scissor;
+
+  pass->clear_flags = R_ClearFlag_Color;
+  pass->clear_color = v4f32(0.95f,0.9f, 0.9f, 1.f);
+
+  pass->topology = R_Topology_TriangleList;
+
+  pass->userdata = 0;
+  pass->execute = r_pass_execute_post;
 }

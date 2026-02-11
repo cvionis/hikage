@@ -46,7 +46,7 @@ r_ctx_init_resources(R_Context *ctx)
     .vs_path = L"../src/render/shaders/forward_basic.hlsl",
     .ps_path = L"../src/render/shaders/forward_basic.hlsl",
 
-    .input_layout = r_mesh_layout,
+    .input_layout = &r_mesh_layout,
 
     .raster = {
       .fill_mode = R_FillMode_Solid,
@@ -70,26 +70,59 @@ r_ctx_init_resources(R_Context *ctx)
     .topology = R_TopologyKind_Triangle,
 
     // Backbuffer format
-    .rt_formats = { R_Format_R8G8B8A8_UNorm },
+    .rt_formats = { R_Format_R16G16B16A16_Float },
     .rt_count = 1,
 
     .depth_format = R_Format_D32_Float,
     .sample_count = 1,
   };
 
+  R_PipelineDesc post_pipeline_desc = {
+    .vs_path = L"../src/render/shaders/postprocess.hlsl",
+    .ps_path = L"../src/render/shaders/postprocess.hlsl",
+
+    .input_layout = 0,
+
+    .raster = {
+      .fill_mode = R_FillMode_Solid,
+      .cull_mode = R_CullMode_Back,
+      .front_ccw = 0,
+      .depth_clip_enable = 1,
+    },
+
+    .depth_stencil = {
+      .depth_enable = 0,
+      .depth_write_enable = 0,
+    },
+
+    .blend = {
+      .targets = {
+        { .blend_enable = 0, .write_mask = 0xF },
+      },
+    },
+
+    .topology = R_TopologyKind_Triangle,
+
+    // Backbuffer format
+    .rt_formats = {  R_Format_R8G8B8A8_UNorm },
+    .rt_count = 1,
+
+    .sample_count = 1,
+  };
+
   ctx->pipeline_forward = r_create_pipeline(forward_pipeline_desc);
+  ctx->pipeline_post = r_create_pipeline(post_pipeline_desc);
 
   //
   // Textures
   //
 
-  #if 0
-  R_TextureDesc color_desc = {
+  R_TextureDesc hdr_color_desc = {
     .width  = ctx->width,
     .height = ctx->height,
     .depth  = 1,
     .mips_count = 1,
-    .fmt    = R_Format_R8G8B8A8_UNorm,
+    .fmt    = R_Format_R16G16B16A16_Float,
     .usage  = R_TextureUsage_RenderTarget|R_TextureUsage_Sampled,
     .kind   = R_TextureKind_2D,
 
@@ -98,9 +131,7 @@ r_ctx_init_resources(R_Context *ctx)
     .has_clear_value = 1,
     .clear_color = { 0.95f, 0.9f, 0.9f, 1.0f },
   };
-  R_Handle forward_color = r_create_texture(0, 0, color_desc);
-  (void)forward_color;
-  #endif
+  ctx->hdr_color = r_create_texture(0, 0, hdr_color_desc);
 
   // Depth
 
@@ -121,7 +152,7 @@ r_ctx_init_resources(R_Context *ctx)
       .stencil = 0,
     },
   };
-  ctx->final_depth = r_create_texture(0, 0, depth_desc);
+  ctx->forward_depth = r_create_texture(0, 0, depth_desc);
 }
 
 static void
@@ -288,6 +319,7 @@ r_frame_compile(R_Context *ctx)
     R_CompiledPass *compiled = &ctx->compiled_passes[ctx->compiled_passes_count];
     ctx->compiled_passes_count += 1;
 
+    // @Todo: this needs to use write resources, not color_targets...
     for (S32 ct_idx = 0; ct_idx < pass->color_targets_count; ct_idx += 1) {
       R_Handle color_target = pass->color_targets[ct_idx];
 
@@ -369,7 +401,8 @@ r_frame_execute(R_Context *ctx)
     }
 
     r_pass_begin(pass);
-    pass->execute(pass->userdata);
+    // @Todo: if you're going to pass the pass, then don't also pass a member. REDUNDANT.
+    pass->execute(pass, pass->userdata);
     r_pass_end(pass);
 
     if (compiled->post_transitions_count) {

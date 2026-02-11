@@ -2,7 +2,7 @@ static B32
 r_texture_valid(R_Handle handle)
 {
   R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
-  B32 valid = (slot->srv_idx >= 0 && slot->rtv_idx >= 0 && slot->dsv_idx >= 0);
+  B32 valid = ((slot->srv_idx >= 0) || (slot->rtv_idx >= 0) || (slot->dsv_idx >= 0));
   return valid;
 }
 

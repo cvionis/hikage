@@ -109,15 +109,16 @@ entry_point(void)
       }
     }
 
-
-    // @Resume: Check D3D12 output
-
     r_frame_begin(&renderer);
 
     r_pass_add_forward(&renderer, &assets, models, models_count, camera);
+    r_pass_add_post(&renderer);
 
     r_frame_compile(&renderer);
 
+    // @Todo: This should be done ...
+    //   1) inside forward_pass->execute()
+    //   2) using a general per-frame CB allocator API, not hardcoded state stored in backend context.
     // Update per-frame CB (b0)
     {
       R_D3D12_Backend *backend = &r_ctx;
@@ -132,31 +133,6 @@ entry_point(void)
     r_frame_execute(&renderer);
 
     r_frame_end(&renderer);
-
-    #if 0
-    // Render
-    {
-      R_D3D12_Backend *ctx = &r_ctx;
-
-      // Begin frame
-      {
-        ctx->command_allocators[ctx->frame_idx]->Reset();
-        ctx->command_list->Reset(ctx->command_allocators[ctx->frame_idx], 0);
-      }
-
-      // Do render passes
-      r_render_forward(&assets, &camera, models, 1); // @Note: Temporary count. Track w/ global model list.
-
-      // End frame
-      {
-        ctx->command_list->Close();
-        ID3D12CommandList *lists[] = { ctx->command_list };
-        ctx->command_queue->ExecuteCommandLists(1, lists);
-        ctx->swapchain->Present(1, 0);
-        r_d3d12_wait_for_previous_frame();
-      }
-    }
-    #endif
   }
 
   // @Todo: Release asset context

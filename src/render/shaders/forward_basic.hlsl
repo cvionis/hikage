@@ -174,13 +174,13 @@ float4 ps_main(PS_Input input) : SV_TARGET
 
   float3 amb = albedo*0.3;
   float3 lit = amb*occlusion +
-    float3(1.1, 0.6, 0.4) * NoL +
-    float3(0.4,0.6,1.) * sky_dif +
+    1.5*float3(16., 12., 8.) * NoL +
+    float3(0.5,0.7,1.2) * sky_dif +
     float3(1.0,1.0,1.0) * bot_dif;
 
   float3 color = albedo * lit + emissive*1.2;
 
-  color = pow(color, 1.0 / 2.2);
+  //color = pow(color, 1.0 / 2.2);
 
   return float4(color, 1.0);
 }

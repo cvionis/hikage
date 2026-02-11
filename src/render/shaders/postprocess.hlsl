@@ -1,0 +1,122 @@
+// @Todo: common.hlsl/resource.hlsl
+
+//
+// Constants
+//
+
+#define BINDLESS_TEXTURES_MAX 1024
+
+#define MaterialFlag_None        0u
+#define MaterialFlag_BaseColor   (1u << 0)
+#define MaterialFlag_Normal      (1u << 1)
+#define MaterialFlag_MetalRough  (1u << 2)
+#define MaterialFlag_Occlusion   (1u << 3)
+#define MaterialFlag_Emissive    (1u << 4)
+
+//
+// Materials
+//
+
+struct Material {
+  float4 base_color; // @Todo: Should be float3, no?
+  float3 emissive;
+
+  float metallic;
+  float roughness;
+
+  uint flags;
+
+  uint tex_base_color;
+  uint tex_normal;
+  uint tex_metal_rough;
+  uint tex_occlusion;
+  uint tex_emissive;
+};
+
+//
+// Constant buffers
+//
+
+#if 0
+cbuffer PostCB : register(b0) {
+  uint hdr_color;
+};
+#endif
+
+cbuffer FrameCB : register(b0) {
+  float4x4 viewproj;
+  float4 camera_ws;
+};
+
+cbuffer DrawCB : register(b1) {
+  float4x4 model_matrix;
+  float4x4 normal_matrix;
+  uint material;
+};
+
+//
+// Resources
+//
+
+// @Todo: common.hlsl (and maybe resources.hlsl)
+StructuredBuffer<Material> g_materials : register(t0, space1); // @Todo: Determine if you can safely not write this in here.
+Texture2D g_textures[BINDLESS_TEXTURES_MAX] : register(t0, space0);
+SamplerState g_sampler : register(s0);
+
+//
+// Inputs/Outputs
+//
+
+struct VS_Out {
+  float4 pos : SV_Position;
+  float2 uv  : TEXCOORD0;
+};
+
+//
+// Helpers
+//
+
+// @Todo: common.hlsl
+#define NU(x) NonUniformResourceIndex(x)
+
+//
+// Vertex shader entry point
+//
+
+// @Todo: Understand how this works
+VS_Out vs_main(uint id : SV_VertexID)
+{
+  VS_Out o;
+
+  float2 pos[3] = {
+    float2(-1, -1),
+    float2(-1,  3),
+    float2( 3, -1)
+  };
+
+  float2 uv[3] = {
+    float2(0, 1),
+    float2(0, -1),
+    float2(2, 1)
+  };
+
+  o.pos = float4(pos[id], 0, 1);
+  o.uv  = uv[id];
+  return o;
+}
+
+//
+// Pixel shader entry point
+//
+
+float4 ps_main(VS_Out i) : SV_Target
+{
+  float3 hdr = g_textures[NU(0)].Sample(g_sampler, i.uv).rgb;
+
+  float3 tot = hdr;
+  // Tonemap
+  tot = tot /(1.0 + tot);
+  // Gamma correct
+  tot = pow(tot, 0.4545);
+  return float4(tot, 1.0);
+}

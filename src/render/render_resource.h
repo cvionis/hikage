@@ -367,7 +367,7 @@ struct R_PipelineDesc {
   LPCWSTR vs_path;
   LPCWSTR ps_path;
 
-  R_Layout input_layout;
+  R_Layout *input_layout;
 
   R_RasterizerState raster;
   R_DepthStencilState depth_stencil;

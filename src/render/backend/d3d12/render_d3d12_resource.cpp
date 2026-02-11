@@ -930,9 +930,7 @@ static void
 r_d3d12_input_layout_from_r(R_Layout *layout, D3D12_INPUT_ELEMENT_DESC *out, S32 *out_count)
 {
   S32 n = (S32)layout->elements_count;
-  if (n > 16) {
-    n = 16;
-  }
+  n = Min(16, n);
 
   for (S32 i = 0; i < n; i += 1) {
     R_InputElement *e = &layout->elements[i];
@@ -1090,7 +1088,9 @@ r_create_pipeline_impl(R_PipelineDesc desc)
   }
   Assert(vs_blob != 0);
 
-  r_d3d12_input_layout_from_r(&desc.input_layout, pipe->input_layout, &pipe->input_layout_count);
+  if (desc.input_layout) {
+    r_d3d12_input_layout_from_r(desc.input_layout, pipe->input_layout, &pipe->input_layout_count);
+  }
 
   pipe->raster        = r_d3d12_raster_from_r(&desc.raster);
   pipe->depth_stencil = r_d3d12_depthstencil_from_r(&desc.depth_stencil);
@@ -1117,9 +1117,13 @@ r_create_pipeline_impl(R_PipelineDesc desc)
   pso.RasterizerState   = pipe->raster;
   pso.DepthStencilState = pipe->depth_stencil;
 
-  if (pipe->input_layout_count != 0) {
+  if (desc.input_layout && pipe->input_layout_count != 0) {
     pso.InputLayout.pInputElementDescs = pipe->input_layout;
-    pso.InputLayout.NumElements        = (UINT)pipe->input_layout_count;
+    pso.InputLayout.NumElements = (UINT)pipe->input_layout_count;
+  }
+  else {
+    pso.InputLayout.pInputElementDescs = 0;
+    pso.InputLayout.NumElements = 0;
   }
 
   pso.PrimitiveTopologyType = pipe->topology_type;

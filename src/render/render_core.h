@@ -47,6 +47,10 @@ struct R_FrameCB {
   V4F32  camera_ws;
 };
 
+struct R_PostProcessCB {
+  U32 tex_hdr_color;
+};
+
 struct R_DrawCB {
   Mat4x4 model;
   Mat4x4 normal;

@@ -4,8 +4,9 @@
 
 // Render passes
 
-typedef void R_PassExecuteProc(void *userdata);
-#define R_PASS_EXECUTE_PROC(name) void name(void *userdata)
+struct R_Pass;
+typedef void R_PassExecuteProc(R_Pass *pass, void *userdata);
+#define R_PASS_EXECUTE_PROC(name) void name(R_Pass *pass, void *userdata)
 
 struct R_Pass {
   String8 name;
@@ -17,6 +18,7 @@ struct R_Pass {
   R_Handle depth_target;
 
   R_ResourceState color_final_state; // @Note: All color targets share the same final state for now (covers most cases).
+                                     // @Note: Tecnically writes_final_state...
   R_ResourceState depth_final_state; // @Todo: Actually use this (when needed; e.g. shadow pass)
 
   // Resource dependencies (@Todo: handle passes reading from outputs of previous passes)
@@ -53,6 +55,13 @@ static void r_pass_end(R_Pass *pass);
 
 // User-facing rendering context and per-frame drawing API
 
+// @Todo: For persistent resources used across frames,
+// consider making that application/usage dependent instead of hardcoding them here.
+// I.e. the app using R_Context defines its own struct containing handles to these kinds of
+// resources (pipelines, textures/render targets), and passes it as void *appdata to r_frame_X() API's.
+// This allows resources to be added/removed/changed easily from main.cpp without digging into renderer files.
+// An alternative would be to store a table of named {name, R_Handle} entries that the r_frame_X() API's can
+// just look up by name.
 struct R_Context {
   Arena *pass_arena;
   Arena *userdata_arena;
@@ -62,10 +71,12 @@ struct R_Context {
 
   // Persstent resources: pipelines
   R_Handle pipeline_forward;
+  R_Handle pipeline_post;
 
   // Persistent resources: textures
-  R_Handle backbuffers[R_FRAME_COUNT];
-  R_Handle final_depth;
+  R_Handle forward_depth;
+
+  R_Handle hdr_color;
 
   // Defaults
   R_Viewport default_viewport;
