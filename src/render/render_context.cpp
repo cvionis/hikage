@@ -213,7 +213,6 @@ r_pass_begin(R_Pass *pass)
 
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_base =
       backend->srv_heap->GetGPUDescriptorHandleForHeapStart();
-    backend->command_list->SetGraphicsRootDescriptorTable(0, gpu_base);
 
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex = gpu_base;
     gpu_tex.ptr +=
@@ -297,7 +296,8 @@ r_frame_begin(R_Context *ctx)
 
   ctx->compiled_passes = ArenaPushArray(ctx->pass_arena, R_CompiledPass, 16);
   ctx->compiled_passes_count = 0;
-  // ... reset cb allocator ...
+
+  r_alloc_reset(&r_allocator);
 }
 
 static R_Pass *

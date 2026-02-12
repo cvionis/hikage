@@ -36,7 +36,7 @@ entry_point(void)
   R_Context renderer = r_ctx_make(screen_w, screen_h);
   r_ctx_init_resources(&renderer);
 
-  r_allocator = r_alloc_make(256);
+  r_allocator = r_alloc_make(KiB(256));
 
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
@@ -122,6 +122,7 @@ entry_point(void)
     //   1) inside forward_pass->execute()
     //   2) using a general per-frame CB allocator API, not hardcoded state stored in backend context.
     // Update per-frame CB (b0)
+    #if 0
     {
       R_D3D12_Backend *backend = &r_ctx;
       R_FrameCB cb = {
@@ -131,6 +132,7 @@ entry_point(void)
       MemoryCopy(backend->frame_cb_mapped, &cb, sizeof(cb));
       backend->draw_cb_write_idx = 0;
     }
+    #endif
 
     r_frame_execute(&renderer);
 

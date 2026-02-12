@@ -43,20 +43,6 @@ struct R_MaterialGPU {
   U32 tex_emissive;
 };
 
-// @Todo: Stuff like can be defined locally at usage sites.
-
-struct R_FrameCB {
-  Mat4x4 viewproj;
-  V4F32  camera_ws;
-};
-
-struct R_DrawCB {
-  Mat4x4 model;
-  Mat4x4 normal;
-  U32 material;
-  U32 _pad[3];
-};
-
 // Linear GPU allocator
 
 struct R_LinearAllocator {
@@ -67,24 +53,28 @@ struct R_LinearAllocator {
   U64 capacity;
 };
 
+struct R_Alloc {
+  void *cpu;
+  U64 gpu;
+};
+
 global R_LinearAllocator r_allocator; // @Note: Temporary
 
 static R_LinearAllocator r_alloc_make(U64 size); // Backend-specific impl
 static void r_alloc_release(R_LinearAllocator *alloc); // Backend-specific impl
 static void r_alloc_reset(R_LinearAllocator *alloc);
-static void *r_alloc_push(R_LinearAllocator *alloc, U64 size);
+static R_Alloc r_alloc_push(R_LinearAllocator *alloc, U64 size);
 
 static R_LinearAllocator
 r_alloc_make(U64 size)
 {
   R_LinearAllocator result = {};
-
   R_D3D12_Backend *backend = &r_ctx;
+
   U64 size_aligned = AlignPow2(size, 256);
 
   CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
   CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(size_aligned);
-
   ID3D12Resource *rsrc = 0;
   HRESULT hr = backend->device->CreateCommittedResource(
     &heap, D3D12_HEAP_FLAG_NONE, &desc,
@@ -107,11 +97,10 @@ r_alloc_make(U64 size)
 static void
 r_alloc_release(R_LinearAllocator *alloc)
 {
-  // @Todo
   ID3D12Resource *rsrc = (ID3D12Resource *)alloc->backend;
   if (rsrc) {
     rsrc->Unmap(0,0);
-    // @Todo: Destroy resource?
+    rsrc->Release();
     MemoryZeroStruct(alloc);
   }
 }
@@ -124,15 +113,23 @@ r_alloc_reset(R_LinearAllocator *alloc)
 
 // @Todo: basic checks and enforcing capacity
 // @Todo: How do I detect overflow?
-static void *
+static R_Alloc
 r_alloc_push(R_LinearAllocator *alloc, U64 size)
 {
-  U64 size_aligned = AlignPow2(size, 256); // Align to 256 bytes (@Todo: is this necessary for individual allocations as long as creation size !%256?)
-  U8 *mapped = alloc->cpu_base + alloc->pos;
-  alloc->pos += size_aligned;
+  U64 pos_aligned = AlignPow2(alloc->pos, 256);
+  U64 size_aligned = AlignPow2(size, 256);
+  Assert(pos_aligned + size_aligned <= alloc->capacity);
 
-  void *memory = (void *)mapped;
-  return memory;
+  U8 *cpu_curr = alloc->cpu_base + pos_aligned;
+  U64 gpu_curr = alloc->gpu_base + pos_aligned;
+
+  alloc->pos = pos_aligned + size_aligned;
+
+  R_Alloc result = {
+    .cpu = (void *)cpu_curr,
+    .gpu = gpu_curr,
+  };
+  return result;
 }
 
 //

@@ -41,19 +41,6 @@ cbuffer PostProcessCB : register(b0) {
   uint tex_hdr_color;
 };
 
-#if 0
-cbuffer FrameCB : register(b0) {
-  float4x4 viewproj;
-  float4 camera_ws;
-};
-
-cbuffer DrawCB : register(b1) {
-  float4x4 model_matrix;
-  float4x4 normal_matrix;
-  uint material;
-};
-#endif
-
 //
 // Resources
 //
@@ -119,6 +106,10 @@ float4 ps_main(VS_Out i) : SV_Target
   tot = tot /(1.0 + tot);
   // Gamma correct
   tot = pow(tot, 0.4545);
+  // Color grading
+  tot.r *= 1.06;
+  tot.g *= 1.02;
+  tot.b *= 0.96;
 
   return float4(tot, 1.0);
 }

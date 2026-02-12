@@ -15,6 +15,18 @@ R_PASS_EXECUTE_PROC(r_pass_execute_forward)
 {
   (void *)pass;
 
+  struct R_FrameCB {
+    Mat4x4 viewproj;
+    V4F32  camera_ws;
+  };
+
+  struct R_DrawCB {
+    Mat4x4 model;
+    Mat4x4 normal;
+    U32 material;
+    U32 _pad[3];
+  };
+
   R_D3D12_Backend *backend = &r_ctx;
   R_ForwardPassData *data = (R_ForwardPassData *)userdata;
 
@@ -22,6 +34,12 @@ R_PASS_EXECUTE_PROC(r_pass_execute_forward)
   ModelInstance *models = (ModelInstance *)data->models;
   S32 models_count = data->models_count;
   Camera camera = data->camera;
+
+  R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_FrameCB));
+  R_FrameCB *cb = (R_FrameCB *)alloc.cpu;
+  cb->viewproj = camera.viewproj;
+  cb->camera_ws = v4f32(camera.position.x, camera.position.y, camera.position.z, 0.f);
+  backend->command_list->SetGraphicsRootConstantBufferView(0, alloc.gpu);
 
   // Draw models
   for (S32 model_idx = 0; model_idx < models_count; model_idx += 1) {
@@ -50,16 +68,12 @@ R_PASS_EXECUTE_PROC(r_pass_execute_forward)
         .material = (U32)mesh->material,
       };
 
-      U32 slot = backend->draw_cb_write_idx;
-      backend->draw_cb_write_idx += 1;
-      backend->draw_cb_write_idx = Min(backend->draw_cb_write_idx, backend->draw_cb_capacity);
-
-      U64 offset = (U64)slot * (U64)backend->draw_cb_stride;
-      U8 *dst = backend->draw_cb_buffer_mapped + offset;
-      MemoryCopy(dst, &draw_cb_data, sizeof(draw_cb_data));
-
-      D3D12_GPU_VIRTUAL_ADDRESS gpu_addr = backend->draw_cb_buffer->GetGPUVirtualAddress() + offset;
-      backend->command_list->SetGraphicsRootConstantBufferView(1, gpu_addr);
+      R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_DrawCB));
+      R_DrawCB *cb = (R_DrawCB *)alloc.cpu;
+      cb->model = mmat;
+      cb->normal = normal;
+      cb->material = (U32)mesh->material;
+      backend->command_list->SetGraphicsRootConstantBufferView(1, alloc.gpu);
 
       S32 index_off = mesh->ib_off;
       S32 index_count = mesh->ib_count;
@@ -111,23 +125,21 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
 
 R_PASS_EXECUTE_PROC(r_pass_execute_post)
 {
+  struct R_PostProcessCB {
+    U32 tex_hdr_color;
+  };
+
   R_D3D12_Backend *backend = &r_ctx;
 
   // @Note: Temporary. Create helpers.
   R_Handle hdr_color = pass->read_resources[0];  // @Note: Temporary
   R_ResourceSlot *slot = &r_resource_table.slots[hdr_color.idx];
   S32 hdr_color_idx = slot->srv_idx - R_D3D12_TEXTURE_TABLE_BASE; // @Todo: Create helper.
-  // @Todo: Make this visible to the shader (i.e. constant buffer).
 
-  // @Resume: Remove CBVs from SRV heap and use root constants + linear buffer API exclusively.
-  struct R_PostProcessCB {
-    U32 tex_hdr_color;
-  };
-
-  R_PostProcessCB *cb = (R_PostProcessCB *)r_alloc_push(&r_allocator, sizeof(R_PostProcessCB));
+  R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_PostProcessCB));
+  R_PostProcessCB *cb = (R_PostProcessCB *)alloc.cpu;
   cb->tex_hdr_color = hdr_color_idx;
-
-  backend->command_list->SetGraphicsRootConstantBufferView(0, r_allocator.gpu_base);
+  backend->command_list->SetGraphicsRootConstantBufferView(0, alloc.gpu);
 
   backend->command_list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
   backend->command_list->DrawInstanced(3, 1, 0, 0);

@@ -266,7 +266,7 @@ r_init(OS_Handle window)
     Assert(SUCCEEDED(hr));
   }
 
-  // Unified shader-visible heap: [frame CBVs] + [bindless textures]
+  // Unified shader-visible heap: [root CBVs] + [bindless textures] + [material buffer]
   {
     D3D12_DESCRIPTOR_HEAP_DESC heap_desc = {};
     heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -281,61 +281,6 @@ r_init(OS_Handle window)
       ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     ctx->srv_next_idx = R_D3D12_TEXTURE_TABLE_BASE;
-  }
-
-  // Per-frame constant buffer (b0) stored in slot 0 of srv_heap
-  {
-    CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(256);
-
-    hr = ctx->device->CreateCommittedResource(
-      &heap, D3D12_HEAP_FLAG_NONE, &desc,
-      D3D12_RESOURCE_STATE_GENERIC_READ, 0,
-      IID_PPV_ARGS(&ctx->frame_cb)
-    );
-    Assert(SUCCEEDED(hr));
-
-    hr = ctx->frame_cb->Map(0, 0, (void **)&ctx->frame_cb_mapped);
-    Assert(SUCCEEDED(hr));
-
-    D3D12_CONSTANT_BUFFER_VIEW_DESC cbv = {};
-    cbv.BufferLocation = ctx->frame_cb->GetGPUVirtualAddress();
-    cbv.SizeInBytes = 256;
-
-    CD3DX12_CPU_DESCRIPTOR_HANDLE h(
-      ctx->srv_heap->GetCPUDescriptorHandleForHeapStart(),
-      R_D3D12_FRAME_CBV_SLOT,
-      ctx->srv_descriptor_size
-    );
-    ctx->device->CreateConstantBufferView(&cbv, h);
-  }
-
-  // Per-draw constant buffer ring (root CBV)
-  {
-    ctx->draw_cb_stride = 256;
-    ctx->draw_cb_capacity = R_D3D12_MAX_DRAWS;
-    ctx->draw_cb_write_idx = 0;
-
-    U64 size = (U64)ctx->draw_cb_stride * ctx->draw_cb_capacity;
-
-    CD3DX12_HEAP_PROPERTIES heap(D3D12_HEAP_TYPE_UPLOAD);
-    CD3DX12_RESOURCE_DESC desc = CD3DX12_RESOURCE_DESC::Buffer(size);
-
-    hr = ctx->device->CreateCommittedResource(
-      &heap,
-      D3D12_HEAP_FLAG_NONE,
-      &desc,
-      D3D12_RESOURCE_STATE_GENERIC_READ,
-      0,
-      IID_PPV_ARGS(&ctx->draw_cb_buffer)
-    );
-    Assert(SUCCEEDED(hr));
-
-    hr = ctx->draw_cb_buffer->Map(
-      0, 0,
-      (void **)&ctx->draw_cb_buffer_mapped
-    );
-    Assert(SUCCEEDED(hr));
   }
 
   // Material buffer (StructuredBuffer) (t0, space1) stored in slot 3 of srv_heap
@@ -375,28 +320,46 @@ r_init(OS_Handle window)
 
   // Root signature
   {
-    CD3DX12_DESCRIPTOR_RANGE ranges[3];
-    // b0: frame
-    ranges[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-    // t0[] space0: textures
-    ranges[1].Init(
+    CD3DX12_DESCRIPTOR_RANGE ranges[2];
+    // t0[] space0: texture table
+    ranges[0].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
       R_D3D12_TEXTURE_MAX,
-      0,
-      0
-    ); // Append to previous entry.
-    ranges[2].Init(
+      0, // baseShaderRegister t0
+      0  // registerSpace 0
+    );
+
+    // t0 space1: material buffer
+    ranges[1].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
       1,
-      0,
-      1
+      0, // baseShaderRegister t0
+      1  // registerSpace 1
     );
 
     CD3DX12_ROOT_PARAMETER params[4];
-    params[0].InitAsDescriptorTable(1, &ranges[0], D3D12_SHADER_VISIBILITY_ALL);
-    params[1].InitAsConstantBufferView(1, 0, D3D12_SHADER_VISIBILITY_ALL);
-    params[2].InitAsDescriptorTable(1, &ranges[1], D3D12_SHADER_VISIBILITY_PIXEL);
-    params[3].InitAsDescriptorTable(1, &ranges[2], D3D12_SHADER_VISIBILITY_PIXEL);
+    // b0: frame/pass constants (root CBV)
+    params[0].InitAsConstantBufferView(
+      0, // shaderRegister b0
+      0, // registerSpace
+      D3D12_SHADER_VISIBILITY_ALL
+    );
+    // b1: per-draw constants (root CBV)
+    params[1].InitAsConstantBufferView(
+      1, // shaderRegister b1
+      0, // registerSpace
+      D3D12_SHADER_VISIBILITY_ALL
+    );
+    // SRV descriptor table for textures
+    params[2].InitAsDescriptorTable(
+      1, &ranges[0],
+      D3D12_SHADER_VISIBILITY_PIXEL
+    );
+    // SRV descriptor table for materials
+    params[3].InitAsDescriptorTable(
+      1, &ranges[1],
+      D3D12_SHADER_VISIBILITY_PIXEL
+    );
 
     D3D12_STATIC_SAMPLER_DESC static_sampler = {};
     static_sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;

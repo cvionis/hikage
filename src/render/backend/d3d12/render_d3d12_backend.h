@@ -56,15 +56,6 @@ struct R_D3D12_Backend {
   U32 material_srv_idx; // @Todo: Remove. Redundant. Use #define you already have.
   U32 material_capacity;
 
-  ID3D12Resource *frame_cb;
-  U8 *frame_cb_mapped;
-
-  ID3D12Resource *draw_cb_buffer;
-  U8 *draw_cb_buffer_mapped;
-  U32 draw_cb_stride;        // always 256
-  U32 draw_cb_capacity;      // number of slots
-  U32 draw_cb_write_idx;     // cursor
-
   ID3D12Fence *copy_fence;
   HANDLE copy_fence_event;
   U64 copy_fence_value;
@@ -75,7 +66,8 @@ struct R_D3D12_Backend {
   /*
   SRV heap:
 
-  0–1        CBVs
+  0          root CBV (b0)
+  1          root CBV (b1)
   2–1025     textures (fixed region)
   1026       material buffer
   ...
