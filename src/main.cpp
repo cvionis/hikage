@@ -140,7 +140,7 @@ entry_point(void)
     r_alloc_reset(&r_allocator);
   }
 
-  r_alloc_release(&r_allocator);
+  //r_alloc_release(&r_allocator);
   // @Todo: Release asset context
   r_ctx_release(&renderer);
   r_shutdown();

@@ -174,7 +174,7 @@ float4 ps_main(PS_Input input) : SV_TARGET
 
   float3 amb = albedo*0.3;
   float3 lit = amb*occlusion +
-    1.5*float3(16., 12., 8.) * NoL +
+    float3(8., 6., 4.) * NoL +
     float3(0.5,0.7,1.2) * sky_dif +
     float3(1.0,1.0,1.0) * bot_dif;
 

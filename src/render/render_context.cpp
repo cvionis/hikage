@@ -110,7 +110,41 @@ r_ctx_init_resources(R_Context *ctx)
     .sample_count = 1,
   };
 
+  R_PipelineDesc shadow_pipeline_desc = {
+    .vs_path = L"../src/render/shaders/shadow.hlsl",
+    .ps_path = L"../src/render/shaders/shadow.hlsl",
+
+    .input_layout = &r_mesh_layout,
+
+    .raster = {
+      .fill_mode = R_FillMode_Solid,
+      .cull_mode = R_CullMode_Back,
+      .front_ccw = 0,
+      .depth_clip_enable = 1,
+    },
+
+    .depth_stencil = {
+      .depth_enable = 1,
+      .depth_write_enable = 1,
+      .depth_compare = R_CompareOp_LessEqual,
+    },
+
+    .blend = {
+      .targets = {
+        { .blend_enable = 0, .write_mask = 0xF },
+      },
+    },
+
+    .topology = R_TopologyKind_Triangle,
+
+    .rt_count = 0,
+
+    .depth_format = R_Format_D32_Float,
+    .sample_count = 1,
+  };
+
   ctx->pipeline_forward = r_create_pipeline(forward_pipeline_desc);
+  ctx->pipeline_shadow = r_create_pipeline(shadow_pipeline_desc);
   ctx->pipeline_post = r_create_pipeline(post_pipeline_desc);
 
   //
@@ -131,11 +165,8 @@ r_ctx_init_resources(R_Context *ctx)
     .has_clear_value = 1,
     .clear_color = { 0.95f, 0.9f, 0.9f, 1.0f },
   };
-  ctx->hdr_color = r_create_texture(0, 0, hdr_color_desc);
 
-  // Depth
-
-  R_TextureDesc depth_desc = {
+  R_TextureDesc forward_depth_desc = {
     .width  = ctx->width,
     .height = ctx->height,
     .depth  = 1,
@@ -152,7 +183,32 @@ r_ctx_init_resources(R_Context *ctx)
       .stencil = 0,
     },
   };
-  ctx->forward_depth = r_create_texture(0, 0, depth_desc);
+
+  // @Note: Temporary & arbitrary
+  S32 shadow_map_res = 2048;
+  S32 shadow_cascades_count = 4;
+
+  R_TextureDesc shadow_cascades_depth_desc = {
+    .width  = shadow_map_res,
+    .height = shadow_map_res,
+    .depth  = shadow_cascades_count,
+    .mips_count = 1,
+    .fmt   = R_Format_D32_Float,
+    .usage = R_TextureUsage_DepthStencil|R_TextureUsage_Sampled,
+    .kind  = R_TextureKind_2D_Array,
+
+    .init_state = R_TextureInitState_DepthWrite,
+
+    .has_clear_value = 1,
+    .clear_ds = {
+      .depth   = 1.0f,
+      .stencil = 0,
+    },
+  };
+
+  ctx->hdr_color = r_create_texture(0, 0, hdr_color_desc);
+  ctx->forward_depth = r_create_texture(0, 0, forward_depth_desc);
+  ctx->shadow_cascades_depth = r_create_texture(0, 0, shadow_cascades_depth_desc);
 }
 
 static void
@@ -293,7 +349,6 @@ r_frame_begin(R_Context *ctx)
 
   ctx->passes = ArenaPushArray(ctx->pass_arena, R_Pass, 16);
   ctx->passes_count = 0;
-
   ctx->compiled_passes = ArenaPushArray(ctx->pass_arena, R_CompiledPass, 16);
   ctx->compiled_passes_count = 0;
 

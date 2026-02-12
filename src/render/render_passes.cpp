@@ -107,7 +107,7 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
   pass->viewport = ctx->default_viewport;
   pass->scissor = ctx->default_scissor;
 
-  pass->clear_flags = (R_ClearFlag_Color | R_ClearFlag_Depth);
+  pass->clear_flags = R_ClearFlag_Color|R_ClearFlag_Depth;
   pass->clear_color = v4f32(0.95f,0.9f, 0.9f, 1.f);
   pass->clear_depth = 1.0f;
 
@@ -123,6 +123,50 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
   pass->execute = r_pass_execute_forward;
 }
 
+//
+// Shadow pass
+//
+
+R_PASS_EXECUTE_PROC(r_pass_execute_shadow)
+{
+  (void *)pass;
+  R_D3D12_Backend *backend = &r_ctx;
+  (void *)backend;
+}
+
+static void
+r_pass_add_shadow(R_Context *ctx)
+{
+  R_Pass *pass = r_frame_push_pass(ctx);
+  pass->name = S8("shadow");
+  pass->pipeline = ctx->pipeline_shadow;
+
+  #if 0
+  pass->color_targets_count = 1;
+  pass->read_resources[0] = ctx->hdr_color;
+  pass->read_count = 1;
+  pass->write_resources[0] = col_target;
+  pass->write_count = 1;
+
+  pass->color_final_state = R_ResourceState_Present;
+  #endif
+
+  pass->viewport = ctx->default_viewport;
+  pass->scissor = ctx->default_scissor;
+
+  pass->clear_flags = R_ClearFlag_Depth;
+  pass->clear_color = v4f32(0.f,0.f, 0.f, 0.f);
+
+  pass->topology = R_Topology_TriangleList;
+
+  pass->userdata = 0;
+  pass->execute = r_pass_execute_shadow;
+}
+
+//
+// Post processing pass
+//
+
 R_PASS_EXECUTE_PROC(r_pass_execute_post)
 {
   struct R_PostProcessCB {
@@ -131,10 +175,9 @@ R_PASS_EXECUTE_PROC(r_pass_execute_post)
 
   R_D3D12_Backend *backend = &r_ctx;
 
-  // @Note: Temporary. Create helpers.
   R_Handle hdr_color = pass->read_resources[0];  // @Note: Temporary
-  R_ResourceSlot *slot = &r_resource_table.slots[hdr_color.idx];
-  S32 hdr_color_idx = slot->srv_idx - R_D3D12_TEXTURE_TABLE_BASE; // @Todo: Create helper.
+  R_ResourceSlot *slot = &r_resource_table.slots[hdr_color.idx]; // @Todo: Create helper for this.
+  S32 hdr_color_idx = slot->srv_idx - R_D3D12_TEXTURE_TABLE_BASE; // @Todo: Create helper for this.
 
   R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_PostProcessCB));
   R_PostProcessCB *cb = (R_PostProcessCB *)alloc.cpu;
@@ -156,7 +199,7 @@ r_pass_add_post(R_Context *ctx)
   pass->color_targets[0] = col_target;
   pass->color_targets_count = 1;
 
-  // @Todo: wrap in something like r_pass_add_read(R_Handle h), r_pass_add_write(R_Handle h).
+  // @Todo: wrap in something like r_pass_push_read(R_Pass *pass, R_Handle h), r_pass_push_write(R_Pass *pass, R_Handle h).
   pass->read_resources[0] = ctx->hdr_color;
   pass->read_count = 1;
   pass->write_resources[0] = col_target;

@@ -77,7 +77,7 @@ struct R_ResourceTable {
   S32 count;
 };
 
-global R_ResourceTable r_resource_table; // @Todo: Store in r_ctx
+global R_ResourceTable r_resource_table; // @Note: temporary
 
 //
 // Textures

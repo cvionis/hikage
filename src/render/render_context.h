@@ -65,10 +65,11 @@ struct R_Context {
   // Persstent resources: pipelines
   R_Handle pipeline_forward;
   R_Handle pipeline_post;
+  R_Handle pipeline_shadow;
 
   // Persistent resources: textures
   R_Handle forward_depth;
-
+  R_Handle shadow_cascades_depth;
   R_Handle hdr_color;
 
   // Defaults
