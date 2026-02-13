@@ -184,6 +184,7 @@ r_ctx_init_resources(R_Context *ctx)
     },
   };
 
+  #if 0
   // @Note: Temporary & arbitrary
   S32 shadow_map_res = 2048;
   S32 shadow_cascades_count = 4;
@@ -205,10 +206,11 @@ r_ctx_init_resources(R_Context *ctx)
       .stencil = 0,
     },
   };
+  #endif
 
   ctx->hdr_color = r_create_texture(0, 0, hdr_color_desc);
   ctx->forward_depth = r_create_texture(0, 0, forward_depth_desc);
-  ctx->shadow_cascades_depth = r_create_texture(0, 0, shadow_cascades_depth_desc);
+  //ctx->shadow_cascades_depth = r_create_texture(0, 0, shadow_cascades_depth_desc);
 }
 
 static void

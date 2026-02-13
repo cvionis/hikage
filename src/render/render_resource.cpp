@@ -42,7 +42,6 @@ r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
   R_Handle result = {
     .idx = slot_idx,
     .gen = slot->gen,
-    .fence_value = create.fence_value,
   };
   return result;
 }
@@ -65,7 +64,6 @@ r_create_buffer(R_BufferInitData init, R_BufferDesc desc)
   R_Handle result = {
     .idx = slot_idx,
     .gen = slot->gen,
-    .fence_value = create.fence_value,
   };
   return result;
 }
@@ -90,7 +88,6 @@ r_create_pipeline(R_PipelineDesc desc)
 
     result.idx = slot_idx;
     result.gen = slot->gen;
-    result.fence_value = create.fence_value;
   }
 
   return result;

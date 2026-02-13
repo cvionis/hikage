@@ -8,12 +8,49 @@
 // CPU-side resource storage
 //
 
+#define R_VIEW_SLOTS_MAX     1024
 #define R_RESOURCE_SLOTS_MAX 1024
 
 struct R_Handle {
   S32 idx;
   S32 gen;
-  S64 fence_value;
+};
+
+enum R_Format {
+  R_Format_Invalid,
+
+  // 8-bit normalized color
+  R_Format_R8_UNorm,
+  R_Format_R8G8_UNorm,
+  R_Format_R8G8B8A8_UNorm,
+  R_Format_R8G8B8A8_UNorm_Srgb,
+
+  // 16-bit / 32-bit float color (HDR / G-buffer)
+  R_Format_R16_Float,
+  R_Format_R16G16_Float,
+  R_Format_R16G16B16A16_Float,
+  R_Format_R32_Float,
+  R_Format_R32G32_Float,
+  R_Format_R32G32B32_Float,
+  R_Format_R32G32B32A32_Float,
+
+  // Packed / special
+  R_Format_R11G11B10_Float,     // HDR lighting buffers
+  R_Format_R10G10B10A2_UNorm,   // optional G-buffer / lighting
+
+  // Block-compressed (BCn)
+  R_Format_BC1_UNorm,
+  R_Format_BC1_UNorm_Srgb,
+  R_Format_BC3_UNorm,
+  R_Format_BC3_UNorm_Srgb,
+  R_Format_BC4_UNorm,
+  R_Format_BC5_UNorm,
+  R_Format_BC7_UNorm,
+  R_Format_BC7_UNorm_Srgb,
+
+  // Depth / Stencil
+  R_Format_D32_Float,
+  R_Format_D24_UNorm_S8_UInt,
 };
 
 enum R_ResourceKind {
@@ -52,7 +89,7 @@ struct R_CreateResource {
   S32 srv_idx = -1;
   S32 rtv_idx = -1;
   S32 dsv_idx = -1;
-  S64 fence_value;
+  S64 fence_value; // @Todo: Remove from this struct
   void *backend;
 };
 
@@ -72,53 +109,69 @@ struct R_ResourceSlot {
   void *backend_rsrc;
 };
 
+// ------------------------------------------------------------------------------------------------------------------------------------
+
+enum R_ViewKind {
+  R_ViewKind_None,
+  R_ViewKind_ShaderResource,
+  R_ViewKind_RenderTarget,
+  R_ViewKind_DepthStencil,
+};
+
+struct R_View {
+  S32 resource;
+  R_ViewKind kind;
+  S32 descriptor_idx; // Index into SRV, RTV, or DSV heap.
+};
+
+struct R_SubresourceRange {
+  S32 mip_start;
+  S32 mip_count;
+  S32 slice_start;
+  S32 slice_count;
+};
+
+struct R_ViewDesc {
+  R_ViewKind kind;
+  R_Format fmt_override; // In case the resource was created as typless and it needs to reinterpreted.
+  R_SubresourceRange range;
+};
+
+// Returns a handle to an entry in the view cache (R_View) containing descriptor heap idx.
+static R_Handle r_view_from_texture(R_Handle texture, R_ViewDesc desc);
+
+// ------------------------------------------------------------------------------------------------------------------------------------
+
 struct R_ResourceTable {
   R_ResourceSlot slots[R_RESOURCE_SLOTS_MAX];
   S32 count;
 };
 
-global R_ResourceTable r_resource_table; // @Note: temporary
+struct R_ViewTable {
+  R_View views[R_VIEW_SLOTS_MAX];
+  S32 count;
+};
+
+/*
+ @Todo:
+
+ struct R_ResourceContext {
+  R_Resource resources;
+  S32 resources_count;
+
+  R_View views;
+  S32 views_count;
+ };
+
+ global R_ResourceContext r_resources;
+ */
+
+global R_ResourceTable r_resource_table; // -> r_resources.
+global R_ViewTable r_views;
 
 //
 // Textures
 //
-
-enum R_Format {
-  R_Format_Invalid,
-
-  // 8-bit normalized color
-  R_Format_R8_UNorm,
-  R_Format_R8G8_UNorm,
-  R_Format_R8G8B8A8_UNorm,
-  R_Format_R8G8B8A8_UNorm_Srgb,
-
-  // 16-bit / 32-bit float color (HDR / G-buffer)
-  R_Format_R16_Float,
-  R_Format_R16G16_Float,
-  R_Format_R16G16B16A16_Float,
-  R_Format_R32_Float,
-  R_Format_R32G32_Float,
-  R_Format_R32G32B32_Float,
-  R_Format_R32G32B32A32_Float,
-
-  // Packed / special
-  R_Format_R11G11B10_Float,     // HDR lighting buffers
-  R_Format_R10G10B10A2_UNorm,   // optional G-buffer / lighting
-
-  // Block-compressed (BCn)
-  R_Format_BC1_UNorm,
-  R_Format_BC1_UNorm_Srgb,
-  R_Format_BC3_UNorm,
-  R_Format_BC3_UNorm_Srgb,
-  R_Format_BC4_UNorm,
-  R_Format_BC5_UNorm,
-  R_Format_BC7_UNorm,
-  R_Format_BC7_UNorm_Srgb,
-
-  // Depth / Stencil
-  R_Format_D32_Float,
-  R_Format_D24_UNorm_S8_UInt,
-};
 
 enum R_TextureUsage {
   R_TextureUsage_Default      = 0,
