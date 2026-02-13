@@ -106,8 +106,6 @@ struct R_ResourceSlot {
   void *backend_rsrc;
 };
 
-// ------------------------------------------------------------------------------------------------------------------------------------
-
 enum R_ViewKind {
   R_ViewKind_None,
   R_ViewKind_ShaderResource,
@@ -134,10 +132,8 @@ struct R_ViewDesc {
   R_SubresourceRange range;
 };
 
-// Returns a handle to an entry in the view cache (R_View) containing descriptor heap idx.
+// Either returns existing view if found in cache or creates a new one and allocates a descriptor for it.
 static R_Handle r_view_from_texture(R_Handle texture, R_ViewDesc desc);
-
-// ------------------------------------------------------------------------------------------------------------------------------------
 
 struct R_ResourceTable {
   R_ResourceSlot slots[R_RESOURCE_SLOTS_MAX];

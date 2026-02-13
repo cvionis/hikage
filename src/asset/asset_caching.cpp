@@ -1020,10 +1020,6 @@ ac_build_images(AC_Builder *builder, AC_ImageEntry *img_table, cgltf_data *gltf)
   }
 
   U32 img_data_offset = (U32)builder->size;
-  //img_data_offset = AlignPow2(img_data_offset, 256);
-  U64 padding = img_data_offset - builder->size;
-  //ac_push(builder, padding, 1);
-  //ac_push(builder, img_data_size, 256);
   ac_push(builder, img_data_size, 1);
 
   U8 *src = (U8 *)img_staging_arena + ARENA_HEADER_SIZE;

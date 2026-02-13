@@ -41,8 +41,6 @@ r_alloc_descriptor_for_view(R_Handle texture, R_ViewDesc desc)
 {
   S32 idx = -1;
 
-  R_D3D12_Backend *backend = &r_ctx;
-
   R_ResourceSlot *slot = &r_resource_table.slots[texture.idx];
   R_D3D12_Texture *tex = (R_D3D12_Texture *)slot->backend_rsrc;
   DXGI_FORMAT dxgi_fmt = r_d3d12_fmt_from_r_fmt(desc.fmt);

@@ -129,6 +129,7 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
 
 R_PASS_EXECUTE_PROC(r_pass_execute_shadow)
 {
+  (void *)userdata;
   (void *)pass;
   R_D3D12_Backend *backend = &r_ctx;
   (void *)backend;
@@ -169,6 +170,8 @@ r_pass_add_shadow(R_Context *ctx)
 
 R_PASS_EXECUTE_PROC(r_pass_execute_post)
 {
+  (void *)userdata;
+
   struct R_PostProcessCB {
     U32 tex_hdr_color;
   };

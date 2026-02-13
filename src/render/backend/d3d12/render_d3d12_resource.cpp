@@ -450,7 +450,6 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
       U32 dst_row_pitch = layouts[i].Footprint.RowPitch;
 
       if (is_block_compressed(fmt)) {
-        U32 bpb = bc_bytes_per_block(fmt);
         U32 dst_row_pitch = layouts[i].Footprint.RowPitch;
 
         U32 src_row_bytes = (U32)init[i].row_pitch;
@@ -528,7 +527,6 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
 }
 
 // @Todo: Test; error-checking and input validation.
-// @Todo: Limited to 2D textures right now.
 static R_CreateResource
 r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
 {
@@ -540,11 +538,20 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   rdesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
   rdesc.Width = desc.width;
   rdesc.Height = desc.height;
-  rdesc.DepthOrArraySize = 1;
   rdesc.MipLevels = (U16)desc.mips_count;
   rdesc.Format = dxgi_fmt;
   rdesc.SampleDesc.Count = 1;
   rdesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+
+  // @Note: Only 2D and 2D array supported at the moment.
+  switch (desc.kind) {
+    case R_TextureKind_2D: {
+      rdesc.DepthOrArraySize = 1;
+    }break;
+    case R_TextureKind_2D_Array: {
+      rdesc.DepthOrArraySize = (U16)desc.depth;
+    }break;
+  }
 
   D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
   if (desc.usage & R_TextureUsage_RenderTarget) {
@@ -584,7 +591,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     case R_TextureInitState_RenderTarget: { tex->state = D3D12_RESOURCE_STATE_RENDER_TARGET;          }break;
     case R_TextureInitState_DepthWrite:   { tex->state = D3D12_RESOURCE_STATE_DEPTH_WRITE;            }break;
     case R_TextureInitState_CopyDest:     { tex->state = D3D12_RESOURCE_STATE_COPY_DEST;              }break;
-    case R_TextureInitState_ShaderRead:   { tex->state =  D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; }break;
+    case R_TextureInitState_ShaderRead:   { tex->state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; }break;
   }
   result.state = r_state_from_d3d12_state(tex->state);
 
@@ -599,24 +606,6 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     IID_PPV_ARGS(&tex->resource)
   );
   Assert(SUCCEEDED(hr));
-
-  #if 0
-  if (desc.usage & R_TextureUsage_Sampled) {
-    S32 srv_idx = r_alloc_texture_descriptor_idx_srv();
-    r_d3d12_write_srv(tex->resource, dxgi_fmt, desc.mips_count, srv_idx);
-    result.srv_idx = srv_idx;
-  }
-  if (desc.usage & R_TextureUsage_RenderTarget) {
-    S32 rtv_idx = r_alloc_texture_descriptor_idx_rtv();
-    r_d3d12_write_rtv(tex->resource, dxgi_fmt, rtv_idx);
-    result.rtv_idx = rtv_idx;
-  }
-  if (desc.usage & R_TextureUsage_DepthStencil) {
-    S32 dsv_idx = r_alloc_texture_descriptor_idx_dsv();
-    r_d3d12_write_dsv(tex->resource, dxgi_fmt, dsv_idx);
-    result.dsv_idx = dsv_idx;
-  }
-  #endif
 
   if (init_count > 0) {
     r_d3d12_upload_texture(tex, dxgi_fmt, init, init_count);
