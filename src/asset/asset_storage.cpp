@@ -224,8 +224,20 @@ assets_load_model(AssetContext *ctx, String8 name)
           };
           init_idx += 1;
         }
+        R_Handle tex = r_create_texture(init, img->mip_count, desc);
+        R_ViewDesc view_desc = {
+          .kind = R_ViewKind_ShaderResource,
+          .fmt = img->format,
+          .range = {
+            .mip_start = 0,
+            .mip_count = (S32)img->mip_count,
+            .slice_start = 0,
+            .slice_count = 1,
+          },
+        };
+        r_view_from_texture(tex, view_desc);
+        dst->tex = tex;
 
-        dst->tex = r_create_texture(init, img->mip_count, desc);
         ctx->textures_count += 1;
       }
 

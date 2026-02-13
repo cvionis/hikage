@@ -314,9 +314,11 @@ r_init(OS_Handle window)
 
     R_ResourceSlot *slot = &r_resource_table.slots[frame_idx];
     slot->kind = R_ResourceKind_Texture;
+    #if 0
     slot->srv_idx = -1;
     slot->dsv_idx = -1;
     slot->rtv_idx = descriptor_idx;
+    #endif
     slot->alive = 1;
     slot->state = R_ResourceState_Present;
     slot->backend_rsrc = (void *)tex;

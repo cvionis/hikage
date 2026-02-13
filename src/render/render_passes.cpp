@@ -92,8 +92,8 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
 
   // @Note: Used for rendering. Needs to match PSO desc.
   R_Handle col_target = ctx->hdr_color; //r_current_back_buffer();
-  pass->color_targets[0] = col_target;
-  pass->color_targets_count = 1;
+  pass->render_targets[0] = col_target;
+  pass->render_targets_count = 1;
   pass->depth_target = ctx->forward_depth;
 
   // @Note: Used for barrier generation.
@@ -142,7 +142,7 @@ r_pass_add_shadow(R_Context *ctx)
   pass->pipeline = ctx->pipeline_shadow;
 
   #if 0
-  pass->color_targets_count = 1;
+  pass->render_targets_count = 1;
   pass->read_resources[0] = ctx->hdr_color;
   pass->read_count = 1;
   pass->write_resources[0] = col_target;
@@ -177,7 +177,8 @@ R_PASS_EXECUTE_PROC(r_pass_execute_post)
 
   R_Handle hdr_color = pass->read_resources[0];  // @Note: Temporary
   R_ResourceSlot *slot = &r_resource_table.slots[hdr_color.idx]; // @Todo: Create helper for this.
-  S32 hdr_color_idx = slot->srv_idx - R_D3D12_TEXTURE_TABLE_BASE; // @Todo: Create helper for this.
+  // @Todo: use new view_from_texture api.
+  S32 hdr_color_idx = 0;// @Todo: slot->srv_idx - R_D3D12_TEXTURE_TABLE_BASE; // @Todo: Create helper for this.
 
   R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_PostProcessCB));
   R_PostProcessCB *cb = (R_PostProcessCB *)alloc.cpu;
@@ -196,8 +197,8 @@ r_pass_add_post(R_Context *ctx)
   pass->pipeline = ctx->pipeline_post;
 
   R_Handle col_target = r_current_back_buffer();
-  pass->color_targets[0] = col_target;
-  pass->color_targets_count = 1;
+  pass->render_targets[0] = col_target;
+  pass->render_targets_count = 1;
 
   // @Todo: wrap in something like r_pass_push_read(R_Pass *pass, R_Handle h), r_pass_push_write(R_Pass *pass, R_Handle h).
   pass->read_resources[0] = ctx->hdr_color;

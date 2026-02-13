@@ -86,7 +86,7 @@ struct R_ResourceTransition {
 
 struct R_CreateResource {
   R_ResourceState state;
-  S32 srv_idx = -1;
+  S32 srv_idx = -1; // @Todo: Remove these from this struct
   S32 rtv_idx = -1;
   S32 dsv_idx = -1;
   S64 fence_value; // @Todo: Remove from this struct
@@ -100,10 +100,7 @@ struct R_ResourceSlot {
   S32 gen;
   B32 alive; // @Todo: Make sure this is set properly.
 
-  // @Note: Kind of a leaky abstraction, but it works for now.
-  S32 srv_idx;
-  S32 rtv_idx;
-  S32 dsv_idx;
+  R_Format fmt; // @Note: Not sure if this is really an intrinsic property of the resource or this is a property of a view on that resource.
 
   S64 fence_value; // @Note: need a value that indicates a fence is ready by default (e.g. 0)
   void *backend_rsrc;
@@ -119,6 +116,7 @@ enum R_ViewKind {
 };
 
 struct R_View {
+  U64 hash;
   S32 resource;
   R_ViewKind kind;
   S32 descriptor_idx; // Index into SRV, RTV, or DSV heap.
@@ -133,7 +131,7 @@ struct R_SubresourceRange {
 
 struct R_ViewDesc {
   R_ViewKind kind;
-  R_Format fmt_override; // In case the resource was created as typless and it needs to reinterpreted.
+  R_Format fmt; // In case the resource was created as typless and it needs to reinterpreted.
   R_SubresourceRange range;
 };
 
@@ -148,7 +146,7 @@ struct R_ResourceTable {
 };
 
 struct R_ViewTable {
-  R_View views[R_VIEW_SLOTS_MAX];
+  R_View slots[R_VIEW_SLOTS_MAX];
   S32 count;
 };
 

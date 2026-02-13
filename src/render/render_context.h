@@ -13,8 +13,8 @@ struct R_Pass {
   R_Handle pipeline;
 
   // Attachments
-  R_Handle color_targets[8];
-  S32 color_targets_count;
+  R_Handle render_targets[8];
+  S32 render_targets_count;
   R_Handle depth_target;
 
   R_ResourceState color_final_state; // @Note: All color targets share the same final state for now (covers most cases).

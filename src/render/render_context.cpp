@@ -284,21 +284,43 @@ r_pass_begin(R_Pass *pass)
 
   // Bind render targets
 
-  B32 has_depth_target = r_texture_has_depth_stencil_view(pass->depth_target);
+  B32 has_depth_target = r_resource_valid(pass->depth_target);
 
   D3D12_CPU_DESCRIPTOR_HANDLE rtv_handles[8] = {};
-  for (S32 i = 0; i < pass->color_targets_count; ++i) {
-    rtv_handles[i] =
-      r_d3d12_rtv_from_texture(pass->color_targets[i]);
+  for (S32 i = 0; i < pass->render_targets_count; ++i) {
+    R_Handle render_target = pass->render_targets[i];
+    R_ViewDesc desc = {
+      .kind = R_ViewKind_RenderTarget,
+      .fmt = r_texture_get_fmt(render_target),
+      .range = {
+        .mip_start = 0,
+        .mip_count = 1,
+        .slice_start = 0,
+        .slice_count = 1,
+      },
+    };
+    R_Handle view = r_view_from_texture(render_target, desc);
+    rtv_handles[i] = r_d3d12_rtv_from_view(view);
   }
 
   D3D12_CPU_DESCRIPTOR_HANDLE dsv_handle = {};
   if (has_depth_target) {
-    dsv_handle = r_d3d12_dsv_from_texture(pass->depth_target);
+    R_ViewDesc desc = {
+      .kind = R_ViewKind_DepthStencil,
+      .fmt = R_Format_D32_Float,
+      .range = {
+        .mip_start = 0,
+        .mip_count = 1,
+        .slice_start = 0,
+        .slice_count = 1,
+      },
+    };
+    R_Handle view = r_view_from_texture(pass->depth_target, desc);
+    dsv_handle = r_d3d12_dsv_from_view(view);
   }
 
   backend->command_list->OMSetRenderTargets(
-    pass->color_targets_count,
+    pass->render_targets_count,
     rtv_handles,
     FALSE,
     has_depth_target ? &dsv_handle : 0
@@ -307,7 +329,7 @@ r_pass_begin(R_Pass *pass)
   // Clears
 
   if (pass->clear_flags & R_ClearFlag_Color) {
-    for (S32 i = 0; i < pass->color_targets_count; i += 1) {
+    for (S32 i = 0; i < pass->render_targets_count; i += 1) {
       backend->command_list->ClearRenderTargetView(
         rtv_handles[i],
         &pass->clear_color.e[0], 0, 0
@@ -376,11 +398,11 @@ r_frame_compile(R_Context *ctx)
     R_CompiledPass *compiled = &ctx->compiled_passes[ctx->compiled_passes_count];
     ctx->compiled_passes_count += 1;
 
-    // @Todo: this needs to use write resources, not color_targets...
-    for (S32 ct_idx = 0; ct_idx < pass->color_targets_count; ct_idx += 1) {
-      R_Handle color_target = pass->color_targets[ct_idx];
+    // @Todo: this needs to use write resources, not render_targets...
+    for (S32 ct_idx = 0; ct_idx < pass->render_targets_count; ct_idx += 1) {
+      R_Handle render_target = pass->render_targets[ct_idx];
 
-      R_ResourceState state_pre = r_resource_state(color_target);
+      R_ResourceState state_pre = r_resource_state(render_target);
       R_ResourceState state_mid = R_ResourceState_RenderTarget;
       R_ResourceState state_post = pass->color_final_state;
 
@@ -388,7 +410,7 @@ r_frame_compile(R_Context *ctx)
         R_ResourceTransition *pre = &compiled->pre_transitions[compiled->pre_transitions_count];
         compiled->pre_transitions_count += 1;
 
-        pre->rsrc = color_target;
+        pre->rsrc = render_target;
         pre->state_before = state_pre;
         pre->state_after = state_mid;
       }
@@ -397,7 +419,7 @@ r_frame_compile(R_Context *ctx)
         R_ResourceTransition *post = &compiled->post_transitions[compiled->post_transitions_count];
         compiled->post_transitions_count += 1;
 
-        post->rsrc = color_target;
+        post->rsrc = render_target;
         post->state_before = state_mid;
         post->state_after = state_post;
       }

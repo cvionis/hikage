@@ -37,6 +37,7 @@ struct R_D3D12_Pipeline {
 };
 
 struct R_D3D12_Texture {
+  // @Todo: Cache format
   ID3D12Resource *resource;
   D3D12_RESOURCE_STATES state;
 };
@@ -183,12 +184,25 @@ r_alloc_texture_descriptor_idx_dsv(void)
 }
 
 static D3D12_CPU_DESCRIPTOR_HANDLE
-r_d3d12_rtv_from_texture(R_Handle handle)
+r_d3d12_srv_from_view(R_Handle handle)
 {
   R_D3D12_Backend *backend = &r_ctx;
 
-  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
-  S32 rtv_idx = slot->rtv_idx;
+  R_View *view = &r_views.slots[handle.idx];
+  S32 srv_idx = view->descriptor_idx;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE result = backend->srv_heap->GetCPUDescriptorHandleForHeapStart();
+  result.ptr += (SIZE_T)srv_idx * (SIZE_T)backend->srv_descriptor_size;
+  return result;
+}
+
+static D3D12_CPU_DESCRIPTOR_HANDLE
+r_d3d12_rtv_from_view(R_Handle handle)
+{
+  R_D3D12_Backend *backend = &r_ctx;
+
+  R_View *view = &r_views.slots[handle.idx];
+  S32 rtv_idx = view->descriptor_idx;
 
   D3D12_CPU_DESCRIPTOR_HANDLE result = backend->rtv_heap->GetCPUDescriptorHandleForHeapStart();
   result.ptr += (SIZE_T)rtv_idx * (SIZE_T)backend->rtv_descriptor_size;
@@ -196,12 +210,12 @@ r_d3d12_rtv_from_texture(R_Handle handle)
 }
 
 static D3D12_CPU_DESCRIPTOR_HANDLE
-r_d3d12_dsv_from_texture(R_Handle handle)
+r_d3d12_dsv_from_view(R_Handle handle)
 {
   R_D3D12_Backend *backend = &r_ctx;
 
-  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
-  S32 dsv_idx = slot->dsv_idx;
+  R_View *view = &r_views.slots[handle.idx];
+  S32 dsv_idx = view->descriptor_idx;
 
   D3D12_CPU_DESCRIPTOR_HANDLE result = backend->dsv_heap->GetCPUDescriptorHandleForHeapStart();
   result.ptr += (SIZE_T)dsv_idx * (SIZE_T)backend->dsv_descriptor_size;
@@ -244,16 +258,30 @@ r_d3d12_fmt_from_r_fmt(R_Format fmt)
 }
 
 static void
-r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 mips_count, S32 descriptor_idx)
+r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, R_SubresourceRange range, S32 descriptor_idx)
 {
   R_D3D12_Backend *ctx = &r_ctx;
 
   D3D12_SHADER_RESOURCE_VIEW_DESC srv_desc = {};
   srv_desc.Format = fmt;
-  // @Note: Assumes 2D
-  srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
   srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-  srv_desc.Texture2D.MipLevels = mips_count;
+
+  if (range.slice_count > 1) {
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+    srv_desc.Texture2DArray.MostDetailedMip     = range.mip_start;
+    srv_desc.Texture2DArray.MipLevels           = range.mip_count;
+    srv_desc.Texture2DArray.FirstArraySlice     = range.slice_start;
+    srv_desc.Texture2DArray.ArraySize           = range.slice_count;
+    srv_desc.Texture2DArray.PlaneSlice          = 0;
+    srv_desc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+  }
+  else {
+    srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srv_desc.Texture2D.MostDetailedMip     = range.mip_start;
+    srv_desc.Texture2D.MipLevels           = range.mip_count;
+    srv_desc.Texture2D.PlaneSlice          = 0;
+    srv_desc.Texture2D.ResourceMinLODClamp = 0.0f;
+  }
 
   D3D12_CPU_DESCRIPTOR_HANDLE handle =
     ctx->srv_heap->GetCPUDescriptorHandleForHeapStart();
@@ -263,16 +291,25 @@ r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 mips_count, S32
 }
 
 static void
-r_d3d12_write_rtv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 descriptor_idx)
+r_d3d12_write_rtv(ID3D12Resource *resource, DXGI_FORMAT fmt, R_SubresourceRange range, S32 descriptor_idx)
 {
   R_D3D12_Backend *ctx = &r_ctx;
 
   D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
   rtv_desc.Format = fmt;
-  // @Note: Assumes 2D
-  rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-  rtv_desc.Texture2D.MipSlice = 0;
-  rtv_desc.Texture2D.PlaneSlice = 0;
+
+  if (range.slice_count > 1) {
+    rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+    rtv_desc.Texture2DArray.MipSlice        = range.mip_start;
+    rtv_desc.Texture2DArray.FirstArraySlice = range.slice_start;
+    rtv_desc.Texture2DArray.ArraySize       = range.slice_count;
+    rtv_desc.Texture2DArray.PlaneSlice      = 0;
+  }
+  else {
+    rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+    rtv_desc.Texture2D.MipSlice   = range.mip_start;
+    rtv_desc.Texture2D.PlaneSlice= 0;
+  }
 
   D3D12_CPU_DESCRIPTOR_HANDLE handle =
     ctx->rtv_heap->GetCPUDescriptorHandleForHeapStart();
@@ -282,16 +319,24 @@ r_d3d12_write_rtv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 descriptor_idx)
 }
 
 static void
-r_d3d12_write_dsv(ID3D12Resource *resource, DXGI_FORMAT fmt, S32 descriptor_idx)
+r_d3d12_write_dsv(ID3D12Resource *resource, DXGI_FORMAT fmt, R_SubresourceRange range, S32 descriptor_idx)
 {
   R_D3D12_Backend *ctx = &r_ctx;
 
   D3D12_DEPTH_STENCIL_VIEW_DESC dsv_desc = {};
   dsv_desc.Format = fmt;
-  // @Note: Assumes 2D
-  dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-  dsv_desc.Flags = D3D12_DSV_FLAG_NONE;
-  dsv_desc.Texture2D.MipSlice = 0;
+  dsv_desc.Flags  = D3D12_DSV_FLAG_NONE;
+
+  if (range.slice_count > 1) {
+    dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+    dsv_desc.Texture2DArray.MipSlice        = range.mip_start;
+    dsv_desc.Texture2DArray.FirstArraySlice = range.slice_start;
+    dsv_desc.Texture2DArray.ArraySize       = range.slice_count;
+  }
+  else {
+    dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+    dsv_desc.Texture2D.MipSlice = range.mip_start;
+  }
 
   D3D12_CPU_DESCRIPTOR_HANDLE handle =
     ctx->dsv_heap->GetCPUDescriptorHandleForHeapStart();
@@ -555,6 +600,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   );
   Assert(SUCCEEDED(hr));
 
+  #if 0
   if (desc.usage & R_TextureUsage_Sampled) {
     S32 srv_idx = r_alloc_texture_descriptor_idx_srv();
     r_d3d12_write_srv(tex->resource, dxgi_fmt, desc.mips_count, srv_idx);
@@ -570,6 +616,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     r_d3d12_write_dsv(tex->resource, dxgi_fmt, dsv_idx);
     result.dsv_idx = dsv_idx;
   }
+  #endif
 
   if (init_count > 0) {
     r_d3d12_upload_texture(tex, dxgi_fmt, init, init_count);

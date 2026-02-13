@@ -1,16 +1,19 @@
-static B32
-r_texture_valid(R_Handle handle)
+
+static R_Format
+r_texture_get_fmt(R_Handle handle)
 {
   R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
-  B32 valid = ((slot->srv_idx >= 0) || (slot->rtv_idx >= 0) || (slot->dsv_idx >= 0));
-  return valid;
+  R_Format fmt = slot->fmt;
+  return fmt;
 }
 
 static B32
-r_texture_has_depth_stencil_view(R_Handle handle)
+r_resource_valid(R_Handle handle)
 {
+  // @Todo: Make sure you're setting `alive` wherever you need to.
   R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
-  return (slot->dsv_idx >= 0);
+  B32 valid = slot->alive;
+  return valid;
 }
 
 static S32
@@ -22,6 +25,77 @@ r_alloc_resource_slot(void)
   // @Todo: Free list
 }
 
+// @Todo: Implementation is backend-dependent. Put in _d3d12_resource.cpp
+static S32
+r_alloc_descriptor_for_view(R_Handle texture, R_ViewDesc desc)
+{
+  S32 idx = -1;
+
+  R_D3D12_Backend *backend = &r_ctx;
+
+  R_ResourceSlot *slot = &r_resource_table.slots[texture.idx];
+  R_D3D12_Texture *tex = (R_D3D12_Texture *)slot->backend_rsrc;
+  DXGI_FORMAT dxgi_fmt = r_d3d12_fmt_from_r_fmt(desc.fmt);
+
+  switch (desc.kind) {
+    case R_ViewKind_ShaderResource: {
+      S32 srv_idx = r_alloc_texture_descriptor_idx_srv();
+      r_d3d12_write_srv(tex->resource, dxgi_fmt, desc.range, srv_idx);
+      idx = srv_idx;
+    }break;
+    case R_ViewKind_RenderTarget: {
+      S32 rtv_idx = r_alloc_texture_descriptor_idx_rtv();
+      r_d3d12_write_rtv(tex->resource, dxgi_fmt, desc.range, rtv_idx);
+      idx = rtv_idx;
+    }break;
+    case R_ViewKind_DepthStencil: {
+      S32 dsv_idx = r_alloc_texture_descriptor_idx_dsv();
+      r_d3d12_write_dsv(tex->resource, dxgi_fmt, desc.range, dsv_idx);
+      idx = dsv_idx;
+    }break;
+  }
+
+  return idx;
+}
+
+// Returns a handle to an entry in the view cache (R_View) containing descriptor heap idx if it exists in cache, otherwise allocates
+// a descriptor from the appropriate descriptor heap.
+static R_Handle
+r_view_from_texture(R_Handle texture, R_ViewDesc desc)
+{
+  R_Handle result = {};
+
+  S32 views_count = r_views.count;
+  S32 match_idx = 0;
+  R_View *match = 0;
+  // @Note: Temporary
+  for (; match_idx < views_count; match_idx += 1) {
+    R_View *view = &r_views.slots[match_idx];
+    if ((view->kind == desc.kind) && (view->resource == texture.idx)) {
+      match = view;
+      break;
+    }
+  }
+
+  if (match) {
+    result.idx = match_idx;
+    result.gen = -1;
+  }
+  else {
+    R_View *new_view = &r_views.slots[views_count];
+    new_view->resource = texture.idx;
+    new_view->kind = desc.kind;
+    new_view->descriptor_idx = r_alloc_descriptor_for_view(texture, desc);
+
+    result.idx = views_count;
+    result.gen = -1;
+
+    r_views.count += 1;
+  }
+
+  return result;
+}
+
 static R_Handle
 r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
 {
@@ -29,15 +103,14 @@ r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
   R_ResourceSlot *slot = &r_resource_table.slots[slot_idx];
 
   slot->gen += 1;
+  slot->alive = 1;
   slot->kind = R_ResourceKind_Texture;
 
   R_CreateResource create = r_create_texture_impl(init, init_count, desc);
   slot->state = create.state;
-  slot->srv_idx = create.srv_idx;
-  slot->rtv_idx = create.rtv_idx;
-  slot->dsv_idx = create.dsv_idx;
   slot->fence_value = create.fence_value;
   slot->backend_rsrc = create.backend;
+  slot->fmt = desc.fmt;
 
   R_Handle result = {
     .idx = slot_idx,
@@ -54,6 +127,7 @@ r_create_buffer(R_BufferInitData init, R_BufferDesc desc)
 
   // @Todo: texture view indices should be -1... why are they 0 for buffers?
   slot->gen += 1;
+  slot->alive = 1;
   slot->kind = R_ResourceKind_Buffer;
 
   R_CreateResource create = r_create_buffer_impl(init, desc);
