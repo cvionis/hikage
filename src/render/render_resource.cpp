@@ -7,12 +7,22 @@ r_texture_get_fmt(R_Handle handle)
   return fmt;
 }
 
+static S32
+r_descriptor_idx_from_view(R_Handle handle)
+{
+  R_View *view = &r_views.slots[handle.idx];
+  return view->descriptor_idx;
+}
+
 static B32
 r_resource_valid(R_Handle handle)
 {
+  B32 valid = 0;
   // @Todo: Make sure you're setting `alive` wherever you need to.
-  R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
-  B32 valid = slot->alive;
+  if (handle.idx > 0) {
+    R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
+    valid = slot->alive;
+  }
   return valid;
 }
 

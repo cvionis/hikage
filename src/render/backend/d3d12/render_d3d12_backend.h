@@ -38,8 +38,7 @@ struct R_D3D12_Backend {
   IDXGISwapChain3 *swapchain;
   ID3D12Device *device;
 
-  // @Todo: Rename -> back buffers
-  ID3D12Resource *render_targets[R_D3D12_FRAME_COUNT];
+  ID3D12Resource *back_buffers[R_D3D12_FRAME_COUNT];
 
   ID3D12CommandAllocator *command_allocators[R_D3D12_FRAME_COUNT];
   ID3D12CommandQueue *command_queue; // @Todo: Rename gfx or draw queue or something to differentiate from upload/copy queue

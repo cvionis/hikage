@@ -175,10 +175,22 @@ R_PASS_EXECUTE_PROC(r_pass_execute_post)
 
   R_D3D12_Backend *backend = &r_ctx;
 
-  R_Handle hdr_color = pass->read_resources[0];  // @Note: Temporary
-  R_ResourceSlot *slot = &r_resource_table.slots[hdr_color.idx]; // @Todo: Create helper for this.
-  // @Todo: use new view_from_texture api.
-  S32 hdr_color_idx = 0;// @Todo: slot->srv_idx - R_D3D12_TEXTURE_TABLE_BASE; // @Todo: Create helper for this.
+  R_Handle hdr_color_tex = pass->read_resources[0];  // @Note: Temporary
+
+  // @Todo: this is ugly as FUCK.
+  R_ViewDesc view_desc = {
+    .kind = R_ViewKind_ShaderResource,
+    .fmt = r_texture_get_fmt(hdr_color_tex),
+    .range = {
+      .mip_start = 0,
+      .mip_count = 1,
+      .slice_start = 0,
+      .slice_count = 1,
+    },
+  };
+  R_Handle shader_resource_view = r_view_from_texture(hdr_color_tex, view_desc);
+  S32 hdr_color_idx_abs = r_descriptor_idx_from_view(shader_resource_view);
+  S32 hdr_color_idx = hdr_color_idx_abs - R_D3D12_TEXTURE_TABLE_BASE;
 
   R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_PostProcessCB));
   R_PostProcessCB *cb = (R_PostProcessCB *)alloc.cpu;
@@ -199,6 +211,7 @@ r_pass_add_post(R_Context *ctx)
   R_Handle col_target = r_current_back_buffer();
   pass->render_targets[0] = col_target;
   pass->render_targets_count = 1;
+  pass->depth_target = {-1,-1}; // @Note: Temporary {0,0} refers to first backbuffer :0)
 
   // @Todo: wrap in something like r_pass_push_read(R_Pass *pass, R_Handle h), r_pass_push_write(R_Pass *pass, R_Handle h).
   pass->read_resources[0] = ctx->hdr_color;

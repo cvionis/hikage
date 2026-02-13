@@ -116,7 +116,6 @@ enum R_ViewKind {
 };
 
 struct R_View {
-  U64 hash;
   S32 resource;
   R_ViewKind kind;
   S32 descriptor_idx; // Index into SRV, RTV, or DSV heap.
