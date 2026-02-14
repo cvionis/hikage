@@ -58,19 +58,19 @@ r_d3d12_state_from_r_state(R_ResourceState state)
   D3D12_RESOURCE_STATES result = D3D12_RESOURCE_STATE_COMMON;
 
   switch(state) {
-    case R_ResourceState_Invalid:         { result = D3D12_RESOURCE_STATE_COMMON; } break;
-    case R_ResourceState_Common:          { result = D3D12_RESOURCE_STATE_COMMON; } break;
-    case R_ResourceState_RenderTarget:    { result = D3D12_RESOURCE_STATE_RENDER_TARGET; } break;
-    case R_ResourceState_DepthWrite:      { result = D3D12_RESOURCE_STATE_DEPTH_WRITE; } break;
-    case R_ResourceState_DepthRead:       { result = D3D12_RESOURCE_STATE_DEPTH_READ; } break;
+    case R_ResourceState_Invalid:         { result = D3D12_RESOURCE_STATE_COMMON; }break;
+    case R_ResourceState_Common:          { result = D3D12_RESOURCE_STATE_COMMON; }break;
+    case R_ResourceState_RenderTarget:    { result = D3D12_RESOURCE_STATE_RENDER_TARGET; }break;
+    case R_ResourceState_DepthWrite:      { result = D3D12_RESOURCE_STATE_DEPTH_WRITE; }break;
+    case R_ResourceState_DepthRead:       { result = D3D12_RESOURCE_STATE_DEPTH_READ; }break;
     case R_ResourceState_ShaderRead:{
       result = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
         D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-    } break;
-    case R_ResourceState_ShaderReadWrite: { result = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; } break;
-    case R_ResourceState_CopySrc:         { result = D3D12_RESOURCE_STATE_COPY_SOURCE; } break;
-    case R_ResourceState_CopyDst:         { result = D3D12_RESOURCE_STATE_COPY_DEST; } break;
-    case R_ResourceState_Present:         { result = D3D12_RESOURCE_STATE_PRESENT; } break;
+    }break;
+    case R_ResourceState_ShaderReadWrite: { result = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; }break;
+    case R_ResourceState_CopySrc:         { result = D3D12_RESOURCE_STATE_COPY_SOURCE; }break;
+    case R_ResourceState_CopyDst:         { result = D3D12_RESOURCE_STATE_COPY_DEST; }break;
+    case R_ResourceState_Present:         { result = D3D12_RESOURCE_STATE_PRESENT; }break;
   }
 
   return result;
@@ -228,30 +228,31 @@ r_d3d12_fmt_from_r_fmt(R_Format fmt)
   DXGI_FORMAT result = DXGI_FORMAT_UNKNOWN;
 
   switch (fmt) {
-    case R_Format_Invalid:                { result = DXGI_FORMAT_UNKNOWN; } break;
-    case R_Format_R8_UNorm:               { result = DXGI_FORMAT_R8_UNORM; } break;
-    case R_Format_R8G8_UNorm:             { result = DXGI_FORMAT_R8G8_UNORM; } break;
-    case R_Format_R8G8B8A8_UNorm:         { result = DXGI_FORMAT_R8G8B8A8_UNORM; } break;
-    case R_Format_R8G8B8A8_UNorm_Srgb:    { result = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; } break;
-    case R_Format_R16_Float:              { result = DXGI_FORMAT_R16_FLOAT; } break;
-    case R_Format_R16G16_Float:           { result = DXGI_FORMAT_R16G16_FLOAT; } break;
-    case R_Format_R16G16B16A16_Float:     { result = DXGI_FORMAT_R16G16B16A16_FLOAT; } break;
-    case R_Format_R32_Float:              { result = DXGI_FORMAT_R32_FLOAT; } break;
-    case R_Format_R32G32_Float:           { result = DXGI_FORMAT_R32G32_FLOAT; } break;
-    case R_Format_R32G32B32_Float:        { result = DXGI_FORMAT_R32G32B32_FLOAT; } break;
-    case R_Format_R32G32B32A32_Float:     { result = DXGI_FORMAT_R32G32B32A32_FLOAT; } break;
-    case R_Format_R11G11B10_Float:        { result = DXGI_FORMAT_R11G11B10_FLOAT; } break;
-    case R_Format_R10G10B10A2_UNorm:      { result = DXGI_FORMAT_R10G10B10A2_UNORM; } break;
-    case R_Format_BC1_UNorm:              { result = DXGI_FORMAT_BC1_UNORM; } break;
-    case R_Format_BC1_UNorm_Srgb:         { result = DXGI_FORMAT_BC1_UNORM_SRGB; } break;
-    case R_Format_BC3_UNorm:              { result = DXGI_FORMAT_BC3_UNORM; } break;
-    case R_Format_BC3_UNorm_Srgb:         { result = DXGI_FORMAT_BC3_UNORM_SRGB; } break;
-    case R_Format_BC4_UNorm:              { result = DXGI_FORMAT_BC4_UNORM; } break;
-    case R_Format_BC5_UNorm:              { result = DXGI_FORMAT_BC5_UNORM; } break;
-    case R_Format_BC7_UNorm:              { result = DXGI_FORMAT_BC7_UNORM; } break;
-    case R_Format_BC7_UNorm_Srgb:         { result = DXGI_FORMAT_BC7_UNORM_SRGB; } break;
-    case R_Format_D32_Float:              { result = DXGI_FORMAT_D32_FLOAT; } break;
-    case R_Format_D24_UNorm_S8_UInt:      { result = DXGI_FORMAT_D24_UNORM_S8_UINT; } break;
+    case R_Format_Invalid:                { result = DXGI_FORMAT_UNKNOWN; }break;
+    case R_Format_R8_UNorm:               { result = DXGI_FORMAT_R8_UNORM; }break;
+    case R_Format_R8G8_UNorm:             { result = DXGI_FORMAT_R8G8_UNORM; }break;
+    case R_Format_R8G8B8A8_UNorm:         { result = DXGI_FORMAT_R8G8B8A8_UNORM; }break;
+    case R_Format_R8G8B8A8_UNorm_Srgb:    { result = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB; }break;
+    case R_Format_R16_Float:              { result = DXGI_FORMAT_R16_FLOAT; }break;
+    case R_Format_R16G16_Float:           { result = DXGI_FORMAT_R16G16_FLOAT; }break;
+    case R_Format_R16G16B16A16_Float:     { result = DXGI_FORMAT_R16G16B16A16_FLOAT; }break;
+    case R_Format_R32_Float:              { result = DXGI_FORMAT_R32_FLOAT; }break;
+    case R_Format_R32G32_Float:           { result = DXGI_FORMAT_R32G32_FLOAT; }break;
+    case R_Format_R32G32B32_Float:        { result = DXGI_FORMAT_R32G32B32_FLOAT; }break;
+    case R_Format_R32G32B32A32_Float:     { result = DXGI_FORMAT_R32G32B32A32_FLOAT; }break;
+    case R_Format_R11G11B10_Float:        { result = DXGI_FORMAT_R11G11B10_FLOAT; }break;
+    case R_Format_R10G10B10A2_UNorm:      { result = DXGI_FORMAT_R10G10B10A2_UNORM; }break;
+    case R_Format_BC1_UNorm:              { result = DXGI_FORMAT_BC1_UNORM; }break;
+    case R_Format_BC1_UNorm_Srgb:         { result = DXGI_FORMAT_BC1_UNORM_SRGB; }break;
+    case R_Format_BC3_UNorm:              { result = DXGI_FORMAT_BC3_UNORM; }break;
+    case R_Format_BC3_UNorm_Srgb:         { result = DXGI_FORMAT_BC3_UNORM_SRGB; }break;
+    case R_Format_BC4_UNorm:              { result = DXGI_FORMAT_BC4_UNORM; }break;
+    case R_Format_BC5_UNorm:              { result = DXGI_FORMAT_BC5_UNORM; }break;
+    case R_Format_BC7_UNorm:              { result = DXGI_FORMAT_BC7_UNORM; }break;
+    case R_Format_BC7_UNorm_Srgb:         { result = DXGI_FORMAT_BC7_UNORM_SRGB; }break;
+    case R_Format_D32_Float:              { result = DXGI_FORMAT_D32_FLOAT; }break;
+    case R_Format_D24_UNorm_S8_UInt:      { result = DXGI_FORMAT_D24_UNORM_S8_UINT; }break;
+    case R_Format_R32_Typeless:           { result = DXGI_FORMAT_R32_TYPELESS; }break;
   }
 
   return result;
@@ -1146,7 +1147,9 @@ r_create_pipeline_impl(R_PipelineDesc desc)
   pso.pRootSignature = pipe->root_sig;
 
   pso.VS = CD3DX12_SHADER_BYTECODE(vs_blob);
-  pso.PS = CD3DX12_SHADER_BYTECODE(ps_blob);
+  if (ps_blob) {
+    pso.PS = CD3DX12_SHADER_BYTECODE(ps_blob);
+  }
 
   pso.BlendState        = pipe->blend;
   pso.SampleMask        = UINT_MAX;
@@ -1182,8 +1185,8 @@ r_create_pipeline_impl(R_PipelineDesc desc)
   pso.CachedPSO.CachedBlobSizeInBytes = 0;
   pso.Flags                           = D3D12_PIPELINE_STATE_FLAG_NONE;
 
+  // Create a pipeline state object
   pipe->pso_desc = pso;
-
   HRESULT hr = ctx->device->CreateGraphicsPipelineState(&pipe->pso_desc, IID_PPV_ARGS(&pipe->pso));
   Assert(SUCCEEDED(hr));
 

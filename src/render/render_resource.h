@@ -51,6 +51,9 @@ enum R_Format {
   // Depth / Stencil
   R_Format_D32_Float,
   R_Format_D24_UNorm_S8_UInt,
+
+  // Typeless
+  R_Format_R32_Typeless,
 };
 
 enum R_ResourceKind {

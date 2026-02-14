@@ -55,6 +55,8 @@ entry_point(void)
   Camera camera = {
     .position = v3f32(0,0.2f,-1),
     .direction = v3f32_normalize(v3f32_sub(v3f32(0,0,0), camera.position)),
+    .near_z = 0.1f,
+    .far_z = 1000.f,
     .fov = PI_F32/2,
   };
 
@@ -111,9 +113,14 @@ entry_point(void)
       }
     }
 
+    DirectionalLight sunlight {
+      .direction = v3f32(-0.9f, -0.2f, -0.4f),
+    };
+
     r_frame_begin(&renderer);
 
     r_pass_add_forward(&renderer, &assets, models, models_count, camera);
+    r_pass_add_shadow(&renderer, &assets, models, models_count, sunlight, camera);
     r_pass_add_post(&renderer);
 
     r_frame_compile(&renderer);

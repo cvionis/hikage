@@ -301,7 +301,7 @@ r_init(OS_Handle window)
 
   // Create a backbuffer texture for each frame, and render target views for them.
   // (@Todo: Should do this using texture creation and view creation API)
-  for (S32 frame_idx = 0; frame_idx < R_FRAME_COUNT; frame_idx += 1) {
+  for (S32 frame_idx = 0; frame_idx < R_D3D12_FRAME_COUNT; frame_idx += 1) {
     ctx->swapchain->GetBuffer(frame_idx, IID_PPV_ARGS(&ctx->back_buffers[frame_idx]));
 
     {
@@ -335,7 +335,7 @@ r_init(OS_Handle window)
   }
 
   // Create a command allocator for each frame
-  for (S32 frame_idx = 0; frame_idx < R_FRAME_COUNT; frame_idx += 1) {
+  for (S32 frame_idx = 0; frame_idx < R_D3D12_FRAME_COUNT; frame_idx += 1) {
     hr = ctx->device->CreateCommandAllocator(
       D3D12_COMMAND_LIST_TYPE_DIRECT,
       IID_PPV_ARGS(&ctx->command_allocators[frame_idx])
@@ -531,8 +531,8 @@ r_shutdown(void)
 static void
 camera_update_position_aspect(Camera *camera, V3F32 delta, F32 aspect, F32 delta_time)
 {
-  F32 near_z = 0.1f; // @Todo: Don't hardcode this. Make it member of Camera.
-  F32 far_z = 100.f;
+  F32 near_z = camera->near_z;
+  F32 far_z = camera->far_z;
 
   V3F32 up = v3f32(0,1,0);
   V3F32 right = v3f32_normalize(v3f32_cross(up, camera->direction));
@@ -549,6 +549,8 @@ camera_update_position_aspect(Camera *camera, V3F32 delta, F32 aspect, F32 delta
   camera->view = lookat_m4x4(camera->position, lookat_target, up);
   camera->proj = perspective_m4x4(camera->fov, aspect, near_z, far_z);
   camera->viewproj = m4x4_mul(camera->proj, camera->view);
+
+  camera->aspect = aspect;
 }
 
 static void

@@ -84,6 +84,13 @@ global R_Layout r_mesh_layout = {
 //
 
 // @Todo: Move somewhere more permanent: scene.h
+
+struct DirectionalLight {
+  V3F32 color;
+  F32 brightness;
+  V3F32 direction;
+};
+
 struct Camera {
   Mat4x4 view;
   Mat4x4 proj;
@@ -97,6 +104,10 @@ struct Camera {
   F32 pitch;
   F32 yaw_target;
   F32 pitch_target;
+
+  F32 near_z;
+  F32 far_z;
+  F32 aspect;
 
   F32 fov;
   B32 ortho;

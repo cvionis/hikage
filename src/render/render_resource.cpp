@@ -156,7 +156,7 @@ r_create_pipeline(R_PipelineDesc desc)
   R_Handle result = {};
 
   // @Note: Temporary type for vshader path
-  if (desc.vs_path != 0 && desc.rt_count > 0 && desc.rt_count < 8) {
+  if (desc.vs_path != 0) {
     S32 slot_idx = r_alloc_resource_slot();
     R_ResourceSlot *slot = &r_resource_table.slots[slot_idx];
 

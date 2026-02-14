@@ -1,5 +1,7 @@
 #define SHADOW_CASCADE_COUNT 4
 
+// @Todo: lot's of redundancy and unused stuff here.
+
 //
 // Constant buffers
 //
@@ -7,19 +9,21 @@
 cbuffer ShadowFrameCB : register(b0) {
   float4x4 viewproj;
   float4 camera_ws;
-  float4x4 light_viewproj[R_SHADOW_CASCADE_COUNT];
-	float4 cascade_splits; // @Note: Assumes <= 4 splits..
+  float4x4 light_viewproj[SHADOW_CASCADE_COUNT];
+	float cascade_splits[SHADOW_CASCADE_COUNT];
+	uint cascade_idx;
 };
 
-cbuffer ShadowDrawCB: register(b1) {
-  uint cascade_index;
-}
+cbuffer DrawCB : register(b1) {
+  float4x4 model_matrix;
+  float4x4 normal_matrix;
+  uint material;
+};
 
 //
 // Inputs and outputs
 //
 
-// @Note: Not using 90% of these...
 struct VS_Input {
   float3 position : POSITION;
   float3 normal   : NORMAL;
@@ -31,10 +35,10 @@ struct VS_Output {
   float4 position : SV_POSITION;
 };
 
-VS_Out vs_main(VS_Input i)
+VS_Output vs_main(VS_Input i)
 {
   VS_Output o;
-  float4 wpos = mul(float4(i.position,1), model);
-  o.position = mul(wpos, light_viewproj[cascade_index]);
+  float4 wpos = mul(float4(i.position, 1), model_matrix);
+  o.position = mul(wpos, light_viewproj[cascade_idx]);
   return o;
 }

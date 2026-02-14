@@ -112,7 +112,7 @@ r_ctx_init_resources(R_Context *ctx)
 
   R_PipelineDesc shadow_pipeline_desc = {
     .vs_path = L"../src/render/shaders/shadow.hlsl",
-    .ps_path = L"../src/render/shaders/shadow.hlsl",
+    .ps_path = 0,
 
     .input_layout = &r_mesh_layout,
 
@@ -139,7 +139,7 @@ r_ctx_init_resources(R_Context *ctx)
 
     .rt_count = 0,
 
-    .depth_format = R_Format_D32_Float,
+    .depth_format = R_Format_R32_Typeless,
     .sample_count = 1,
   };
 
@@ -184,9 +184,8 @@ r_ctx_init_resources(R_Context *ctx)
     },
   };
 
-  // @Note: Temporary & arbitrary
-  S32 shadow_map_res = 2048;
-  S32 shadow_cascades_count = 4;
+  S32 shadow_map_res = R_SHADOW_MAP_RESOLUTION;
+  S32 shadow_cascades_count = R_SHADOW_CASCADE_COUNT;
 
   R_TextureDesc shadow_cascades_depth_desc = {
     .width  = shadow_map_res,
@@ -396,7 +395,6 @@ r_frame_compile(R_Context *ctx)
     R_CompiledPass *compiled = &ctx->compiled_passes[ctx->compiled_passes_count];
     ctx->compiled_passes_count += 1;
 
-    // @Todo: this needs to use write resources, not render_targets...
     for (S32 ct_idx = 0; ct_idx < pass->render_targets_count; ct_idx += 1) {
       R_Handle render_target = pass->render_targets[ct_idx];
 
@@ -421,9 +419,34 @@ r_frame_compile(R_Context *ctx)
         post->state_before = state_mid;
         post->state_after = state_post;
       }
+    }
 
-      // @Todo: Read-resources transitions
-      // @Todo: Depth state transition (when needed)
+    // @Note: Treating uninitialized (zeroed) to mean "don't want to transition at all." Should do this check for render targets as well
+    // for consistency sake.
+    if (pass->depth_final_state) {
+      R_Handle depth_target = pass->depth_target;
+
+      R_ResourceState state_pre = r_resource_state(depth_target);
+      R_ResourceState state_mid = R_ResourceState_DepthWrite;
+      R_ResourceState state_post = pass->depth_final_state;
+
+      if (state_pre != state_mid) {
+        R_ResourceTransition *pre = &compiled->pre_transitions[compiled->pre_transitions_count];
+        compiled->pre_transitions_count += 1;
+
+        pre->rsrc = depth_target;
+        pre->state_before = state_pre;
+        pre->state_after = state_mid;
+      }
+
+      if (state_mid != state_post) {
+        R_ResourceTransition *post = &compiled->post_transitions[compiled->post_transitions_count];
+        compiled->post_transitions_count += 1;
+
+        post->rsrc = depth_target;
+        post->state_before = state_mid;
+        post->state_after = state_post;
+      }
     }
 
     compiled->pass = pass;
@@ -462,31 +485,26 @@ r_transition_resource(R_ResourceTransition tr)
   backend->command_list->ResourceBarrier(1, &barrier);
 }
 
-// Iterate over each pass, issuing its list of transition transitions, and calling pass_begin, execute, pass_end.
 static void
 r_frame_execute(R_Context *ctx)
 {
   for (S32 compiled_idx = 0; compiled_idx < ctx->compiled_passes_count; compiled_idx += 1) {
     R_CompiledPass *compiled = &ctx->compiled_passes[compiled_idx];
-    R_Pass *pass = compiled->pass;
 
-    if (compiled->pre_transitions_count) {
-      for (S32 pre_transition_idx = 0; pre_transition_idx < compiled->pre_transitions_count; pre_transition_idx += 1) {
-        R_ResourceTransition tr = compiled->pre_transitions[pre_transition_idx];
-        r_transition_resource(tr);
-      }
+    for (S32 pre_transition_idx = 0; pre_transition_idx < compiled->pre_transitions_count; pre_transition_idx += 1) {
+      R_ResourceTransition tr = compiled->pre_transitions[pre_transition_idx];
+      r_transition_resource(tr);
     }
 
-    r_pass_begin(pass);
     // @Todo: if you're going to pass the pass, then don't also pass a member. REDUNDANT.
+    R_Pass *pass = compiled->pass;
+    r_pass_begin(pass);
     pass->execute(pass, pass->userdata);
     r_pass_end(pass);
 
-    if (compiled->post_transitions_count) {
-      for (S32 post_transition_idx = 0; post_transition_idx < compiled->post_transitions_count; post_transition_idx += 1) {
-        R_ResourceTransition tr = compiled->post_transitions[post_transition_idx];
-        r_transition_resource(tr);
-      }
+    for (S32 post_transition_idx = 0; post_transition_idx < compiled->post_transitions_count; post_transition_idx += 1) {
+      R_ResourceTransition tr = compiled->post_transitions[post_transition_idx];
+      r_transition_resource(tr);
     }
   }
 }

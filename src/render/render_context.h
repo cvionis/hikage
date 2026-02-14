@@ -1,6 +1,7 @@
 #pragma once
 
-#define R_FRAME_COUNT 2
+#define R_SHADOW_MAP_RESOLUTION 2048
+#define R_SHADOW_CASCADE_COUNT 4
 
 // Render passes
 
@@ -17,6 +18,8 @@ struct R_Pass {
   S32 render_targets_count;
   R_Handle depth_target;
 
+  // @Todo: This is just the state we want to transition to from initial state at the beginning of the pass.
+  // Just name it *_post_state or something.
   R_ResourceState color_final_state; // @Note: All color targets share the same final state for now (covers most cases).
                                      // @Note: Tecnically writes_final_state...
   R_ResourceState depth_final_state; // @Todo: Actually use this (when needed; e.g. shadow pass)
