@@ -109,6 +109,13 @@ struct R_ResourceSlot {
   void *backend_rsrc;
 };
 
+struct R_SubresourceRange {
+  S32 mip_start;
+  S32 mip_count;
+  S32 slice_start;
+  S32 slice_count;
+};
+
 enum R_ViewKind {
   R_ViewKind_None,
   R_ViewKind_ShaderResource,
@@ -119,14 +126,8 @@ enum R_ViewKind {
 struct R_View {
   S32 resource;
   R_ViewKind kind;
+  R_SubresourceRange range;
   S32 descriptor_idx; // Index into SRV, RTV, or DSV heap.
-};
-
-struct R_SubresourceRange {
-  S32 mip_start;
-  S32 mip_count;
-  S32 slice_start;
-  S32 slice_count;
 };
 
 struct R_ViewDesc {

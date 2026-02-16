@@ -79,7 +79,10 @@ r_view_from_texture(R_Handle texture, R_ViewDesc desc)
   // @Note: Temporary
   for (; match_idx < views_count; match_idx += 1) {
     R_View *view = &r_views.slots[match_idx];
-    if ((view->kind == desc.kind) && (view->resource == texture.idx)) {
+    if ((view->kind == desc.kind) &&
+        (view->resource == texture.idx) &&
+        (view->range.slice_start == desc.range.slice_start) &&
+        (view->range.slice_count == desc.range.slice_count)) {
       match = view;
       break;
     }
@@ -92,6 +95,7 @@ r_view_from_texture(R_Handle texture, R_ViewDesc desc)
   else {
     R_View *new_view = &r_views.slots[views_count];
     new_view->resource = texture.idx;
+    new_view->range = desc.range;
     new_view->kind = desc.kind;
     new_view->descriptor_idx = r_alloc_descriptor_for_view(texture, desc);
 

@@ -139,7 +139,7 @@ r_ctx_init_resources(R_Context *ctx)
 
     .rt_count = 0,
 
-    .depth_format = R_Format_R32_Typeless,
+    .depth_format = R_Format_D32_Float,
     .sample_count = 1,
   };
 

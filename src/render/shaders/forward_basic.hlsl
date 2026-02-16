@@ -35,8 +35,13 @@ struct Material {
 // Constant buffers
 //
 
+#define SHADOW_CASCADE_COUNT 4
+
 cbuffer FrameCB : register(b0) {
   float4x4 viewproj;
+  float4x4 view; // @Note: Redundant and temporary. Need to just upload view+proj separately.
+  float4x4 light_viewproj[SHADOW_CASCADE_COUNT];
+  float4 cascade_splits; // @Note: Maximum 4 splits
   float4 camera_ws;
 };
 
@@ -72,8 +77,9 @@ struct PS_Input {
   float4 position    : SV_POSITION;
   float2 uv          : TEXCOORD0;
   float3 position_ws : TEXCOORD1;
-  float3 normal      : TEXCOORD2;
-  float4 tangent     : TEXCOORD3;
+  float3 position_vs : TEXCOORD2;
+  float3 normal      : TEXCOORD3;
+  float4 tangent     : TEXCOORD4;
 };
 
 //
@@ -105,6 +111,7 @@ PS_Input vs_main(VS_Input input)
   PS_Input output;
 
   float4 position_ws = mul(float4(input.position, 1.0), model_matrix);
+  float4 position_vs = mul(float4(input.position, 1.0), view);
 
   float3x3 normal_matrix_3x3 = (float3x3)normal_matrix;
   float3 normal = normalize(mul(input.normal, normal_matrix_3x3));
@@ -115,6 +122,7 @@ PS_Input vs_main(VS_Input input)
   output.position = mul(position_ws, viewproj);
   output.uv = input.uv;
   output.position_ws = position_ws.xyz;
+  output.position_vs = position_vs.xyz;
 
   output.normal = normal;
   output.tangent = float4(tangent.xyz, input.tangent.w);
@@ -172,6 +180,19 @@ float4 ps_main(PS_Input input) : SV_TARGET
 
   // Note: Entering non-physically-correct territory (temporary)
 
+  Texture2DArray<float> shadow_map = g_textures_2d_array[0];
+
+  uint cascade_idx = 0; // @Todo: Determine based on view-space depth (position_vs.z)
+
+  float4 shadow_clip = mul(float4(input.position_ws, 1.0), light_viewproj[cascade_idx]);
+  float3 shadow_ndc = shadow_clip.xyz / shadow_clip.w;
+  float2 shadow_uv = float2(
+    shadow_ndc.x * 0.5f + 0.5f,
+    -shadow_ndc.y * 0.5f + 0.5f // @Todo: Briefly work out why flip is necessary
+  );
+  float shadow_depth = shadow_ndc.z;
+  float3 shadow_map_coord = float3(shadow_uv, shadow_depth);
+
   float sky_dif = saturate(0.5+0.5*normal_ws.y);
   float bot_dif = 0.4*saturate(0.5-0.5*normal_ws.y);
 
@@ -182,8 +203,9 @@ float4 ps_main(PS_Input input) : SV_TARGET
     float3(1.0,1.0,1.0) * bot_dif;
 
   float3 color = albedo * lit + emissive*1.2;
+  //color = shadow_map.Sample(g_sampler, float3(uv.xy, 0)).rrr;
 
-  //color = pow(color, 1.0 / 2.2);
+  //color = shadow_map.SampleCmpLevelZero(g_sampler_shadow, float3(shadow_map_coord.xy, cascade_idx), shadow_map_coord.z);
 
   return float4(color, 1.0);
 }

@@ -18,6 +18,114 @@ struct AppState {
   B32 quit;
 };
 
+struct ShadowCascadeBuild {
+  // light view-projections for each cascade
+  Mat4x4 viewproj[R_SHADOW_CASCADE_COUNT];
+};
+
+static ShadowCascadeBuild
+build_shadow_cascades(Camera cam, V3F32 light_direction, F32 *cascade_splits, S32 cascade_count, S32 resolution)
+{
+  ShadowCascadeBuild res = {};
+
+  // Constants to tweak according to scene scale
+  const F32 light_back_off = 800.0f;
+  const F32 z_pad = 50.0f;
+
+  F32 half_fov = 0.5f * cam.fov;
+
+  // Inverse of camera view (view -> world)
+  Mat4x4 inv_view = m4x4_inverse(cam.view);
+
+  // Normalize light direction
+  light_direction = v3f32_normalize(light_direction);
+
+  F32 aspect = cam.aspect;
+  F32 zn_prev = cam.near_z;
+
+  for (S32 i = 0; i < cascade_count; i += 1) {
+    F32 zn = (i == 0) ? cam.near_z : cascade_splits[i - 1];
+    F32 zf = cascade_splits[i];
+
+    // 1) Frustum half sizes at zn and zf (view space, LH)
+    F32 h_n = tanf32(half_fov) * zn;
+    F32 w_n = h_n * aspect;
+    F32 h_f = tanf32(half_fov) * zf;
+    F32 w_f = h_f * aspect;
+
+    // 2) 8 corners of cascade frustum in view space (+Z forward)
+    V3F32 corners_vs[8] = {
+      {-w_n, +h_n, zn}, {+w_n, +h_n, zn}, {+w_n, -h_n, zn}, {-w_n, -h_n, zn}, // near
+      {-w_f, +h_f, zf}, {+w_f, +h_f, zf}, {+w_f, -h_f, zf}, {-w_f, -h_f, zf}, // far
+    };
+
+    // 3) Transform frustum corners to world space
+    V3F32 corners_ws[8] = {};
+    V3F32 center_ws = v3f32(0, 0, 0);
+
+    for (U32 c = 0; c < 8; c += 1) {
+      V4F32 v = v4f32(corners_vs[c].x, corners_vs[c].y, corners_vs[c].z, 1.0f);
+      V4F32 w = v4f32_transform(inv_view, v);
+
+      F32 iw = (w.w != 0.0f) ? 1.0f / w.w : 0.0f;
+      corners_ws[c] = v3f32(w.x * iw, w.y * iw, w.z * iw);
+      center_ws = v3f32_add(center_ws, corners_ws[c]);
+    }
+
+    center_ws = v3f32_scale(center_ws, 1.0f / 8.0f);
+
+    // 4) Build light view from a position behind the cascade center
+    V3F32 light_pos = v3f32_sub(center_ws, v3f32_scale(light_direction, light_back_off));
+
+    // Choose up vector and get world->view for light in this cascade
+    V3F32 up = v3f32(0, 1, 0);
+    if (absf32(v3f32_dot(up, light_direction)) > 0.95f) {
+      up = v3f32(0, 0, 1);
+    }
+    Mat4x4 light_view = lookat_m4x4(light_pos, center_ws, up);
+
+    // 5) Fit orthographic bounds for this cascade's light projection
+    F32 min_x = +FLT_MAX, min_y = +FLT_MAX, min_z = +FLT_MAX;
+    F32 max_x = -FLT_MAX, max_y = -FLT_MAX, max_z = -FLT_MAX;
+
+    for (U32 c = 0; c < 8; c += 1) {
+      V4F32 lw = v4f32_transform(light_view, v4f32(corners_ws[c].x, corners_ws[c].y, corners_ws[c].z, 1.0f));
+      min_x = fminf(min_x, lw.x); max_x = fmaxf(max_x, lw.x);
+      min_y = fminf(min_y, lw.y); max_y = fmaxf(max_y, lw.y);
+      min_z = fminf(min_z, lw.z); max_z = fmaxf(max_z, lw.z);
+    }
+
+    // 6) Texel stabilization
+    F32 world_per_texel_x = (max_x - min_x) / (F32)resolution;
+    F32 world_per_texel_y = (max_y - min_y) / (F32)resolution;
+
+    F32 cx = 0.5f * (min_x + max_x);
+    F32 cy = 0.5f * (min_y + max_y);
+    F32 ex = 0.5f * (max_x - min_x);
+    F32 ey = 0.5f * (max_y - min_y);
+
+    cx = floorf(cx / world_per_texel_x) * world_per_texel_x;
+    cy = floorf(cy / world_per_texel_y) * world_per_texel_y;
+
+    min_x = cx - ex; max_x = cx + ex;
+    min_y = cy - ey; max_y = cy + ey;
+
+    // 7) Pad depth to avoid clipping
+    min_z -= z_pad;
+    max_z += z_pad;
+
+    // 8) Create an orthographic projection for the light within this cascade
+    Mat4x4 light_proj = orthographic_m4x4(min_x, max_x, min_y, max_y, min_z, max_z);
+
+    // 9) Final light view-projection for this cascade
+    res.viewproj[i] = m4x4_mul(light_proj, light_view);
+
+    zn_prev = zf;
+  }
+
+  return res;
+}
+
 void
 entry_point(void)
 {
@@ -119,8 +227,14 @@ entry_point(void)
 
     r_frame_begin(&renderer);
 
-    r_pass_add_forward(&renderer, &assets, models, models_count, camera);
-    r_pass_add_shadow(&renderer, &assets, models, models_count, sunlight, camera);
+    // @Note: Temporary
+    S32 cascade_count = R_SHADOW_CASCADE_COUNT;
+    S32 resolution = R_SHADOW_MAP_RESOLUTION;
+    F32 cascade_splits[R_SHADOW_CASCADE_COUNT] = { 1.1f, 4.3f, 16.6f, 100.f };
+    ShadowCascadeBuild cascades = build_shadow_cascades(camera, sunlight.direction, cascade_splits, cascade_count, resolution);
+
+    r_pass_add_shadow(&renderer, &assets, models, models_count, sunlight, camera, cascades.viewproj, cascade_splits);
+    r_pass_add_forward(&renderer, &assets, models, models_count, camera, cascades.viewproj, cascade_splits);
     r_pass_add_post(&renderer);
 
     r_frame_compile(&renderer);

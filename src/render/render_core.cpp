@@ -486,12 +486,12 @@ r_init(OS_Handle window)
       static_samplers[1].AddressU         = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
       static_samplers[1].AddressV         = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
       static_samplers[1].AddressW         = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
-      static_samplers[1].MipLODBias       = 0.0f;
+      static_samplers[1].MipLODBias       = 0.f;
       static_samplers[1].MaxAnisotropy    = 1;
       static_samplers[1].ComparisonFunc   = D3D12_COMPARISON_FUNC_LESS_EQUAL;
       static_samplers[1].BorderColor      = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
-      static_samplers[1].MinLOD           = 0.0f;
-      static_samplers[1].MaxLOD           = D3D12_FLOAT32_MAX;
+      static_samplers[1].MinLOD           = 0.f;
+      static_samplers[1].MaxLOD           = 0.f;
       static_samplers[1].ShaderRegister   = 1; // s1
       static_samplers[1].RegisterSpace    = 0;
       static_samplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
