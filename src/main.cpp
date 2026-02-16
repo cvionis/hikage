@@ -222,7 +222,7 @@ entry_point(void)
     }
 
     DirectionalLight sunlight {
-      .direction = v3f32(-0.01f, -0.9f, -0.01f),
+      .direction = v3f32_normalize(v3f32(-0.4f, -0.8f, -0.1f)),
     };
 
     r_frame_begin(&renderer);
@@ -230,7 +230,7 @@ entry_point(void)
     // @Note: Temporary
     S32 cascade_count = R_SHADOW_CASCADE_COUNT;
     S32 resolution = R_SHADOW_MAP_RESOLUTION;
-    F32 cascade_splits[R_SHADOW_CASCADE_COUNT] = { 1.1f, 4.3f, 16.6f, 100.f };
+    F32 cascade_splits[R_SHADOW_CASCADE_COUNT] = { 10, 30, 80, 200 };
     ShadowCascadeBuild cascades = build_shadow_cascades(camera, sunlight.direction, cascade_splits, cascade_count, resolution);
 
     r_pass_add_shadow(&renderer, &assets, models, models_count, sunlight, camera, cascades.viewproj, cascade_splits);

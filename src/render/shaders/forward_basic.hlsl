@@ -170,7 +170,7 @@ float4 ps_main(PS_Input input) : SV_TARGET
     occlusion = g_textures_2d[NU(mtl.tex_occlusion)].Sample(g_sampler, uv).r;
   }
 
-  float3 lig = float3(0.01, 0.9, 0.01);
+  float3 lig = normalize(float3(0.4, 0.8, 0.1));
 
   float3 N = normalize(normal_ws);
   float3 V = normalize(camera_ws.xyz - input.position_ws);
@@ -180,7 +180,7 @@ float4 ps_main(PS_Input input) : SV_TARGET
 
   // Note: Entering non-physically-correct territory (temporary)
 
-  Texture2DArray<float> shadow_map = g_textures_2d_array[0];
+  Texture2DArray<float> shadow_map = g_textures_2d_array[514]; // @Todo: Temp.
 
   uint cascade_idx = SHADOW_CASCADE_COUNT - 1;
   for (; cascade_idx > 0; cascade_idx -= 1) {
@@ -189,7 +189,12 @@ float4 ps_main(PS_Input input) : SV_TARGET
       break;
     }
   }
-  cascade_idx = 0;
+
+  float depth_vs = input.position_vs.z;
+  if (depth_vs < cascade_splits.x) cascade_idx = 0;
+  else if (depth_vs < cascade_splits.y) cascade_idx = 1;
+  else if (depth_vs < cascade_splits.z) cascade_idx = 2;
+  else cascade_idx = 3;
 
   float4 shadow_clip = mul(float4(input.position_ws, 1.0), light_viewproj[cascade_idx]);
   float3 shadow_ndc = shadow_clip.xyz / shadow_clip.w;
@@ -199,7 +204,8 @@ float4 ps_main(PS_Input input) : SV_TARGET
   );
   float shadow_depth = shadow_ndc.z;
   float3 shadow_map_coord = float3(shadow_uv, shadow_depth);
-  float sha = shadow_map.SampleCmpLevelZero(g_sampler_shadow, float3(shadow_map_coord.xy, cascade_idx), shadow_map_coord.z);
+  float bias = 0.005;
+  float sha = shadow_map.SampleCmpLevelZero(g_sampler_shadow, float3(shadow_map_coord.xy, cascade_idx), shadow_map_coord.z - bias);
 
   float sky_dif = saturate(0.5+0.5*normal_ws.y);
   float bot_dif = 0.4*saturate(0.5-0.5*normal_ws.y);

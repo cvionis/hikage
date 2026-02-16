@@ -163,7 +163,7 @@ r_ctx_init_resources(R_Context *ctx)
     .init_state = R_TextureInitState_RenderTarget,
 
     .has_clear_value = 1,
-    .clear_color = { 0.95f, 0.9f, 0.9f, 1.0f },
+    .clear_color = { 0.4f, 0.5f, 1.1f, 1.0f },
   };
 
   R_TextureDesc forward_depth_desc = {

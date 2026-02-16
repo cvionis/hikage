@@ -131,7 +131,7 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
   pass->scissor = ctx->default_scissor;
 
   pass->clear_flags = R_ClearFlag_Color|R_ClearFlag_Depth;
-  pass->clear_color = v4f32(0.95f,0.9f, 0.9f, 1.f);
+  pass->clear_color = v4f32(0.4f,0.5f, 1.1f, 1.f);
   pass->clear_depth = 1.0f;
 
   pass->topology = R_Topology_TriangleList;
@@ -337,7 +337,7 @@ r_pass_add_post(R_Context *ctx)
   pass->scissor = ctx->default_scissor;
 
   pass->clear_flags = R_ClearFlag_Color;
-  pass->clear_color = v4f32(0.95f,0.9f, 0.9f, 1.f);
+  pass->clear_color = v4f32(0.5f, 0.6f, 0.9f, 1.f);
 
   pass->topology = R_Topology_TriangleList;
 
