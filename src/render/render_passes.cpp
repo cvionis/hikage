@@ -187,6 +187,20 @@ R_PASS_EXECUTE_PROC(r_pass_execute_shadow)
   S32 cascade_count = R_SHADOW_CASCADE_COUNT;
 
   R_Handle shadow_cascades_depth = pass->depth_target;
+
+  // Create shader resource view for shadow map array
+  R_ViewDesc desc = {
+    .kind = R_ViewKind_ShaderResource,
+    .fmt = R_Format_R32_Float,
+    .range = {
+      .mip_start = 0,
+      .mip_count = 1,
+      .slice_start = 0,
+      .slice_count = R_SHADOW_CASCADE_COUNT,
+    },
+  };
+  r_view_from_texture(shadow_cascades_depth, desc);
+
   for (S32 cascade_idx = 0; cascade_idx < cascade_count; cascade_idx += 1) {
     R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(ShadowFrameCB));
     ShadowFrameCB *cb = (ShadowFrameCB *)alloc.cpu;

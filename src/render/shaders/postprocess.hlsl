@@ -113,5 +113,8 @@ float4 ps_main(VS_Out i) : SV_Target
   tot.g *= 1.02;
   tot.b *= 0.96;
 
+  //Texture2DArray<float> shadow_map = g_textures_2d_array[514];
+  //tot.xyz = shadow_map.Sample(g_sampler, float3(i.uv.xy, 0)).r;
+
   return float4(tot, 1.0);
 }

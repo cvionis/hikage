@@ -170,7 +170,7 @@ float4 ps_main(PS_Input input) : SV_TARGET
     occlusion = g_textures_2d[NU(mtl.tex_occlusion)].Sample(g_sampler, uv).r;
   }
 
-  float3 lig = float3(0.9, 0.2, 0.4);
+  float3 lig = float3(0.01, 0.9, 0.01);
 
   float3 N = normalize(normal_ws);
   float3 V = normalize(camera_ws.xyz - input.position_ws);
@@ -182,7 +182,14 @@ float4 ps_main(PS_Input input) : SV_TARGET
 
   Texture2DArray<float> shadow_map = g_textures_2d_array[0];
 
-  uint cascade_idx = 0; // @Todo: Determine based on view-space depth (position_vs.z)
+  uint cascade_idx = SHADOW_CASCADE_COUNT - 1;
+  for (; cascade_idx > 0; cascade_idx -= 1) {
+    float d = cascade_splits[cascade_idx];
+    if (input.position_vs.z > d) {
+      break;
+    }
+  }
+  cascade_idx = 0;
 
   float4 shadow_clip = mul(float4(input.position_ws, 1.0), light_viewproj[cascade_idx]);
   float3 shadow_ndc = shadow_clip.xyz / shadow_clip.w;
@@ -192,20 +199,22 @@ float4 ps_main(PS_Input input) : SV_TARGET
   );
   float shadow_depth = shadow_ndc.z;
   float3 shadow_map_coord = float3(shadow_uv, shadow_depth);
+  float sha = shadow_map.SampleCmpLevelZero(g_sampler_shadow, float3(shadow_map_coord.xy, cascade_idx), shadow_map_coord.z);
 
   float sky_dif = saturate(0.5+0.5*normal_ws.y);
   float bot_dif = 0.4*saturate(0.5-0.5*normal_ws.y);
 
   float3 amb = albedo*0.3;
-  float3 lit = amb*occlusion +
-    float3(8., 6., 4.) * NoL +
+  float3 indirect = amb;
+  float3 direct =
+    float3(8., 6., 4.)  * NoL +
     float3(0.5,0.7,1.2) * sky_dif +
     float3(1.0,1.0,1.0) * bot_dif;
 
-  float3 color = albedo * lit + emissive*1.2;
-  //color = shadow_map.Sample(g_sampler, float3(uv.xy, 0)).rrr;
+  float3 lit = indirect*occlusion + direct*sha + emissive*1.2;
+  float3 color = albedo * lit;
 
-  //color = shadow_map.SampleCmpLevelZero(g_sampler_shadow, float3(shadow_map_coord.xy, cascade_idx), shadow_map_coord.z);
+  //color.xyz = shadow_map.Sample(g_sampler, float3(uv.xy, 0)).r;
 
   return float4(color, 1.0);
 }

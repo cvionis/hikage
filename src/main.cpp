@@ -29,7 +29,7 @@ build_shadow_cascades(Camera cam, V3F32 light_direction, F32 *cascade_splits, S3
   ShadowCascadeBuild res = {};
 
   // Constants to tweak according to scene scale
-  const F32 light_back_off = 800.0f;
+  const F32 light_back_off = 500.0f;
   const F32 z_pad = 50.0f;
 
   F32 half_fov = 0.5f * cam.fov;
@@ -222,7 +222,7 @@ entry_point(void)
     }
 
     DirectionalLight sunlight {
-      .direction = v3f32(-0.9f, -0.2f, -0.4f),
+      .direction = v3f32(-0.01f, -0.9f, -0.01f),
     };
 
     r_frame_begin(&renderer);
