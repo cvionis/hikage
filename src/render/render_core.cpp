@@ -280,7 +280,8 @@ r_init(OS_Handle window)
   // RTV heap
   {
     D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
-    rtv_heap_desc.NumDescriptors = R_D3D12_FRAME_COUNT + 1;
+    //rtv_heap_desc.NumDescriptors = R_D3D12_FRAME_COUNT + 1;
+    rtv_heap_desc.NumDescriptors = 32; // @Todo: Arbitrary. Encode in a macro.
     rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     hr = ctx->device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&ctx->rtv_heap));
     Assert(SUCCEEDED(hr));
@@ -291,7 +292,7 @@ r_init(OS_Handle window)
   // DSV heap
   {
     D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
-    dsv_heap_desc.NumDescriptors = 1;
+    dsv_heap_desc.NumDescriptors = 32;// @Todo: Arbitrary. Encode in a macro.
     dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     hr = ctx->device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&ctx->dsv_heap));
     Assert(SUCCEEDED(hr));

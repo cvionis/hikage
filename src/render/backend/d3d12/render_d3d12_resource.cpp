@@ -267,7 +267,7 @@ r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, R_SubresourceRange 
   srv_desc.Format = fmt;
   srv_desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
-  if (range.slice_count > 1) {
+  if (range.slice_count >= 1) {
     srv_desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
     srv_desc.Texture2DArray.MostDetailedMip     = range.mip_start;
     srv_desc.Texture2DArray.MipLevels           = range.mip_count;
@@ -299,7 +299,7 @@ r_d3d12_write_rtv(ID3D12Resource *resource, DXGI_FORMAT fmt, R_SubresourceRange 
   D3D12_RENDER_TARGET_VIEW_DESC rtv_desc = {};
   rtv_desc.Format = fmt;
 
-  if (range.slice_count > 1) {
+  if (range.slice_count >= 1) {
     rtv_desc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
     rtv_desc.Texture2DArray.MipSlice        = range.mip_start;
     rtv_desc.Texture2DArray.FirstArraySlice = range.slice_start;
@@ -328,7 +328,7 @@ r_d3d12_write_dsv(ID3D12Resource *resource, DXGI_FORMAT fmt, R_SubresourceRange 
   dsv_desc.Format = fmt;
   dsv_desc.Flags  = D3D12_DSV_FLAG_NONE;
 
-  if (range.slice_count > 1) {
+  if (range.slice_count >= 1) {
     dsv_desc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
     dsv_desc.Texture2DArray.MipSlice        = range.mip_start;
     dsv_desc.Texture2DArray.FirstArraySlice = range.slice_start;

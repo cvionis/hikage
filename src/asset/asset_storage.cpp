@@ -232,7 +232,7 @@ assets_load_model(AssetContext *ctx, String8 name)
             .mip_start = 0,
             .mip_count = (S32)img->mip_count,
             .slice_start = 0,
-            .slice_count = 1,
+            .slice_count = 0,
           },
         };
         r_view_from_texture(tex, view_desc);

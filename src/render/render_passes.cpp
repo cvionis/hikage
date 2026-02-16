@@ -282,7 +282,6 @@ R_PASS_EXECUTE_PROC(r_pass_execute_shadow)
 
   R_Handle shadow_cascades_depth = pass->depth_target;
   for (S32 cascade_idx = 0; cascade_idx < cascade_count; cascade_idx += 1) {
-
     R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(ShadowFrameCB));
     ShadowFrameCB *cb = (ShadowFrameCB *)alloc.cpu;
     cb->viewproj = camera.viewproj;
@@ -322,8 +321,8 @@ r_pass_add_shadow(R_Context *ctx, AssetContext *assets, ModelInstance *models, S
   pass->name = S8("shadow");
   pass->pipeline = ctx->pipeline_shadow;
 
-  //pass->depth_target = ctx->shadow_cascades_depth;
-  pass->depth_target = {-1,-1};
+  pass->depth_target = ctx->shadow_cascades_depth;
+  //pass->depth_target = {-1,-1};
 
   pass->depth_final_state = R_ResourceState_ShaderRead;
 
@@ -367,7 +366,6 @@ R_PASS_EXECUTE_PROC(r_pass_execute_post)
 
   R_Handle hdr_color_tex = pass->read_resources[0];  // @Note: Temporary
 
-  // @Todo: this is ugly as FUCK.
   R_ViewDesc view_desc = {
     .kind = R_ViewKind_ShaderResource,
     .fmt = r_texture_get_fmt(hdr_color_tex),
@@ -375,7 +373,7 @@ R_PASS_EXECUTE_PROC(r_pass_execute_post)
       .mip_start = 0,
       .mip_count = 1,
       .slice_start = 0,
-      .slice_count = 1,
+      .slice_count = 0,
     },
   };
   R_Handle shader_resource_view = r_view_from_texture(hdr_color_tex, view_desc);
