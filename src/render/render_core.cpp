@@ -281,7 +281,7 @@ r_init(OS_Handle window)
   {
     D3D12_DESCRIPTOR_HEAP_DESC rtv_heap_desc = {};
     //rtv_heap_desc.NumDescriptors = R_D3D12_FRAME_COUNT + 1;
-    rtv_heap_desc.NumDescriptors = 32; // @Todo: Arbitrary. Encode in a macro.
+    rtv_heap_desc.NumDescriptors = 32; // @Todo: Arbitrary. Encode in a constant.
     rtv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     hr = ctx->device->CreateDescriptorHeap(&rtv_heap_desc, IID_PPV_ARGS(&ctx->rtv_heap));
     Assert(SUCCEEDED(hr));
@@ -292,7 +292,7 @@ r_init(OS_Handle window)
   // DSV heap
   {
     D3D12_DESCRIPTOR_HEAP_DESC dsv_heap_desc = {};
-    dsv_heap_desc.NumDescriptors = 32;// @Todo: Arbitrary. Encode in a macro.
+    dsv_heap_desc.NumDescriptors = 32;// @Todo: Arbitrary. Encode in a constant.
     dsv_heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     hr = ctx->device->CreateDescriptorHeap(&dsv_heap_desc, IID_PPV_ARGS(&ctx->dsv_heap));
     Assert(SUCCEEDED(hr));
@@ -359,6 +359,7 @@ r_init(OS_Handle window)
       ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     ctx->srv_next_idx = R_D3D12_TEXTURE_TABLE_BASE;
+    ctx->srv_2darray_next_idx = R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE;
   }
 
   // Material buffer (StructuredBuffer) (t0, space1) stored in slot 3 of srv_heap
@@ -398,24 +399,32 @@ r_init(OS_Handle window)
 
   // Root signature
   {
-    CD3DX12_DESCRIPTOR_RANGE ranges[2];
-    // t0[] space0: texture table
+    CD3DX12_DESCRIPTOR_RANGE ranges[3];
+    // t0[] space0: texture table (2d textures)
     ranges[0].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-      R_D3D12_TEXTURE_MAX,
+      R_D3D12_TEXTURE_2D_MAX,
       0, // baseShaderRegister t0
       0  // registerSpace 0
     );
 
-    // t0 space1: material buffer
+    // t0[] space1: texture table (2d array textures)
     ranges[1].Init(
+      D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+      R_D3D12_TEXTURE_2D_ARRAY_MAX,
+      0, // baseShaderRegister t0
+      1  // registerSpace 0
+    );
+
+    // t0 space2: material buffer
+    ranges[2].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
       1,
       0, // baseShaderRegister t0
-      1  // registerSpace 1
+      2  // registerSpace 1
     );
 
-    CD3DX12_ROOT_PARAMETER params[4];
+    CD3DX12_ROOT_PARAMETER params[5];
     // b0: frame/pass constants (root CBV)
     params[0].InitAsConstantBufferView(
       0, // shaderRegister b0
@@ -428,17 +437,23 @@ r_init(OS_Handle window)
       0, // registerSpace
       D3D12_SHADER_VISIBILITY_ALL
     );
-    // SRV descriptor table for textures
+    // SRV descriptor table for textures (2D)
     params[2].InitAsDescriptorTable(
       1, &ranges[0],
       D3D12_SHADER_VISIBILITY_PIXEL
     );
-    // SRV descriptor table for materials
+    // SRV descriptor table for textures (2D array)
     params[3].InitAsDescriptorTable(
       1, &ranges[1],
       D3D12_SHADER_VISIBILITY_PIXEL
     );
+    // SRV descriptor table for materials
+    params[4].InitAsDescriptorTable(
+      1, &ranges[2],
+      D3D12_SHADER_VISIBILITY_PIXEL
+    );
 
+    #if 0
     D3D12_STATIC_SAMPLER_DESC static_sampler = {};
     static_sampler.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
     static_sampler.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
@@ -447,9 +462,43 @@ r_init(OS_Handle window)
     static_sampler.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
     static_sampler.ShaderRegister = 0; // s0
     static_sampler.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    #endif
+
+    // Two static samplers: standard linear sampler and comparison sampler for shadow maps.
+    D3D12_STATIC_SAMPLER_DESC static_samplers[2] = {};
+    {
+      static_samplers[0].Filter           = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+      static_samplers[0].AddressU         = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+      static_samplers[0].AddressV         = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+      static_samplers[0].AddressW         = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+      static_samplers[0].MipLODBias       = 0.0f;
+      static_samplers[0].MaxAnisotropy    = 1;
+      static_samplers[0].ComparisonFunc   = D3D12_COMPARISON_FUNC_NEVER;
+      static_samplers[0].BorderColor      = D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK;
+      static_samplers[0].MinLOD           = 0.0f;
+      static_samplers[0].MaxLOD           = D3D12_FLOAT32_MAX;
+      static_samplers[0].ShaderRegister   = 0; // s0
+      static_samplers[0].RegisterSpace    = 0;
+      static_samplers[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+    }
+    {
+      static_samplers[1].Filter           = D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT;
+      static_samplers[1].AddressU         = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+      static_samplers[1].AddressV         = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+      static_samplers[1].AddressW         = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
+      static_samplers[1].MipLODBias       = 0.0f;
+      static_samplers[1].MaxAnisotropy    = 1;
+      static_samplers[1].ComparisonFunc   = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+      static_samplers[1].BorderColor      = D3D12_STATIC_BORDER_COLOR_OPAQUE_WHITE;
+      static_samplers[1].MinLOD           = 0.0f;
+      static_samplers[1].MaxLOD           = D3D12_FLOAT32_MAX;
+      static_samplers[1].ShaderRegister   = 1; // s1
+      static_samplers[1].RegisterSpace    = 0;
+      static_samplers[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+    }
 
     CD3DX12_ROOT_SIGNATURE_DESC root_sig_desc;
-    root_sig_desc.Init(ArrayCount(params), params, 1, &static_sampler,
+    root_sig_desc.Init(ArrayCount(params), params, ArrayCount(static_samplers), static_samplers,
       D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
     ID3DBlob *sig_blob = 0;

@@ -8,10 +8,10 @@
 
 cbuffer ShadowFrameCB : register(b0) {
   float4x4 viewproj;
-  float4 camera_ws;
   float4x4 light_viewproj[SHADOW_CASCADE_COUNT];
-	float cascade_splits[SHADOW_CASCADE_COUNT];
+	float4 cascade_splits; // @Note: maximum 4 splits
 	uint cascade_idx;
+	float4 camera_ws;
 };
 
 cbuffer DrawCB : register(b1) {

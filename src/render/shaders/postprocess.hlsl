@@ -45,10 +45,12 @@ cbuffer PostProcessCB : register(b0) {
 // Resources
 //
 
-// @Todo: common.hlsl (and maybe resources.hlsl)
-StructuredBuffer<Material> g_materials : register(t0, space1); // @Todo: Determine if you can safely not write this in here.
-Texture2D g_textures[BINDLESS_TEXTURES_MAX] : register(t0, space0);
-SamplerState g_sampler : register(s0);
+Texture2D g_textures_2d[512]       : register(t0, space0);
+Texture2DArray<float> g_textures_2d_array[512] : register(t0, space1);
+StructuredBuffer<Material> g_materials : register(t0, space2);
+
+SamplerState           g_sampler : register(s0);
+SamplerComparisonState g_sampler_shadow : register(s1);
 
 //
 // Inputs/Outputs
@@ -98,7 +100,7 @@ VS_Out vs_main(uint id : SV_VertexID)
 
 float4 ps_main(VS_Out i) : SV_Target
 {
-  float3 hdr = g_textures[NU(tex_hdr_color)].Sample(g_sampler, i.uv).rgb;
+  float3 hdr = g_textures_2d[NU(tex_hdr_color)].Sample(g_sampler, i.uv).rgb;
 
   float3 tot = hdr;
 

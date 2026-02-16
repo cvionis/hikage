@@ -47,7 +47,7 @@ r_alloc_descriptor_for_view(R_Handle texture, R_ViewDesc desc)
 
   switch (desc.kind) {
     case R_ViewKind_ShaderResource: {
-      S32 srv_idx = r_alloc_texture_descriptor_idx_srv();
+      S32 srv_idx = r_alloc_texture_descriptor_idx_srv(desc.range);
       r_d3d12_write_srv(tex->resource, dxgi_fmt, desc.range, srv_idx);
       idx = srv_idx;
     }break;

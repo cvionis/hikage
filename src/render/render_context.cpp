@@ -269,14 +269,19 @@ r_pass_begin(R_Pass *pass)
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_base =
       backend->srv_heap->GetGPUDescriptorHandleForHeapStart();
 
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex = gpu_base;
-    gpu_tex.ptr +=
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex_2d = gpu_base;
+    gpu_tex_2d.ptr +=
       (U64)R_D3D12_TEXTURE_TABLE_BASE * (U64)backend->srv_descriptor_size;
-    backend->command_list->SetGraphicsRootDescriptorTable(2, gpu_tex);
+    backend->command_list->SetGraphicsRootDescriptorTable(2, gpu_tex_2d);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex_2d_array = gpu_base;
+    gpu_tex_2d.ptr +=
+      (U64)R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE * (U64)backend->srv_descriptor_size;
+    backend->command_list->SetGraphicsRootDescriptorTable(3, gpu_tex_2d_array);
 
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_material =
       CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_base, backend->material_srv_idx, backend->srv_descriptor_size);
-    backend->command_list->SetGraphicsRootDescriptorTable(3, gpu_material);
+    backend->command_list->SetGraphicsRootDescriptorTable(4, gpu_material);
   }
 
   // Bind render targets
@@ -293,7 +298,7 @@ r_pass_begin(R_Pass *pass)
         .mip_start = 0,
         .mip_count = 1,
         .slice_start = 0,
-        .slice_count = 1,
+        .slice_count = 0,
       },
     };
     R_Handle view = r_view_from_texture(render_target, desc);
@@ -309,7 +314,7 @@ r_pass_begin(R_Pass *pass)
         .mip_start = 0,
         .mip_count = 1,
         .slice_start = 0,
-        .slice_count = 1,
+        .slice_count = 0,
       },
     };
     R_Handle view = r_view_from_texture(pass->depth_target, desc);
@@ -338,7 +343,7 @@ r_pass_begin(R_Pass *pass)
     backend->command_list->ClearDepthStencilView(
       dsv_handle,
       D3D12_CLEAR_FLAG_DEPTH,
-      pass->clear_depth, 0, 0, 0
+      pass->clear_depth, 0, 0, 0 // @Todo: Am I even using the depth texture's clear value? lol
     );
   }
 

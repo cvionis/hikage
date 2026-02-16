@@ -50,9 +50,12 @@ cbuffer DrawCB : register(b1) {
 // Resources
 //
 
-StructuredBuffer<Material> g_materials : register(t0, space1);
-Texture2D g_textures[BINDLESS_TEXTURES_MAX] : register(t0, space0);
-SamplerState g_sampler : register(s0);
+Texture2D g_textures_2d[512]       : register(t0, space0);
+Texture2DArray<float> g_textures_2d_array[512] : register(t0, space1);
+StructuredBuffer<Material> g_materials : register(t0, space2);
+
+SamplerState           g_sampler : register(s0);
+SamplerComparisonState g_sampler_shadow : register(s1);
 
 //
 // Inputs and outputs
@@ -131,12 +134,12 @@ float4 ps_main(PS_Input input) : SV_TARGET
   // Base color
   float3 albedo = mtl.base_color.rgb;
   if (mtl.flags & MaterialFlag_BaseColor) {
-    albedo = g_textures[NU(mtl.tex_base_color)].Sample(g_sampler, uv).rgb;
+    albedo = g_textures_2d[NU(mtl.tex_base_color)].Sample(g_sampler, uv).rgb;
   }
   // Normal
   float3 normal_ws = input.normal;
   if (mtl.flags & MaterialFlag_Normal) {
-    float2 normal_xy = g_textures[NU(mtl.tex_normal)].Sample(g_sampler, uv).rg;
+    float2 normal_xy = g_textures_2d[NU(mtl.tex_normal)].Sample(g_sampler, uv).rg;
     normal_xy = 2.0 * normal_xy - 1.;
     float normal_z = sqrt(saturate(1.0 - dot(normal_xy, normal_xy)));
 
@@ -146,17 +149,17 @@ float4 ps_main(PS_Input input) : SV_TARGET
   // Metal-roughness
   float2 metal_rough = float2(mtl.metallic, mtl.roughness);
   if (mtl.flags & MaterialFlag_MetalRough) {
-    metal_rough = g_textures[NU(mtl.tex_metal_rough)].Sample(g_sampler, uv).rg;
+    metal_rough = g_textures_2d[NU(mtl.tex_metal_rough)].Sample(g_sampler, uv).rg;
   }
   // Emissive
   float3 emissive = mtl.emissive;
   if (mtl.flags & MaterialFlag_Emissive) {
-    emissive = g_textures[NU(mtl.tex_emissive)].Sample(g_sampler, uv).rgb;
+    emissive = g_textures_2d[NU(mtl.tex_emissive)].Sample(g_sampler, uv).rgb;
   }
   // Occlusion
   float occlusion = 1.;
   if (mtl.flags & MaterialFlag_Occlusion) {
-    occlusion = g_textures[NU(mtl.tex_occlusion)].Sample(g_sampler, uv).r;
+    occlusion = g_textures_2d[NU(mtl.tex_occlusion)].Sample(g_sampler, uv).r;
   }
 
   float3 lig = float3(0.9, 0.2, 0.4);

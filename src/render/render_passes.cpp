@@ -258,11 +258,11 @@ R_PASS_EXECUTE_PROC(r_pass_execute_shadow)
 {
   struct ShadowFrameCB {
     Mat4x4 viewproj;
-    V4F32 camera_pos;
     Mat4x4 light_viewproj[R_SHADOW_CASCADE_COUNT];
     F32 cascade_splits[R_SHADOW_CASCADE_COUNT];
     U32 cascade_idx;
-    U32 _pad[3];
+    U32 _pad[1];
+    V4F32 camera_pos;
   };
 
   R_D3D12_Backend *backend = &r_ctx;
@@ -322,7 +322,7 @@ r_pass_add_shadow(R_Context *ctx, AssetContext *assets, ModelInstance *models, S
   pass->pipeline = ctx->pipeline_shadow;
 
   pass->depth_target = ctx->shadow_cascades_depth;
-  //pass->depth_target = {-1,-1};
+  pass->clear_depth = 1.f;
 
   pass->depth_final_state = R_ResourceState_ShaderRead;
 
