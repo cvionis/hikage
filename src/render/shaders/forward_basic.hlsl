@@ -2,6 +2,8 @@
 // Constants
 //
 
+#define PI 3.14159
+
 #define BINDLESS_TEXTURES_MAX 1024
 
 #define MaterialFlag_None        0u
@@ -18,7 +20,6 @@
 struct Material {
   float4 base_color; // @Todo: Should be float3, no?
   float3 emissive;
-
   float metallic;
   float roughness;
 
@@ -30,6 +31,58 @@ struct Material {
   uint tex_occlusion;
   uint tex_emissive;
 };
+
+//
+// Specular BRDF implementations
+//
+
+// @Note: All of these are directly from the following page:
+// https://google.github.io/filament/main/filament.html#materialsystem
+
+float D_GGX(float a, float NoH)
+{
+  float a2 = a * a;
+  float f = (NoH * a2 - NoH) * NoH + 1.0;
+  return a2 / (PI * f * f);
+}
+
+float V_SmithGGXCorrelated(float NoV, float NoL, float a)
+{
+  float a2 = a * a;
+  float GGXV = NoL * sqrt(NoV * NoV * (1.0 - a2) + a2);
+  float GGXL = NoV * sqrt(NoL * NoL * (1.0 - a2) + a2);
+  return 0.5 / (GGXV + GGXL + 1e-5);
+}
+
+float3 F_Schlick(float VoH, float3 f0)
+{
+  return f0 + (1.0 - f0) * pow(1.0 - VoH, 5.0);
+}
+
+float F_Schlick(float u, float f0, float f90)
+{
+  return f0 + (f90 - f0) * pow(1.0 - u, 5.0);
+}
+
+//
+// Diffuse BRDF implementations
+//
+
+// @Note: All of these are directly from the following page:
+// https://google.github.io/filament/main/filament.html#materialsystem
+
+float Fd_Lambert()
+{
+  return 1.0 / PI;
+}
+
+float Fd_Burley(float NoV, float NoL, float LoH, float roughness)
+{
+  float f90 = 0.5 + 2.0 * roughness * LoH * LoH;
+  float lightScatter = F_Schlick(NoL, 1.0, f90);
+  float viewScatter = F_Schlick(NoV, 1.0, f90);
+  return lightScatter * viewScatter * (1.0 / PI);
+}
 
 //
 // Constant buffers
@@ -102,6 +155,18 @@ float3 normal_ws_from_ts(float3 normal_ts, float4 t, float3 n)
   return normalize(mul(normal_ts, TBN));
 }
 
+uint cascade_from_viewspace_depth(float depth)
+{
+  uint cascade_idx;
+
+  if (depth < cascade_splits.x) cascade_idx = 0;
+  else if (depth < cascade_splits.y) cascade_idx = 1;
+  else if (depth < cascade_splits.z) cascade_idx = 2;
+  else cascade_idx = 3;
+
+  return cascade_idx;
+}
+
 //
 // Vertex shader entry point
 //
@@ -139,10 +204,14 @@ float4 ps_main(PS_Input input) : SV_TARGET
   float2 uv = input.uv;
   Material mtl = g_materials[NU(material)];
 
+  //
+  // Get material parameters
+  //
+
   // Base color
-  float3 albedo = mtl.base_color.rgb;
+  float3 base_color = mtl.base_color.rgb;
   if (mtl.flags & MaterialFlag_BaseColor) {
-    albedo = g_textures_2d[NU(mtl.tex_base_color)].Sample(g_sampler, uv).rgb;
+    base_color = g_textures_2d[NU(mtl.tex_base_color)].Sample(g_sampler, uv).rgb;
   }
   // Normal
   float3 normal_ws = input.normal;
@@ -154,11 +223,15 @@ float4 ps_main(PS_Input input) : SV_TARGET
     float3 normal_ts = float3(normal_xy.x, normal_xy.y, normal_z);
     normal_ws = normal_ws_from_ts(normal_ts, input.tangent, input.normal);
   }
-  // Metal-roughness
+  // Metallic and roughness
   float2 metal_rough = float2(mtl.metallic, mtl.roughness);
   if (mtl.flags & MaterialFlag_MetalRough) {
     metal_rough = g_textures_2d[NU(mtl.tex_metal_rough)].Sample(g_sampler, uv).rg;
   }
+  float metallic = metal_rough.x;
+  float roughness = metal_rough.y;
+  float a = max(roughness*roughness, 1e-4);
+
   // Emissive
   float3 emissive = mtl.emissive;
   if (mtl.flags & MaterialFlag_Emissive) {
@@ -170,31 +243,31 @@ float4 ps_main(PS_Input input) : SV_TARGET
     occlusion = g_textures_2d[NU(mtl.tex_occlusion)].Sample(g_sampler, uv).r;
   }
 
-  float3 lig = normalize(float3(0.4, 0.8, 0.1));
+  //
+  // Lighting vectors
+  //
 
-  float3 N = normalize(normal_ws);
-  float3 V = normalize(camera_ws.xyz - input.position_ws);
-  float3 L = normalize(lig);
+  float3 light_direction = normalize(float3(-0.4, -0.8, -0.1)); // @Todo: Upload in frame CB
 
-  float NoL = saturate(dot(N, L));
+  float3 n = normalize(normal_ws);
+  float3 v = normalize(camera_ws.xyz - input.position_ws);
+  float3 l = normalize(-light_direction);
+  float3 h = normalize(l + v);
 
-  // Note: Entering non-physically-correct territory (temporary)
+  float NoL = saturate(dot(n, l));
+  float NoH = saturate(dot(n, h));
+  float NoV = saturate(dot(n, v));
+  float LoH = saturate(dot(l, h));
+  float VoH = saturate(dot(v, h));
+
+  //
+  // Shadows
+  //
 
   Texture2DArray<float> shadow_map = g_textures_2d_array[514]; // @Todo: Temp.
 
-  uint cascade_idx = SHADOW_CASCADE_COUNT - 1;
-  for (; cascade_idx > 0; cascade_idx -= 1) {
-    float d = cascade_splits[cascade_idx];
-    if (input.position_vs.z > d) {
-      break;
-    }
-  }
-
   float depth_vs = input.position_vs.z;
-  if (depth_vs < cascade_splits.x) cascade_idx = 0;
-  else if (depth_vs < cascade_splits.y) cascade_idx = 1;
-  else if (depth_vs < cascade_splits.z) cascade_idx = 2;
-  else cascade_idx = 3;
+  uint cascade_idx = cascade_from_viewspace_depth(depth_vs);
 
   float4 shadow_clip = mul(float4(input.position_ws, 1.0), light_viewproj[cascade_idx]);
   float3 shadow_ndc = shadow_clip.xyz / shadow_clip.w;
@@ -202,25 +275,51 @@ float4 ps_main(PS_Input input) : SV_TARGET
     shadow_ndc.x * 0.5f + 0.5f,
     -shadow_ndc.y * 0.5f + 0.5f // @Todo: Briefly work out why flip is necessary
   );
+
   float shadow_depth = shadow_ndc.z;
   float3 shadow_map_coord = float3(shadow_uv, shadow_depth);
   float bias = 0.005;
-  float sha = shadow_map.SampleCmpLevelZero(g_sampler_shadow, float3(shadow_map_coord.xy, cascade_idx), shadow_map_coord.z - bias);
+  float shadow = shadow_map.SampleCmpLevelZero(g_sampler_shadow, float3(shadow_map_coord.xy, cascade_idx), shadow_map_coord.z - bias);
 
-  float sky_dif = saturate(0.5+0.5*normal_ws.y);
-  float bot_dif = 0.4*saturate(0.5-0.5*normal_ws.y);
+  //
+  // Compute diffuse and specular reflectance
+  //
 
-  float3 amb = albedo*0.3;
-  float3 indirect = amb;
-  float3 direct =
-    float3(8., 6., 4.)  * NoL +
-    float3(0.5,0.7,1.2) * sky_dif +
-    float3(1.0,1.0,1.0) * bot_dif;
+  float3 f0 = lerp(float3(0.04, 0.04, 0.04), base_color, metallic);
+  float3 diffuse_color = (1.0 - metallic) * base_color.rgb;
 
-  float3 lit = indirect*occlusion + direct*sha + emissive*1.2;
-  float3 color = albedo * lit;
+  // Specular BRDF
+  float D = D_GGX(NoH, a);
+  float V = V_SmithGGXCorrelated(NoV, NoL, a);
+  float3 F = F_Schlick(VoH, f0);
+  float3 Fs = (D * V * F); /// @Note: V bakes in G and the division by 4(NoV*NoL)?
 
-  //color.xyz = shadow_map.Sample(g_sampler, float3(uv.xy, 0)).r;
+  // Diffuse BRDF
+  float3 Fd = diffuse_color * Fd_Burley(NoV, NoL, LoH, roughness);
+
+  //
+  // Compute direct lighting
+  //
+
+  float3 light_color = float3(1., 0.8, 0.6);
+  float light_intensity = 20.;
+  float3 radiance = light_color * light_intensity;
+
+  float3 direct = (Fd + Fs) * radiance * NoL;
+
+  //
+  // Compute indirect lighting (@Todo)
+  //
+
+  float3 ambient_tmp = diffuse_color*float3(0.09, 0.09, 0.09);
+  float3 indirect = ambient_tmp;
+
+  //
+  // Final color
+  //
+
+  float3 Lo = direct*shadow + indirect*occlusion;
+  float3 color = Lo + emissive;
 
   return float4(color, 1.0);
 }

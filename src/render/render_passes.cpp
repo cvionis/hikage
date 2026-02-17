@@ -131,7 +131,7 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
   pass->scissor = ctx->default_scissor;
 
   pass->clear_flags = R_ClearFlag_Color|R_ClearFlag_Depth;
-  pass->clear_color = v4f32(0.4f,0.5f, 1.1f, 1.f);
+  pass->clear_color = v4f32(0.4f, 0.5f, 1.1f, 1.f);
   pass->clear_depth = 1.0f;
 
   pass->topology = R_Topology_TriangleList;
@@ -226,7 +226,7 @@ R_PASS_EXECUTE_PROC(r_pass_execute_shadow)
     D3D12_CPU_DESCRIPTOR_HANDLE dsv = r_d3d12_dsv_from_view(view);
 
     backend->command_list->OMSetRenderTargets(0, 0, FALSE, &dsv);
-    backend->command_list->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, 1.f, 0, 0, 0);
+    backend->command_list->ClearDepthStencilView(dsv, D3D12_CLEAR_FLAG_DEPTH, pass->clear_depth, 0, 0, 0);
 
     r_draw_models(assets, models, models_count);
   }
@@ -255,7 +255,7 @@ r_pass_add_shadow(R_Context *ctx, AssetContext *assets, ModelInstance *models, S
   pass->scissor = {
     .rect = rect_s32(0,0, shadow_resolution, shadow_resolution),
   };
-  pass->clear_flags = R_ClearFlag_Depth;
+  pass->clear_flags = 0; // @Note: We overrite this pass's clear in its execute() proc
   pass->topology = R_Topology_TriangleList;
 
   pass->userdata = 0;
@@ -337,7 +337,7 @@ r_pass_add_post(R_Context *ctx)
   pass->scissor = ctx->default_scissor;
 
   pass->clear_flags = R_ClearFlag_Color;
-  pass->clear_color = v4f32(0.5f, 0.6f, 0.9f, 1.f);
+  pass->clear_color = v4f32(0.4f, 0.5f, 1.1f, 1.f);
 
   pass->topology = R_Topology_TriangleList;
 
