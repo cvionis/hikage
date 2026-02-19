@@ -43,8 +43,8 @@ r_ctx_init_resources(R_Context *ctx)
   //
 
   R_PipelineDesc forward_pipeline_desc = {
-    .vs_path = L"../src/render/shaders/forward_basic.hlsl",
-    .ps_path = L"../src/render/shaders/forward_basic.hlsl",
+    .vs_path = L"../src/render/shaders/lighting.hlsl",
+    .ps_path = L"../src/render/shaders/lighting.hlsl",
 
     .input_layout = &r_mesh_layout,
 
@@ -78,8 +78,8 @@ r_ctx_init_resources(R_Context *ctx)
   };
 
   R_PipelineDesc post_pipeline_desc = {
-    .vs_path = L"../src/render/shaders/postprocess.hlsl",
-    .ps_path = L"../src/render/shaders/postprocess.hlsl",
+    .vs_path = L"../src/render/shaders/fullscreen.hlsl",
+    .ps_path = L"../src/render/shaders/composite.hlsl",
 
     .input_layout = 0,
 

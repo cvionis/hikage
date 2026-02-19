@@ -41,14 +41,14 @@ struct Material {
 
 float D_GGX(float a, float NoH)
 {
-  float a2 = a * a;
+  float a2 = max(a * a, 1e-4);
   float f = (NoH * a2 - NoH) * NoH + 1.0;
   return a2 / (PI * f * f);
 }
 
 float V_SmithGGXCorrelated(float NoV, float NoL, float a)
 {
-  float a2 = a * a;
+  float a2 = max(a * a, 1e-4);
   float GGXV = NoL * sqrt(NoV * NoV * (1.0 - a2) + a2);
   float GGXL = NoV * sqrt(NoL * NoL * (1.0 - a2) + a2);
   return 0.5 / (GGXV + GGXL + 1e-5);
@@ -315,7 +315,7 @@ float4 ps_main(PS_Input input) : SV_TARGET
   float3 indirect = ambient_tmp;
 
   //
-  // Final color
+  // Final color (linear HDR)
   //
 
   float3 Lo = direct*shadow + indirect*occlusion;
