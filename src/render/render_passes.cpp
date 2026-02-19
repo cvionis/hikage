@@ -56,7 +56,7 @@ r_draw_models(AssetContext *assets, ModelInstance *models, S32 models_count)
 }
 
 //
-// Basic forward render pass
+// Basic lighting render pass
 //
 
 struct R_ForwardPassData {
@@ -70,7 +70,7 @@ struct R_ForwardPassData {
   F32 *cascade_splits;
 };
 
-R_PASS_EXECUTE_PROC(r_pass_execute_forward)
+R_PASS_EXECUTE_PROC(r_pass_execute_lighting)
 {
   (void *)pass;
 
@@ -106,18 +106,18 @@ R_PASS_EXECUTE_PROC(r_pass_execute_forward)
 }
 
 static void
-r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, S32 models_count, Camera camera,
+r_pass_add_lighting(R_Context *ctx, AssetContext *assets, ModelInstance *models, S32 models_count, Camera camera,
   Mat4x4 *light_viewproj, F32 *cascade_splits)
 {
   R_Pass *pass = r_frame_push_pass(ctx);
-  pass->name = S8("forward");
-  pass->pipeline = ctx->pipeline_forward;
+  pass->name = S8("lighting");
+  pass->pipeline = ctx->pipeline_lighting;
 
   // @Note: Used for rendering. Needs to match PSO desc.
   R_Handle col_target = ctx->hdr_color; //r_current_back_buffer();
   pass->render_targets[0] = col_target;
   pass->render_targets_count = 1;
-  pass->depth_target = ctx->forward_depth;
+  pass->depth_target = ctx->lighting_depth;
 
   // @Note: Used for barrier generation.
   // @Todo: wrap in something like r_pass_add_read(R_Handle h), r_pass_add_write(R_Handle h).
@@ -145,7 +145,7 @@ r_pass_add_forward(R_Context *ctx, AssetContext *assets, ModelInstance *models, 
   data->cascade_splits = cascade_splits;
 
   pass->userdata = data;
-  pass->execute = r_pass_execute_forward;
+  pass->execute = r_pass_execute_lighting;
 }
 
 //
@@ -274,14 +274,124 @@ r_pass_add_shadow(R_Context *ctx, AssetContext *assets, ModelInstance *models, S
 }
 
 //
-// Post processing pass
+// Bloom passes
 //
 
-R_PASS_EXECUTE_PROC(r_pass_execute_post)
+// Bloom pass 0: prefilter
+static void
+r_pass_add_bloom_prefilter(R_Context *ctx)
+{
+  R_Pass *pass = r_frame_push_pass(ctx);
+  pass->name = S8("bloom_prefilter");
+  pass->pipeline = ctx->pipeline_bloom_prefilter;
+
+  R_Handle target = ctx->bloom_tex_down;
+  pass->render_targets[0] = target;
+  pass->render_targets_count = 1;
+  pass->depth_target = {-1,-1 }; // @Note: Temporary {0,0} refers to first backbuffer :0)
+  //pass->depth_targets_count; // @Todo: JUST FUCKING ADD THIS TO CHECK IF IT HAS A DEPTH TARGET....
+
+  // @Todo: wrap in something like r_pass_push_read(R_Pass *pass, R_Handle h), r_pass_push_write(R_Pass *pass, R_Handle h).
+  pass->read_resources[0] = ctx->hdr_color;
+  pass->read_count = 1;
+  pass->write_resources[0] = target;
+  pass->write_count = 1;
+
+  pass->color_final_state = R_ResourceState_ShaderRead;
+
+  pass->viewport = ctx->default_viewport;
+  pass->scissor = ctx->default_scissor;
+
+  pass->clear_flags = R_ClearFlag_Color;
+  pass->clear_color = v4f32(0.4f, 0.5f, 1.1f, 1.f);
+
+  pass->topology = R_Topology_TriangleList;
+
+  pass->userdata = 0;
+  pass->execute = 0;
+}
+
+// Bloom pass 1: downsample/blur
+static void
+r_pass_add_bloom_downsample(R_Context *ctx)
+{
+  R_Pass *pass = r_frame_push_pass(ctx);
+  pass->name = S8("bloom_downsample");
+  pass->pipeline = ctx->pipeline_bloom_downsample;
+
+  R_Handle target = ctx->bloom_tex_down;
+  pass->render_targets[0] = target;
+  pass->render_targets_count = 1;
+  pass->depth_target = {-1,-1 }; // @Note: Temporary {0,0} refers to first backbuffer :0)
+  //pass->depth_targets_count; // @Todo: JUST FUCKING ADD THIS TO CHECK IF IT HAS A DEPTH TARGET....
+
+  // @Todo: wrap in something like r_pass_push_read(R_Pass *pass, R_Handle h), r_pass_push_write(R_Pass *pass, R_Handle h).
+
+  // @Resume: Either overwrite or adjust pass system so that rendering to individual mips is built in. See day28.txt
+  pass->read_resources[0] = target;
+  pass->read_count = 1;
+  pass->write_resources[0] = target;
+  pass->write_count = 1;
+
+  pass->color_final_state = R_ResourceState_RenderTarget;
+
+  pass->viewport = ctx->default_viewport;
+  pass->scissor = ctx->default_scissor;
+
+  pass->clear_flags = R_ClearFlag_Color;
+  pass->clear_color = v4f32(0.4f, 0.5f, 1.1f, 1.f);
+
+  pass->topology = R_Topology_TriangleList;
+
+  pass->userdata = 0;
+  pass->execute = 0;
+}
+
+// Bloom pass 2: upsample/accumulate
+static void
+r_pass_add_bloom_accumulate(R_Context *ctx)
+{
+  R_Pass *pass = r_frame_push_pass(ctx);
+  pass->name = S8("bloom_accumulate");
+  pass->pipeline = ctx->pipeline_bloom_accumulate;
+
+  R_Handle target = ctx->bloom_tex_up;
+  pass->render_targets[0] = target;
+  pass->render_targets_count = 1;
+  pass->depth_target = {-1,-1 }; // @Note: Temporary {0,0} refers to first backbuffer :0)
+  //pass->depth_targets_count; // @Todo: JUST FUCKING ADD THIS TO CHECK IF IT HAS A DEPTH TARGET....
+
+  // @Todo: wrap in something like r_pass_push_read(R_Pass *pass, R_Handle h), r_pass_push_write(R_Pass *pass, R_Handle h)
+
+  // @Resume: Either overwrite or adjust pass system so that rendering to individual mips is built in. See day28.txt
+  pass->read_resources[0] = ctx->bloom_tex_down;
+  pass->read_count = 1;
+  pass->write_resources[0] = target;
+  pass->write_count = 1;
+
+  pass->color_final_state = R_ResourceState_RenderTarget;
+
+  pass->viewport = ctx->default_viewport;
+  pass->scissor = ctx->default_scissor;
+
+  pass->clear_flags = R_ClearFlag_Color;
+  pass->clear_color = v4f32(0.4f, 0.5f, 1.1f, 1.f);
+
+  pass->topology = R_Topology_TriangleList;
+
+  pass->userdata = 0;
+  pass->execute = 0;
+}
+
+//
+// Compositing pass
+//
+
+R_PASS_EXECUTE_PROC(r_pass_execute_composite)
 {
   (void *)userdata;
 
-  struct R_PostProcessCB {
+  struct R_CompositeCB {
     U32 tex_hdr_color;
   };
 
@@ -303,8 +413,8 @@ R_PASS_EXECUTE_PROC(r_pass_execute_post)
   S32 hdr_color_idx_abs = r_descriptor_idx_from_view(shader_resource_view);
   S32 hdr_color_idx = hdr_color_idx_abs - R_D3D12_TEXTURE_TABLE_BASE;
 
-  R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_PostProcessCB));
-  R_PostProcessCB *cb = (R_PostProcessCB *)alloc.cpu;
+  R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_CompositeCB));
+  R_CompositeCB *cb = (R_CompositeCB *)alloc.cpu;
   cb->tex_hdr_color = hdr_color_idx;
   backend->command_list->SetGraphicsRootConstantBufferView(0, alloc.gpu);
 
@@ -313,11 +423,11 @@ R_PASS_EXECUTE_PROC(r_pass_execute_post)
 }
 
 static void
-r_pass_add_post(R_Context *ctx)
+r_pass_add_composite(R_Context *ctx)
 {
   R_Pass *pass = r_frame_push_pass(ctx);
-  pass->name = S8("postprocess");
-  pass->pipeline = ctx->pipeline_post;
+  pass->name = S8("composite");
+  pass->pipeline = ctx->pipeline_composite;
 
   R_Handle col_target = r_current_back_buffer();
   pass->render_targets[0] = col_target;
@@ -342,5 +452,5 @@ r_pass_add_post(R_Context *ctx)
   pass->topology = R_Topology_TriangleList;
 
   pass->userdata = 0;
-  pass->execute = r_pass_execute_post;
+  pass->execute = r_pass_execute_composite;
 }

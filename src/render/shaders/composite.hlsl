@@ -74,8 +74,6 @@ struct VS_Out {
 
 float4 ps_main(VS_Out i) : SV_Target
 {
-  // @Note: This pass is now obsolete, replaced by bloom_3_composite.
-
   float3 hdr = g_textures_2d[NU(tex_hdr_color)].Sample(g_sampler, i.uv).rgb;
 
   float3 tot = hdr;

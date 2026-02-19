@@ -66,12 +66,18 @@ struct R_Context {
   S32 height;
 
   // Persstent resources: pipelines
-  R_Handle pipeline_forward;
-  R_Handle pipeline_post;
   R_Handle pipeline_shadow;
+  R_Handle pipeline_lighting;
+  R_Handle pipeline_bloom_prefilter;
+  R_Handle pipeline_bloom_downsample;
+  R_Handle pipeline_bloom_accumulate;
+  R_Handle pipeline_composite;
 
   // Persistent resources: textures
-  R_Handle forward_depth;
+  R_Handle bloom_tex_down;
+  R_Handle bloom_tex_up;
+
+  R_Handle lighting_depth;
   R_Handle shadow_cascades_depth;
   R_Handle hdr_color;
 

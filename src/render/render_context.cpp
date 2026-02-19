@@ -42,74 +42,6 @@ r_ctx_init_resources(R_Context *ctx)
   // Pipelines
   //
 
-  R_PipelineDesc forward_pipeline_desc = {
-    .vs_path = L"../src/render/shaders/lighting.hlsl",
-    .ps_path = L"../src/render/shaders/lighting.hlsl",
-
-    .input_layout = &r_mesh_layout,
-
-    .raster = {
-      .fill_mode = R_FillMode_Solid,
-      .cull_mode = R_CullMode_Back,
-      .front_ccw = 0,
-      .depth_clip_enable = 1,
-    },
-
-    .depth_stencil = {
-      .depth_enable = 1,
-      .depth_write_enable = 1,
-      .depth_compare = R_CompareOp_LessEqual,
-    },
-
-    .blend = {
-      .targets = {
-        { .blend_enable = 0, .write_mask = 0xF },
-      },
-    },
-
-    .topology = R_TopologyKind_Triangle,
-
-    // Backbuffer format
-    .rt_formats = { R_Format_R16G16B16A16_Float },
-    .rt_count = 1,
-
-    .depth_format = R_Format_D32_Float,
-    .sample_count = 1,
-  };
-
-  R_PipelineDesc post_pipeline_desc = {
-    .vs_path = L"../src/render/shaders/fullscreen.hlsl",
-    .ps_path = L"../src/render/shaders/composite.hlsl",
-
-    .input_layout = 0,
-
-    .raster = {
-      .fill_mode = R_FillMode_Solid,
-      .cull_mode = R_CullMode_Back,
-      .front_ccw = 0,
-      .depth_clip_enable = 1,
-    },
-
-    .depth_stencil = {
-      .depth_enable = 0,
-      .depth_write_enable = 0,
-    },
-
-    .blend = {
-      .targets = {
-        { .blend_enable = 0, .write_mask = 0xF },
-      },
-    },
-
-    .topology = R_TopologyKind_Triangle,
-
-    // Backbuffer format
-    .rt_formats = {  R_Format_R8G8B8A8_UNorm },
-    .rt_count = 1,
-
-    .sample_count = 1,
-  };
-
   R_PipelineDesc shadow_pipeline_desc = {
     .vs_path = L"../src/render/shaders/shadow.hlsl",
     .ps_path = 0,
@@ -143,9 +75,176 @@ r_ctx_init_resources(R_Context *ctx)
     .sample_count = 1,
   };
 
-  ctx->pipeline_forward = r_create_pipeline(forward_pipeline_desc);
+  R_PipelineDesc lighting_pipeline_desc = {
+    .vs_path = L"../src/render/shaders/lighting.hlsl",
+    .ps_path = L"../src/render/shaders/lighting.hlsl",
+
+    .input_layout = &r_mesh_layout,
+
+    .raster = {
+      .fill_mode = R_FillMode_Solid,
+      .cull_mode = R_CullMode_Back,
+      .front_ccw = 0,
+      .depth_clip_enable = 1,
+    },
+
+    .depth_stencil = {
+      .depth_enable = 1,
+      .depth_write_enable = 1,
+      .depth_compare = R_CompareOp_LessEqual,
+    },
+
+    .blend = {
+      .targets = {
+        { .blend_enable = 0, .write_mask = 0xF },
+      },
+    },
+
+    .topology = R_TopologyKind_Triangle,
+
+    .rt_formats = { R_Format_R16G16B16A16_Float },
+    .rt_count = 1,
+
+    .depth_format = R_Format_D32_Float,
+    .sample_count = 1,
+  };
+
+  R_PipelineDesc bloom_prefilter_pipeline_desc = {
+    .vs_path = L"../src/render/shaders/fullscreen.hlsl",
+    .ps_path = L"../src/render/shaders/bloom_0_prefilter.hlsl",
+    .input_layout = 0,
+
+    .raster = {
+      .fill_mode = R_FillMode_Solid,
+      .cull_mode = R_CullMode_Back,
+      .front_ccw = 0,
+      .depth_clip_enable = 1,
+    },
+
+    .depth_stencil = {
+      .depth_enable = 0,
+      .depth_write_enable = 0,
+    },
+
+    .blend = {
+      .targets = {
+        { .blend_enable = 0, .write_mask = 0xF },
+      },
+    },
+
+    .topology = R_TopologyKind_Triangle,
+
+    .rt_formats = {  R_Format_R16G16B16A16_Float },
+    .rt_count = 1,
+
+    .sample_count = 1,
+  };
+
+  R_PipelineDesc bloom_downsample_pipeline_desc = {
+    .vs_path = L"../src/render/shaders/fullscreen.hlsl",
+    .ps_path = L"../src/render/shaders/bloom_1_downsample.hlsl",
+    .input_layout = 0,
+
+    .raster = {
+      .fill_mode = R_FillMode_Solid,
+      .cull_mode = R_CullMode_Back,
+      .front_ccw = 0,
+      .depth_clip_enable = 1,
+    },
+
+    .depth_stencil = {
+      .depth_enable = 0,
+      .depth_write_enable = 0,
+    },
+
+    .blend = {
+      .targets = {
+        { .blend_enable = 0, .write_mask = 0xF },
+      },
+    },
+
+    .topology = R_TopologyKind_Triangle,
+
+    .rt_formats = {  R_Format_R16G16B16A16_Float },
+    .rt_count = 1,
+
+    .sample_count = 1,
+  };
+
+  R_PipelineDesc bloom_accumulate_pipeline_desc = {
+    .vs_path = L"../src/render/shaders/fullscreen.hlsl",
+    .ps_path = L"../src/render/shaders/bloom_2_accumulate.hlsl",
+    .input_layout = 0,
+
+    .raster = {
+      .fill_mode = R_FillMode_Solid,
+      .cull_mode = R_CullMode_Back,
+      .front_ccw = 0,
+      .depth_clip_enable = 1,
+    },
+
+    .depth_stencil = {
+      .depth_enable = 0,
+      .depth_write_enable = 0,
+    },
+
+    .blend = {
+      .targets = {
+        { .blend_enable = 0, .write_mask = 0xF },
+      },
+    },
+
+    .topology = R_TopologyKind_Triangle,
+
+    .rt_formats = {  R_Format_R16G16B16A16_Float },
+    .rt_count = 1,
+
+    .sample_count = 1,
+  };
+
+  R_PipelineDesc composite_pipeline_desc = {
+    .vs_path = L"../src/render/shaders/fullscreen.hlsl",
+    .ps_path = L"../src/render/shaders/composite.hlsl",
+
+    .input_layout = 0,
+
+    .raster = {
+      .fill_mode = R_FillMode_Solid,
+      .cull_mode = R_CullMode_Back,
+      .front_ccw = 0,
+      .depth_clip_enable = 1,
+    },
+
+    .depth_stencil = {
+      .depth_enable = 0,
+      .depth_write_enable = 0,
+    },
+
+    .blend = {
+      .targets = {
+        { .blend_enable = 0, .write_mask = 0xF },
+      },
+    },
+
+    .topology = R_TopologyKind_Triangle,
+
+    .rt_formats = {  R_Format_R8G8B8A8_UNorm },
+    .rt_count = 1,
+
+    .sample_count = 1,
+  };
+
+  ctx->pipeline_lighting = r_create_pipeline(lighting_pipeline_desc);
   ctx->pipeline_shadow = r_create_pipeline(shadow_pipeline_desc);
-  ctx->pipeline_post = r_create_pipeline(post_pipeline_desc);
+
+  // @Todo: Re-include when shaders are written to prevent break on shader compilation error.
+  #if 0
+  ctx->pipeline_bloom_prefilter = r_create_pipeline(bloom_prefilter_pipeline_desc);
+  ctx->pipeline_bloom_downsample = r_create_pipeline(bloom_downsample_pipeline_desc);
+  ctx->pipeline_bloom_accumulate = r_create_pipeline(bloom_accumulate_pipeline_desc);
+  #endif
+
+  ctx->pipeline_composite = r_create_pipeline(composite_pipeline_desc);
 
   //
   // Textures
@@ -166,7 +265,7 @@ r_ctx_init_resources(R_Context *ctx)
     .clear_color = { 0.4f, 0.5f, 1.1f, 1.0f },
   };
 
-  R_TextureDesc forward_depth_desc = {
+  R_TextureDesc lighting_depth_desc = {
     .width  = ctx->width,
     .height = ctx->height,
     .depth  = 1,
@@ -205,9 +304,43 @@ r_ctx_init_resources(R_Context *ctx)
     },
   };
 
+  S32 bloom_tex_mips_count = 0;
+  S32 bloom_tex_width = ctx->width / 2;
+  S32 bloom_tex_height = ctx->height / 2;
+
+  S32 w = bloom_tex_width;
+  S32 h = bloom_tex_height;
+  S32 bloom_tex_mip_dim_min = 4; // Stop at 4x4
+  for (;;) {
+    w = w >> 1;
+    h = h >> 1;
+    if (w < bloom_tex_mip_dim_min || h < bloom_tex_mip_dim_min) {
+      break;
+    }
+    bloom_tex_mips_count += 1;
+  }
+
+  R_TextureDesc bloom_tex_desc = {
+    .width = bloom_tex_width,
+    .height = bloom_tex_height,
+    .depth = 1,
+    .mips_count = bloom_tex_mips_count,
+    .fmt = R_Format_R16G16B16A16_Float,
+    .usage = R_TextureUsage_RenderTarget|R_TextureUsage_Sampled,
+    .kind = R_TextureKind_2D,
+
+    .init_state = R_TextureInitState_RenderTarget,
+
+    .has_clear_value = 1,
+    .clear_color = { 0.4f, 0.5f, 1.1f, 1.0f },
+  };
+
   ctx->hdr_color = r_create_texture(0, 0, hdr_color_desc);
-  ctx->forward_depth = r_create_texture(0, 0, forward_depth_desc);
+  ctx->lighting_depth = r_create_texture(0, 0, lighting_depth_desc);
   ctx->shadow_cascades_depth = r_create_texture(0, 0, shadow_cascades_depth_desc);
+
+  ctx->bloom_tex_down = r_create_texture(0, 0, bloom_tex_desc);
+  ctx->bloom_tex_up  = r_create_texture(0, 0, bloom_tex_desc);
 }
 
 static void
