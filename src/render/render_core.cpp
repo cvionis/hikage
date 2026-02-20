@@ -408,7 +408,7 @@ r_init(OS_Handle window)
 
   // Root signature
   {
-    CD3DX12_DESCRIPTOR_RANGE ranges[3];
+    CD3DX12_DESCRIPTOR_RANGE ranges[4];
     // t0[] space0: texture table (2d textures)
     ranges[0].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
@@ -422,18 +422,26 @@ r_init(OS_Handle window)
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
       R_D3D12_TEXTURE_2D_ARRAY_MAX,
       0, // baseShaderRegister t0
+      1  // registerSpace 1
+    );
+
+    // u8[] space0: uav table (read/write resources)
+    ranges[2].Init(
+      D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+      R_D3D12_UAV_MAX,
+      0, // baseShaderRegister u0
       1  // registerSpace 0
     );
 
     // t0 space2: material buffer
-    ranges[2].Init(
+    ranges[3].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
       1,
       0, // baseShaderRegister t0
-      2  // registerSpace 1
+      2  // registerSpace 2
     );
 
-    CD3DX12_ROOT_PARAMETER params[5];
+    CD3DX12_ROOT_PARAMETER params[6];
     // b0: frame/pass constants (root CBV)
     params[0].InitAsConstantBufferView(
       0, // shaderRegister b0
@@ -449,17 +457,23 @@ r_init(OS_Handle window)
     // SRV descriptor table for textures (2D)
     params[2].InitAsDescriptorTable(
       1, &ranges[0],
-      D3D12_SHADER_VISIBILITY_PIXEL
+      D3D12_SHADER_VISIBILITY_ALL
     );
     // SRV descriptor table for textures (2D array)
     params[3].InitAsDescriptorTable(
       1, &ranges[1],
-      D3D12_SHADER_VISIBILITY_PIXEL
+      D3D12_SHADER_VISIBILITY_ALL
     );
-    // SRV descriptor table for materials
+    // UAV descriptor table for read/write resources
     params[4].InitAsDescriptorTable(
       1, &ranges[2],
-      D3D12_SHADER_VISIBILITY_PIXEL
+      D3D12_SHADER_VISIBILITY_ALL
+    );
+
+    // SRV descriptor table for materials
+    params[5].InitAsDescriptorTable(
+      1, &ranges[3],
+      D3D12_SHADER_VISIBILITY_ALL
     );
 
     #if 0
