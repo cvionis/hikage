@@ -58,7 +58,8 @@ enum R_Format {
 
 enum R_ResourceKind {
   R_ResourceKind_None,
-  R_ResourceKind_Pipeline,
+  R_ResourceKind_GraphicsPipeline,
+  R_ResourceKind_ComputePipeline,
   R_ResourceKind_Texture,
   R_ResourceKind_Buffer,
 };
@@ -132,7 +133,7 @@ struct R_View {
 
 struct R_ViewDesc {
   R_ViewKind kind;
-  R_Format fmt; // In case the resource was created as typless and it needs to reinterpreted.
+  R_Format fmt;
   R_SubresourceRange range;
 };
 
@@ -403,7 +404,7 @@ enum R_TopologyKind {
   R_TopologyKind_Point,
 };
 
-struct R_PipelineDesc {
+struct R_GraphicsPipelineDesc {
   // @Todo: Use String8, convert
   LPCWSTR vs_path;
   LPCWSTR ps_path;
@@ -422,4 +423,10 @@ struct R_PipelineDesc {
   S32 sample_count; // MSAA
 };
 
-static R_Handle r_create_pipeline(R_PipelineDesc desc);
+struct R_ComputePipelineDesc {
+  // @Todo: Use String8, convert
+  LPCWSTR cs_path;
+};
+
+static R_Handle r_create_graphics_pipeline(R_GraphicsPipelineDesc desc);
+static R_Handle r_create_compute_pipeline(R_ComputePipelineDesc desc);

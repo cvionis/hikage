@@ -156,7 +156,7 @@ r_create_buffer(R_BufferInitData init, R_BufferDesc desc)
 }
 
 static R_Handle
-r_create_pipeline(R_PipelineDesc desc)
+r_create_graphics_pipeline(R_GraphicsPipelineDesc desc)
 {
   R_Handle result = {};
 
@@ -167,9 +167,34 @@ r_create_pipeline(R_PipelineDesc desc)
 
     slot->gen += 1;
     slot->alive = 1;
-    slot->kind = R_ResourceKind_Pipeline;
+    slot->kind = R_ResourceKind_GraphicsPipeline;
 
-    R_CreateResource create = r_create_pipeline_impl(desc);
+    R_CreateResource create = r_create_graphics_pipeline_impl(desc);
+    slot->fence_value  = create.fence_value;
+    slot->backend_rsrc = create.backend;
+
+    result.idx = slot_idx;
+    result.gen = slot->gen;
+  }
+
+  return result;
+}
+
+static R_Handle
+r_create_compute_pipeline(R_ComputePipelineDesc desc)
+{
+  R_Handle result = {};
+
+  // @Note: Temporary type for vshader path
+  if (desc.cs_path != 0) {
+    S32 slot_idx = r_alloc_resource_slot();
+    R_ResourceSlot *slot = &r_resource_table.slots[slot_idx];
+
+    slot->gen += 1;
+    slot->alive = 1;
+    slot->kind = R_ResourceKind_ComputePipeline;
+
+    R_CreateResource create = r_create_compute_pipeline_impl(desc);
     slot->fence_value  = create.fence_value;
     slot->backend_rsrc = create.backend;
 

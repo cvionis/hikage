@@ -42,7 +42,7 @@ r_ctx_init_resources(R_Context *ctx)
   // Pipelines
   //
 
-  R_PipelineDesc shadow_pipeline_desc = {
+  R_GraphicsPipelineDesc shadow_pipeline_desc = {
     .vs_path = L"../src/render/shaders/shadow.hlsl",
     .ps_path = 0,
 
@@ -75,7 +75,7 @@ r_ctx_init_resources(R_Context *ctx)
     .sample_count = 1,
   };
 
-  R_PipelineDesc lighting_pipeline_desc = {
+  R_GraphicsPipelineDesc lighting_pipeline_desc = {
     .vs_path = L"../src/render/shaders/lighting.hlsl",
     .ps_path = L"../src/render/shaders/lighting.hlsl",
 
@@ -109,7 +109,7 @@ r_ctx_init_resources(R_Context *ctx)
     .sample_count = 1,
   };
 
-  R_PipelineDesc bloom_prefilter_pipeline_desc = {
+  R_GraphicsPipelineDesc bloom_prefilter_pipeline_desc = {
     .vs_path = L"../src/render/shaders/fullscreen.hlsl",
     .ps_path = L"../src/render/shaders/bloom_0_prefilter.hlsl",
     .input_layout = 0,
@@ -140,7 +140,7 @@ r_ctx_init_resources(R_Context *ctx)
     .sample_count = 1,
   };
 
-  R_PipelineDesc bloom_downsample_pipeline_desc = {
+  R_GraphicsPipelineDesc bloom_downsample_pipeline_desc = {
     .vs_path = L"../src/render/shaders/fullscreen.hlsl",
     .ps_path = L"../src/render/shaders/bloom_1_downsample.hlsl",
     .input_layout = 0,
@@ -171,7 +171,7 @@ r_ctx_init_resources(R_Context *ctx)
     .sample_count = 1,
   };
 
-  R_PipelineDesc bloom_accumulate_pipeline_desc = {
+  R_GraphicsPipelineDesc bloom_accumulate_pipeline_desc = {
     .vs_path = L"../src/render/shaders/fullscreen.hlsl",
     .ps_path = L"../src/render/shaders/bloom_2_accumulate.hlsl",
     .input_layout = 0,
@@ -202,7 +202,7 @@ r_ctx_init_resources(R_Context *ctx)
     .sample_count = 1,
   };
 
-  R_PipelineDesc composite_pipeline_desc = {
+  R_GraphicsPipelineDesc composite_pipeline_desc = {
     .vs_path = L"../src/render/shaders/fullscreen.hlsl",
     .ps_path = L"../src/render/shaders/composite.hlsl",
 
@@ -234,17 +234,17 @@ r_ctx_init_resources(R_Context *ctx)
     .sample_count = 1,
   };
 
-  ctx->pipeline_lighting = r_create_pipeline(lighting_pipeline_desc);
-  ctx->pipeline_shadow = r_create_pipeline(shadow_pipeline_desc);
+  ctx->pipeline_lighting = r_create_graphics_pipeline(lighting_pipeline_desc);
+  ctx->pipeline_shadow = r_create_graphics_pipeline(shadow_pipeline_desc);
 
   // @Todo: Re-include when shaders are written to prevent break on shader compilation error.
   #if 0
-  ctx->pipeline_bloom_prefilter = r_create_pipeline(bloom_prefilter_pipeline_desc);
-  ctx->pipeline_bloom_downsample = r_create_pipeline(bloom_downsample_pipeline_desc);
-  ctx->pipeline_bloom_accumulate = r_create_pipeline(bloom_accumulate_pipeline_desc);
+  ctx->pipeline_bloom_prefilter = r_create_graphics_pipeline(bloom_prefilter_pipeline_desc);
+  ctx->pipeline_bloom_downsample = r_create_graphics_pipeline(bloom_downsample_pipeline_desc);
+  ctx->pipeline_bloom_accumulate = r_create_graphics_pipeline(bloom_accumulate_pipeline_desc);
   #endif
 
-  ctx->pipeline_composite = r_create_pipeline(composite_pipeline_desc);
+  ctx->pipeline_composite = r_create_graphics_pipeline(composite_pipeline_desc);
 
   //
   // Textures
@@ -366,7 +366,7 @@ r_pass_begin(R_Pass *pass)
 
   // Bind pipeline + root signature
 
-  R_D3D12_Pipeline *pipeline = (R_D3D12_Pipeline *)r_resource_table.slots[pass->pipeline.idx].backend_rsrc; // @Note: Temporary
+  R_D3D12_GraphicsPipeline *pipeline = (R_D3D12_GraphicsPipeline *)r_resource_table.slots[pass->pipeline.idx].backend_rsrc; // @Note: Temporary
   backend->command_list->SetPipelineState(pipeline->pso);
   Assert(pipeline->root_sig == backend->root_signature);
   backend->command_list->SetGraphicsRootSignature(pipeline->root_sig); // Use a single authoritive root signature for now

@@ -6,7 +6,7 @@
 // @Todo: the "state" members for these (where applicable) are more like "initial state";
 // kind of deceiving. Should get rid of this as I store current state in resource slot.
 
-struct R_D3D12_Pipeline {
+struct R_D3D12_GraphicsPipeline {
   // Runtime
   ID3D12PipelineState *pso;
   ID3D12RootSignature *root_sig;
@@ -34,6 +34,19 @@ struct R_D3D12_Pipeline {
 
   // Cached desc for rebuild
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pso_desc;
+};
+
+struct R_D3D12_ComputePipeline {
+  // Runtime
+  ID3D12PipelineState *pso;
+  ID3D12RootSignature *root_sig;
+
+  // Shader info
+  // @Todo: String8, convert
+  LPCWSTR cs_path;
+
+  // Cached desc for rebuild
+  D3D12_COMPUTE_PIPELINE_STATE_DESC pso_desc;
 };
 
 struct R_D3D12_Texture {
@@ -1123,12 +1136,12 @@ r_d3d12_compile_hlsl(LPCWSTR path, char *entry, char *version)
 }
 
 static R_CreateResource
-r_create_pipeline_impl(R_PipelineDesc desc)
+r_create_graphics_pipeline_impl(R_GraphicsPipelineDesc desc)
 {
   R_D3D12_Backend *ctx = &r_ctx;
   R_CreateResource result = {};
 
-  R_D3D12_Pipeline *pipe = ArenaPushStruct(ctx->arena, R_D3D12_Pipeline);
+  R_D3D12_GraphicsPipeline *pipe = ArenaPushStruct(ctx->arena, R_D3D12_GraphicsPipeline);
 
   pipe->vs_path = desc.vs_path;
   pipe->ps_path = desc.ps_path;
@@ -1205,6 +1218,35 @@ r_create_pipeline_impl(R_PipelineDesc desc)
   // Create a pipeline state object
   pipe->pso_desc = pso;
   HRESULT hr = ctx->device->CreateGraphicsPipelineState(&pipe->pso_desc, IID_PPV_ARGS(&pipe->pso));
+  Assert(SUCCEEDED(hr));
+
+  result.fence_value = 0;
+  result.backend = (void *)pipe;
+  return result;
+}
+
+
+static R_CreateResource
+r_create_compute_pipeline_impl(R_ComputePipelineDesc desc)
+{
+  R_D3D12_Backend *ctx = &r_ctx;
+  R_CreateResource result = {};
+
+  R_D3D12_ComputePipeline *pipe = ArenaPushStruct(ctx->arena, R_D3D12_ComputePipeline);
+
+  pipe->cs_path = desc.cs_path;
+  pipe->root_sig = ctx->root_signature; // @Note: Using a single shared root signature that all pipelines will agree upon.
+
+  ID3DBlob *cs_blob = r_d3d12_compile_hlsl(desc.cs_path, "cs_main", "vs_5_1");
+  Assert(cs_blob != 0);
+
+  D3D12_COMPUTE_PIPELINE_STATE_DESC pso = {};
+  pso.pRootSignature = pipe->root_sig;
+  pso.CS = CD3DX12_SHADER_BYTECODE(cs_blob);
+
+  // Create a pipeline state object
+  pipe->pso_desc = pso;
+  HRESULT hr = ctx->device->CreateComputePipelineState(&pipe->pso_desc, IID_PPV_ARGS(&pipe->pso));
   Assert(SUCCEEDED(hr));
 
   result.fence_value = 0;
