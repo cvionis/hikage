@@ -175,6 +175,19 @@ r_resource_state(R_Handle handle)
 // Textures
 //
 
+
+static S32
+r_alloc_texture_descriptor_idx_uav(void)
+{
+   R_D3D12_Backend *ctx = &r_ctx;
+
+   // @Todo: Free list
+   S32 idx = ctx->uav_next_idx;
+   ctx->uav_next_idx += 1;
+
+   return idx;
+}
+
 static S32
 r_alloc_texture_descriptor_idx_srv(R_SubresourceRange range)
 {
@@ -291,6 +304,37 @@ r_d3d12_fmt_from_r_fmt(R_Format fmt)
   }
 
   return result;
+}
+
+static void
+r_d3d12_write_uav(ID3D12Resource *resource, DXGI_FORMAT fmt, R_SubresourceRange range, S32 descriptor_idx)
+{
+  R_D3D12_Backend *ctx = &r_ctx;
+
+  Assert(range.mip_count == 1);
+
+  D3D12_UNORDERED_ACCESS_VIEW_DESC uav_desc = {};
+  uav_desc.Format = fmt;
+
+  if (range.slice_count >= 1) {
+    uav_desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+
+    uav_desc.Texture2DArray.MipSlice        = range.mip_start;
+    uav_desc.Texture2DArray.FirstArraySlice = range.slice_start;
+    uav_desc.Texture2DArray.ArraySize       = range.slice_count;
+    uav_desc.Texture2DArray.PlaneSlice      = 0;
+  }
+  else {
+    uav_desc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+
+    uav_desc.Texture2D.MipSlice   = range.mip_start;
+    uav_desc.Texture2D.PlaneSlice = 0;
+  }
+
+  D3D12_CPU_DESCRIPTOR_HANDLE handle = ctx->srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+  handle.ptr += (SIZE_T)descriptor_idx * (SIZE_T)ctx->srv_uav_descriptor_size;
+
+  ctx->device->CreateUnorderedAccessView(resource, 0, &uav_desc, handle);
 }
 
 static void

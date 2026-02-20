@@ -59,7 +59,7 @@ r_draw_models(AssetContext *assets, ModelInstance *models, S32 models_count)
 // Basic lighting render pass
 //
 
-struct R_ForwardPassData {
+struct R_LightingPassData {
   AssetContext *assets;
 
   Camera camera;
@@ -68,6 +68,8 @@ struct R_ForwardPassData {
 
   Mat4x4 *light_viewproj;
   F32 *cascade_splits;
+
+  R_Handle shadow_tex;
 };
 
 R_PASS_EXECUTE_PROC(r_pass_execute_lighting)
@@ -80,10 +82,12 @@ R_PASS_EXECUTE_PROC(r_pass_execute_lighting)
     Mat4x4 light_viewproj[R_SHADOW_CASCADE_COUNT];
     F32 cascade_splits[R_SHADOW_CASCADE_COUNT]; // @Note: Maximum 4 splits
     V4F32 camera_ws;
+    U32 shadow_texture_idx;
+    U32 _pad[3];
   };
 
   R_D3D12_Backend *backend = &r_ctx;
-  R_ForwardPassData *data = (R_ForwardPassData *)userdata;
+  R_LightingPassData *data = (R_LightingPassData *)userdata;
 
   AssetContext *assets = (AssetContext *)data->assets;
   ModelInstance *models = (ModelInstance *)data->models;
@@ -91,6 +95,7 @@ R_PASS_EXECUTE_PROC(r_pass_execute_lighting)
   Camera camera = data->camera;
   Mat4x4 *light_viewproj = data->light_viewproj;
   F32 *cascade_splits = data->cascade_splits;
+  R_Handle shadow_tex = data->shadow_tex;
 
   R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(FrameCB));
   FrameCB *cb = (FrameCB *)alloc.cpu;
@@ -99,6 +104,22 @@ R_PASS_EXECUTE_PROC(r_pass_execute_lighting)
   cb->camera_ws = v4f32(camera.position.x, camera.position.y, camera.position.z, 0.f);
   MemoryCopy(cb->light_viewproj, light_viewproj, sizeof(Mat4x4) * R_SHADOW_CASCADE_COUNT);
   MemoryCopy(cb->cascade_splits, cascade_splits, sizeof(F32) * R_SHADOW_CASCADE_COUNT);
+
+  R_ViewDesc desc = {
+    .kind = R_ViewKind_ShaderResource,
+    .fmt = R_Format_R32_Float,
+    .range = {
+      .mip_start = 0,
+      .mip_count = 1,
+      .slice_start = 0,
+      .slice_count = R_SHADOW_CASCADE_COUNT,
+    },
+  };
+  R_Handle shadow_tex_view = r_view_from_texture(shadow_tex, desc);
+
+  S32 shadow_texture_idx_abs = r_descriptor_idx_from_view(shadow_tex_view);
+  S32 shadow_texture_idx = shadow_texture_idx_abs - R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE; // @Todo: Tmp; Create helper that maps from heap idx -> shader array idx
+  cb->shadow_texture_idx = shadow_texture_idx;
 
   backend->command_list->SetGraphicsRootConstantBufferView(0, alloc.gpu);
 
@@ -136,13 +157,14 @@ r_pass_add_lighting(R_Context *ctx, AssetContext *assets, ModelInstance *models,
 
   pass->topology = R_Topology_TriangleList;
 
-  R_ForwardPassData *data = ArenaPushStruct(ctx->userdata_arena, R_ForwardPassData);
+  R_LightingPassData *data = ArenaPushStruct(ctx->userdata_arena, R_LightingPassData);
   data->assets = assets;
   data->models = models;
   data->models_count = models_count;
   data->camera = camera;
   data->light_viewproj = light_viewproj;
   data->cascade_splits = cascade_splits;
+  data->shadow_tex = ctx->shadow_cascades_depth;
 
   pass->userdata = data;
   pass->execute = r_pass_execute_lighting;
@@ -187,19 +209,6 @@ R_PASS_EXECUTE_PROC(r_pass_execute_shadow)
   S32 cascade_count = R_SHADOW_CASCADE_COUNT;
 
   R_Handle shadow_cascades_depth = pass->depth_target;
-
-  // Create shader resource view for shadow map array
-  R_ViewDesc desc = {
-    .kind = R_ViewKind_ShaderResource,
-    .fmt = R_Format_R32_Float,
-    .range = {
-      .mip_start = 0,
-      .mip_count = 1,
-      .slice_start = 0,
-      .slice_count = R_SHADOW_CASCADE_COUNT,
-    },
-  };
-  r_view_from_texture(shadow_cascades_depth, desc);
 
   for (S32 cascade_idx = 0; cascade_idx < cascade_count; cascade_idx += 1) {
     R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(ShadowFrameCB));
@@ -411,7 +420,7 @@ R_PASS_EXECUTE_PROC(r_pass_execute_composite)
   };
   R_Handle shader_resource_view = r_view_from_texture(hdr_color_tex, view_desc);
   S32 hdr_color_idx_abs = r_descriptor_idx_from_view(shader_resource_view);
-  S32 hdr_color_idx = hdr_color_idx_abs - R_D3D12_TEXTURE_TABLE_BASE;
+  S32 hdr_color_idx = hdr_color_idx_abs - R_D3D12_TEXTURE_TABLE_BASE; // @Todo: Tmp
 
   R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_CompositeCB));
   R_CompositeCB *cb = (R_CompositeCB *)alloc.cpu;

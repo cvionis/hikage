@@ -79,10 +79,18 @@ r_alloc_push(R_LinearAllocator *alloc, U64 size)
 // @Todo: Move this stuff
 
 static S32
-r_get_current_base_texture_idx(void)
+r_get_current_base_texture_2d_idx(void)
 {
   R_D3D12_Backend *backend = &r_ctx;
   S32 current_base = backend->srv_next_idx - R_D3D12_TEXTURE_TABLE_BASE;
+  return current_base;
+}
+
+static S32
+r_get_current_base_texture_2d_array_idx(void)
+{
+  R_D3D12_Backend *backend = &r_ctx;
+  S32 current_base = backend->srv_next_idx - R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE;
   return current_base;
 }
 
@@ -360,6 +368,7 @@ r_init(OS_Handle window)
 
     ctx->srv_next_idx = R_D3D12_TEXTURE_TABLE_BASE;
     ctx->srv_2darray_next_idx = R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE;
+    ctx->uav_next_idx = R_D3D12_UAV_BASE;
   }
 
   // Material buffer (StructuredBuffer) (t0, space1) stored in slot 3 of srv_uav_heap

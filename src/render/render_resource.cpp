@@ -46,6 +46,11 @@ r_alloc_descriptor_for_view(R_Handle texture, R_ViewDesc desc)
   DXGI_FORMAT dxgi_fmt = r_d3d12_fmt_from_r_fmt(desc.fmt);
 
   switch (desc.kind) {
+    case R_ViewKind_UnorderedAccess: {
+      S32 uav_idx = r_alloc_texture_descriptor_idx_uav();
+      r_d3d12_write_uav(tex->resource, dxgi_fmt, desc.range, uav_idx);
+      idx = uav_idx;
+    }break;
     case R_ViewKind_ShaderResource: {
       S32 srv_idx = r_alloc_texture_descriptor_idx_srv(desc.range);
       r_d3d12_write_srv(tex->resource, dxgi_fmt, desc.range, srv_idx);

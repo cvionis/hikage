@@ -151,7 +151,7 @@ assets_load_model(AssetContext *ctx, String8 name)
       R_MaterialGPU *gpu_materials = ArenaPushArray(arena_get_scratch(0,0), R_MaterialGPU, mtl_count);
 
       // @Note: Used to transform material-local texture indices to absolute indices into the texture table
-      S32 tex_base_idx = r_get_current_base_texture_idx();
+      S32 tex_base_idx = r_get_current_base_texture_2d_idx();
 
       for (U32 mtl_idx = 0; mtl_idx < mtl_count; mtl_idx += 1) {
         Material *dst = &ctx->materials[mtl_idx].material;

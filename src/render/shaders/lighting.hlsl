@@ -96,6 +96,7 @@ cbuffer FrameCB : register(b0) {
   float4x4 light_viewproj[SHADOW_CASCADE_COUNT];
   float4 cascade_splits; // @Note: Maximum 4 splits
   float4 camera_ws;
+  uint shadow_tex_idx;
 };
 
 cbuffer DrawCB : register(b1) {
@@ -264,7 +265,7 @@ float4 ps_main(PS_Input input) : SV_TARGET
   // Shadows
   //
 
-  Texture2DArray<float> shadow_map = g_textures_2d_array[514]; // @Todo: Temp.
+  Texture2DArray<float> shadow_map = g_textures_2d_array[shadow_tex_idx]; // @Todo: Temp.
 
   float depth_vs = input.position_vs.z;
   uint cascade_idx = cascade_from_viewspace_depth(depth_vs);
