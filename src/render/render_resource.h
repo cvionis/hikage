@@ -75,6 +75,8 @@ enum R_ResourceState {
   R_ResourceState_ShaderRead,
   R_ResourceState_ShaderReadWrite,
 
+  // @Todo: Compute shader read, write
+
   R_ResourceState_CopySrc,
   R_ResourceState_CopyDst,
 
@@ -89,9 +91,6 @@ struct R_ResourceTransition {
 
 struct R_CreateResource {
   R_ResourceState state;
-  S32 srv_idx = -1; // @Todo: Remove these from this struct
-  S32 rtv_idx = -1;
-  S32 dsv_idx = -1;
   S64 fence_value; // @Todo: Remove from this struct
   void *backend;
 };
@@ -118,6 +117,7 @@ struct R_SubresourceRange {
 
 enum R_ViewKind {
   R_ViewKind_None,
+  R_ViewKind_UnorderedAccess,
   R_ViewKind_ShaderResource,
   R_ViewKind_RenderTarget,
   R_ViewKind_DepthStencil,
@@ -127,7 +127,7 @@ struct R_View {
   S32 resource;
   R_ViewKind kind;
   R_SubresourceRange range;
-  S32 descriptor_idx; // Index into SRV, RTV, or DSV heap.
+  S32 descriptor_idx; // Index into SRV/UAV, RTV, or DSV heap.
 };
 
 struct R_ViewDesc {
@@ -171,11 +171,11 @@ global R_ViewTable r_views;
 //
 
 enum R_TextureUsage {
-  R_TextureUsage_Default      = 0,
-  R_TextureUsage_Sampled      = (1 << 0),
-  R_TextureUsage_RenderTarget = (1 << 1),
-  R_TextureUsage_DepthStencil = (1 << 2),
-  R_TextureUsage_Unordered    = (1 << 3),
+  R_TextureUsage_Default         = 0,
+  R_TextureUsage_Sampled         = (1 << 0),
+  R_TextureUsage_RenderTarget    = (1 << 1),
+  R_TextureUsage_DepthStencil    = (1 << 2),
+  R_TextureUsage_UnorderedAccess = (1 << 3),
 };
 
 enum R_TextureKind {
@@ -191,15 +191,6 @@ struct R_TextureInitData {
   S32 row_pitch;
   S32 slice_pitch;
 };
-
- // @Todo: Deprecate, replace with newer R_ResourceState wherever used.
- enum R_TextureInitState {
-   R_TextureInitState_Default,
-   R_TextureInitState_RenderTarget,
-   R_TextureInitState_DepthWrite,
-   R_TextureInitState_CopyDest,
-   R_TextureInitState_ShaderRead,
- };
 
  /* @Note:
     Will need to enforce these:
@@ -217,7 +208,7 @@ struct R_TextureInitData {
   R_Format fmt;
   U32 usage;
   R_TextureKind kind;
-  R_TextureInitState init_state;
+  R_ResourceState init_state;
 
   B32 has_clear_value;
   union {

@@ -239,8 +239,8 @@ entry_point(void)
     r_pass_add_bloom_prefilter(&renderer);
     r_pass_add_bloom_downsample(&renderer);
     r_pass_add_bloom_accumulate(&renderer);
-    r_pass_add_composite(&renderer);
     #endif
+    r_pass_add_composite(&renderer);
     r_frame_compile(&renderer);
     r_frame_execute(&renderer);
 

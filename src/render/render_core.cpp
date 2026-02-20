@@ -348,21 +348,21 @@ r_init(OS_Handle window)
   {
     D3D12_DESCRIPTOR_HEAP_DESC heap_desc = {};
     heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-    heap_desc.NumDescriptors = R_D3D12_SRV_HEAP_SIZE;
+    heap_desc.NumDescriptors = R_D3D12_SRV_UAV_HEAP_SIZE;
     heap_desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
     heap_desc.NodeMask = 0;
 
-    hr = ctx->device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&ctx->srv_heap));
+    hr = ctx->device->CreateDescriptorHeap(&heap_desc, IID_PPV_ARGS(&ctx->srv_uav_heap));
     Assert(SUCCEEDED(hr));
 
-    ctx->srv_descriptor_size =
+    ctx->srv_uav_descriptor_size =
       ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
     ctx->srv_next_idx = R_D3D12_TEXTURE_TABLE_BASE;
     ctx->srv_2darray_next_idx = R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE;
   }
 
-  // Material buffer (StructuredBuffer) (t0, space1) stored in slot 3 of srv_heap
+  // Material buffer (StructuredBuffer) (t0, space1) stored in slot 3 of srv_uav_heap
   {
     ctx->material_capacity = R_D3D12_MATERIAL_MAX;
     U64 buffer_size = sizeof(R_MaterialGPU) * ctx->material_capacity;
@@ -390,9 +390,9 @@ r_init(OS_Handle window)
     ctx->material_srv_idx = R_D3D12_MATERIAL_BUFFER_BASE;
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE h(
-      ctx->srv_heap->GetCPUDescriptorHandleForHeapStart(),
+      ctx->srv_uav_heap->GetCPUDescriptorHandleForHeapStart(),
       ctx->material_srv_idx,
-      ctx->srv_descriptor_size
+      ctx->srv_uav_descriptor_size
     );
     ctx->device->CreateShaderResourceView(ctx->material_buffer, &srv, h);
   }
@@ -567,6 +567,10 @@ r_init(OS_Handle window)
   Assert(SUCCEEDED(hr));
   ctx->copy_fence_value = 0;
   ctx->copy_fence_event = CreateEventA(0, FALSE, FALSE, 0);
+
+  //
+  // Compute
+  //
 }
 
 static void

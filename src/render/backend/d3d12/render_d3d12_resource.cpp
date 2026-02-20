@@ -39,7 +39,6 @@ struct R_D3D12_Pipeline {
 struct R_D3D12_Texture {
   // @Todo: Cache format
   ID3D12Resource *resource;
-  D3D12_RESOURCE_STATES state;
 };
 
 struct R_D3D12_Buffer {
@@ -198,8 +197,8 @@ r_d3d12_srv_from_view(R_Handle handle)
   R_View *view = &r_views.slots[handle.idx];
   S32 srv_idx = view->descriptor_idx;
 
-  D3D12_CPU_DESCRIPTOR_HANDLE result = backend->srv_heap->GetCPUDescriptorHandleForHeapStart();
-  result.ptr += (SIZE_T)srv_idx * (SIZE_T)backend->srv_descriptor_size;
+  D3D12_CPU_DESCRIPTOR_HANDLE result = backend->srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+  result.ptr += (SIZE_T)srv_idx * (SIZE_T)backend->srv_uav_descriptor_size;
   return result;
 }
 
@@ -292,8 +291,8 @@ r_d3d12_write_srv(ID3D12Resource *resource, DXGI_FORMAT fmt, R_SubresourceRange 
   }
 
   D3D12_CPU_DESCRIPTOR_HANDLE handle =
-    ctx->srv_heap->GetCPUDescriptorHandleForHeapStart();
-  handle.ptr += (SIZE_T)descriptor_idx * ctx->srv_descriptor_size;
+    ctx->srv_uav_heap->GetCPUDescriptorHandleForHeapStart();
+  handle.ptr += (SIZE_T)descriptor_idx * ctx->srv_uav_descriptor_size;
 
   ctx->device->CreateShaderResourceView(resource, &srv_desc, handle);
 }
@@ -519,7 +518,6 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
     ctx->copy_cmd_list->ResourceBarrier(1, &barrier);
-    tex->state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
   }
 
   ctx->copy_cmd_list->Close();
@@ -568,7 +566,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   if (desc.usage & R_TextureUsage_DepthStencil) {
     flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
   }
-  if (desc.usage & R_TextureUsage_Unordered) {
+  if (desc.usage & R_TextureUsage_UnorderedAccess) {
     flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
   }
   rdesc.Flags = flags;
@@ -591,17 +589,16 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     }
   }
 
-  // @Todo: This is more like "initial state". Just stop storing this in the backend resource struct; I store it and update it
-  // in resource slot now.
   R_D3D12_Texture *tex = ArenaPushStruct(ctx->arena, R_D3D12_Texture);
-  tex->state = D3D12_RESOURCE_STATE_COMMON;
+
+  D3D12_RESOURCE_STATES init_state_d3d12 = D3D12_RESOURCE_STATE_COMMON;
   switch (desc.init_state) {
-    case R_TextureInitState_RenderTarget: { tex->state = D3D12_RESOURCE_STATE_RENDER_TARGET;          }break;
-    case R_TextureInitState_DepthWrite:   { tex->state = D3D12_RESOURCE_STATE_DEPTH_WRITE;            }break;
-    case R_TextureInitState_CopyDest:     { tex->state = D3D12_RESOURCE_STATE_COPY_DEST;              }break;
-    case R_TextureInitState_ShaderRead:   { tex->state = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE; }break;
+    case R_ResourceState_RenderTarget: { init_state_d3d12 = D3D12_RESOURCE_STATE_RENDER_TARGET;          }break;
+    case R_ResourceState_DepthWrite:   { init_state_d3d12 = D3D12_RESOURCE_STATE_DEPTH_WRITE;            }break;
+    case R_ResourceState_CopyDst:      { init_state_d3d12 = D3D12_RESOURCE_STATE_COPY_DEST;              }break;
+    case R_ResourceState_ShaderRead:   { init_state_d3d12 = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;  }break;
   }
-  result.state = r_state_from_d3d12_state(tex->state);
+  result.state = desc.init_state;
 
   D3D12_HEAP_PROPERTIES heap = {};
   heap.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -609,7 +606,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
     &heap,
     D3D12_HEAP_FLAG_NONE,
     &rdesc,
-    tex->state,
+    init_state_d3d12,
     clear_ptr,
     IID_PPV_ARGS(&tex->resource)
   );

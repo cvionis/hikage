@@ -259,7 +259,7 @@ r_ctx_init_resources(R_Context *ctx)
     .usage  = R_TextureUsage_RenderTarget|R_TextureUsage_Sampled,
     .kind   = R_TextureKind_2D,
 
-    .init_state = R_TextureInitState_RenderTarget,
+    .init_state = R_ResourceState_RenderTarget,
 
     .has_clear_value = 1,
     .clear_color = { 0.4f, 0.5f, 1.1f, 1.0f },
@@ -274,7 +274,7 @@ r_ctx_init_resources(R_Context *ctx)
     .usage = R_TextureUsage_DepthStencil,
     .kind  = R_TextureKind_2D,
 
-    .init_state = R_TextureInitState_DepthWrite,
+    .init_state = R_ResourceState_DepthWrite,
 
     .has_clear_value = 1,
     .clear_ds = {
@@ -295,7 +295,7 @@ r_ctx_init_resources(R_Context *ctx)
     .usage = R_TextureUsage_DepthStencil|R_TextureUsage_Sampled,
     .kind  = R_TextureKind_2D_Array,
 
-    .init_state = R_TextureInitState_DepthWrite,
+    .init_state = R_ResourceState_DepthWrite,
 
     .has_clear_value = 1,
     .clear_ds = {
@@ -329,7 +329,7 @@ r_ctx_init_resources(R_Context *ctx)
     .usage = R_TextureUsage_RenderTarget|R_TextureUsage_Sampled,
     .kind = R_TextureKind_2D,
 
-    .init_state = R_TextureInitState_RenderTarget,
+    .init_state = R_ResourceState_RenderTarget,
 
     .has_clear_value = 1,
     .clear_color = { 0.4f, 0.5f, 1.1f, 1.0f },
@@ -339,8 +339,10 @@ r_ctx_init_resources(R_Context *ctx)
   ctx->lighting_depth = r_create_texture(0, 0, lighting_depth_desc);
   ctx->shadow_cascades_depth = r_create_texture(0, 0, shadow_cascades_depth_desc);
 
+  #if 0
   ctx->bloom_tex_down = r_create_texture(0, 0, bloom_tex_desc);
   ctx->bloom_tex_up  = r_create_texture(0, 0, bloom_tex_desc);
+  #endif
 }
 
 static void
@@ -396,24 +398,25 @@ r_pass_begin(R_Pass *pass)
 
   // Bind unified descriptor heap
   {
-    ID3D12DescriptorHeap *heaps[] = { backend->srv_heap };
+    ID3D12DescriptorHeap *heaps[] = { backend->srv_uav_heap };
     backend->command_list->SetDescriptorHeaps(1, heaps);
 
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_base =
-      backend->srv_heap->GetGPUDescriptorHandleForHeapStart();
+      backend->srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
 
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex_2d = gpu_base;
     gpu_tex_2d.ptr +=
-      (U64)R_D3D12_TEXTURE_TABLE_BASE * (U64)backend->srv_descriptor_size;
+      (U64)R_D3D12_TEXTURE_TABLE_BASE * (U64)backend->srv_uav_descriptor_size;
     backend->command_list->SetGraphicsRootDescriptorTable(2, gpu_tex_2d);
 
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex_2d_array = gpu_base;
     gpu_tex_2d.ptr +=
-      (U64)R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE * (U64)backend->srv_descriptor_size;
+      (U64)R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE * (U64)backend->srv_uav_descriptor_size;
     backend->command_list->SetGraphicsRootDescriptorTable(3, gpu_tex_2d_array);
 
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_material =
-      CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_base, backend->material_srv_idx, backend->srv_descriptor_size);
+    // @Todo: Replace material_srv_idx with R_D3D12_MATERIAL_TABLE_BASE
+      CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_base, backend->material_srv_idx, backend->srv_uav_descriptor_size);
     backend->command_list->SetGraphicsRootDescriptorTable(4, gpu_material);
   }
 

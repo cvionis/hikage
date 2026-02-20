@@ -202,9 +202,9 @@ assets_load_model(AssetContext *ctx, String8 name)
           .depth = 1,
           .mips_count = (S32)img->mip_count,
           .fmt = img->format,
-          .usage = R_TextureUsage_Sampled, // @Note: Currently not used.
-          .kind = R_TextureKind_2D,        // @Note: Currently not used.
-          .init_state = R_TextureInitState_CopyDest,
+          .usage = R_TextureUsage_Sampled,
+          .kind = R_TextureKind_2D,
+          .init_state = R_ResourceState_CopyDst,
         };
 
         U32 mips_end = img->mips_begin + img->mip_count;

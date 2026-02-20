@@ -21,7 +21,7 @@
 #define R_D3D12_TEXTURE_2D_MAX       512
 #define R_D3D12_TEXTURE_2D_ARRAY_MAX 512
 #define R_D3D12_TEXTURE_TOTAL_MAX (R_D3D12_TEXTURE_2D_MAX + R_D3D12_TEXTURE_2D_ARRAY_MAX)
-#define R_D3D12_SRV_HEAP_SIZE   (R_D3D12_CBV_COUNT + R_D3D12_TEXTURE_TOTAL_MAX + 1) // @Note: +1 is for material buffer
+#define R_D3D12_SRV_UAV_HEAP_SIZE   (R_D3D12_CBV_COUNT + R_D3D12_TEXTURE_TOTAL_MAX + 1) // @Note: +1 is for material buffer
 
 #define R_D3D12_FRAME_CBV_SLOT  0
 #define R_D3D12_DRAW_CBV_SLOT   1
@@ -75,23 +75,28 @@ struct R_D3D12_Backend {
   ...
   */
 
-  ID3D12DescriptorHeap *srv_heap;       // Per-frame and per-draw data, texture table, material table
+  ID3D12DescriptorHeap *srv_uav_heap;
   ID3D12DescriptorHeap *rtv_heap;
   ID3D12DescriptorHeap *dsv_heap;
-  ID3D12DescriptorHeap *sampler_heap;   // @Note: Just using a static sampler for now.
+  ID3D12DescriptorHeap *sampler_heap;  // @Note: Currently unused. Just using static samplers for now.
 
   // Descriptor allocation (for texture views)
-  S32 srv_descriptor_size;
+  S32 srv_uav_descriptor_size;
   S32 rtv_descriptor_size;
   S32 dsv_descriptor_size;
+
   S32 srv_next_idx;
+  S32 srv_2darray_next_idx; // @Note: Temp
+  S32 mtl_next_idx; // Material table slot allocation
+  S32 uav_next_idx;
+
   S32 rtv_next_idx;
   S32 dsv_next_idx;
 
-  S32 srv_2darray_next_idx;// @Note: Temp
+  //
+  // Compute (new)
+  //
 
-  // Material table slot allocation
-  S32 mtl_next_idx;
 };
 
 global R_D3D12_Backend r_ctx;

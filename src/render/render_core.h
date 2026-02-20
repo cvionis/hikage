@@ -58,7 +58,7 @@ struct R_Alloc {
   U64 gpu;
 };
 
-global R_LinearAllocator r_allocator; // @Note: Temporary
+global R_LinearAllocator r_allocator; // @Note: Temporarily global.
 
 static R_LinearAllocator r_alloc_make(U64 size); // Backend-specific impl
 static void r_alloc_release(R_LinearAllocator *alloc); // Backend-specific impl
