@@ -539,9 +539,9 @@ r_frame_compile(R_Context *ctx)
     for (S32 ct_idx = 0; ct_idx < pass->render_targets_count; ct_idx += 1) {
       R_Handle render_target = pass->render_targets[ct_idx];
 
-      R_ResourceState state_pre = r_resource_state(render_target);
-      R_ResourceState state_mid = R_ResourceState_RenderTarget;
-      R_ResourceState state_post = pass->color_final_state;
+      U32 state_pre = r_resource_state(render_target);
+      U32 state_mid = R_ResourceState_RenderTarget;
+      U32 state_post = pass->color_final_state;
 
       if (state_pre != state_mid) {
         R_ResourceTransition *pre = &compiled->pre_transitions[compiled->pre_transitions_count];
@@ -567,9 +567,9 @@ r_frame_compile(R_Context *ctx)
     if (pass->depth_final_state) {
       R_Handle depth_target = pass->depth_target;
 
-      R_ResourceState state_pre = r_resource_state(depth_target);
-      R_ResourceState state_mid = R_ResourceState_DepthWrite;
-      R_ResourceState state_post = pass->depth_final_state;
+      U32 state_pre = r_resource_state(depth_target);
+      U32 state_mid = R_ResourceState_DepthWrite;
+      U32 state_post = pass->depth_final_state;
 
       if (state_pre != state_mid) {
         R_ResourceTransition *pre = &compiled->pre_transitions[compiled->pre_transitions_count];

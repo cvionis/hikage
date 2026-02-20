@@ -52,62 +52,78 @@ struct R_D3D12_Buffer {
 };
 
 static D3D12_RESOURCE_STATES
-r_d3d12_state_from_r_state(R_ResourceState state)
+r_d3d12_state_from_r_state(U32 state)
 {
   D3D12_RESOURCE_STATES result = D3D12_RESOURCE_STATE_COMMON;
 
-  switch(state) {
-    case R_ResourceState_Invalid:         { result = D3D12_RESOURCE_STATE_COMMON; }break;
-    case R_ResourceState_Common:          { result = D3D12_RESOURCE_STATE_COMMON; }break;
-    case R_ResourceState_RenderTarget:    { result = D3D12_RESOURCE_STATE_RENDER_TARGET; }break;
-    case R_ResourceState_DepthWrite:      { result = D3D12_RESOURCE_STATE_DEPTH_WRITE; }break;
-    case R_ResourceState_DepthRead:       { result = D3D12_RESOURCE_STATE_DEPTH_READ; }break;
-    case R_ResourceState_ShaderRead:{
-      result = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
-        D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-    }break;
-    case R_ResourceState_ShaderReadWrite: { result = D3D12_RESOURCE_STATE_UNORDERED_ACCESS; }break;
-    case R_ResourceState_CopySrc:         { result = D3D12_RESOURCE_STATE_COPY_SOURCE; }break;
-    case R_ResourceState_CopyDst:         { result = D3D12_RESOURCE_STATE_COPY_DEST; }break;
-    case R_ResourceState_Present:         { result = D3D12_RESOURCE_STATE_PRESENT; }break;
+  if (state & R_ResourceState_Common) {
+    result = D3D12_RESOURCE_STATE_COMMON;
+  }
+  if (state & R_ResourceState_RenderTarget) {
+    result |= D3D12_RESOURCE_STATE_RENDER_TARGET;
+  }
+  if (state & R_ResourceState_DepthWrite) {
+    result |= D3D12_RESOURCE_STATE_DEPTH_WRITE;
+  }
+  if (state & R_ResourceState_DepthRead) {
+    result |= D3D12_RESOURCE_STATE_DEPTH_READ;
+  }
+  if (state & R_ResourceState_ShaderRead_PS) {
+    result |= D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+  }
+  if (state & R_ResourceState_ShaderRead_NP) {
+    result |= D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+  }
+  if (state & R_ResourceState_UnorderedAccess) {
+    result |= D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+  }
+  if (state & R_ResourceState_CopySrc) {
+    result |= D3D12_RESOURCE_STATE_COPY_SOURCE;
+  }
+  if (state & R_ResourceState_CopyDst) {
+    result |= D3D12_RESOURCE_STATE_COPY_DEST;
+  }
+  if (state & R_ResourceState_Present) {
+    result |= D3D12_RESOURCE_STATE_PRESENT;
   }
 
   return result;
 }
 
-static R_ResourceState
+static U32
 r_state_from_d3d12_state(D3D12_RESOURCE_STATES state)
 {
-  R_ResourceState result = R_ResourceState_Invalid;
+  U32 result = R_ResourceState_Invalid;
 
   if (state & D3D12_RESOURCE_STATE_PRESENT) {
-    result = R_ResourceState_Present;
+    result |= R_ResourceState_Present;
   }
-  else if (state & D3D12_RESOURCE_STATE_RENDER_TARGET) {
-    result = R_ResourceState_RenderTarget;
+  if (state & D3D12_RESOURCE_STATE_RENDER_TARGET) {
+    result |= R_ResourceState_RenderTarget;
   }
-  else if (state & D3D12_RESOURCE_STATE_DEPTH_WRITE) {
-    result = R_ResourceState_DepthWrite;
+  if (state & D3D12_RESOURCE_STATE_DEPTH_WRITE) {
+    result |= R_ResourceState_DepthWrite;
   }
-  else if (state & D3D12_RESOURCE_STATE_DEPTH_READ) {
-    result = R_ResourceState_DepthRead;
+  if (state & D3D12_RESOURCE_STATE_DEPTH_READ) {
+    result |= R_ResourceState_DepthRead;
   }
-  else if (state & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
-    result = R_ResourceState_ShaderReadWrite;
+  if (state & D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE) {
+    result |= R_ResourceState_ShaderRead_PS;
   }
-  else if (
-    state & (D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE |
-      D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE)) {
-    result = R_ResourceState_ShaderRead;
+  if (state & D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE) {
+    result |= R_ResourceState_ShaderRead_NP;
   }
-  else if (state & D3D12_RESOURCE_STATE_COPY_SOURCE) {
-    result = R_ResourceState_CopySrc;
+  if (state & D3D12_RESOURCE_STATE_UNORDERED_ACCESS) {
+    result |= R_ResourceState_UnorderedAccess;
   }
-  else if (state & D3D12_RESOURCE_STATE_COPY_DEST) {
-    result = R_ResourceState_CopyDst;
+  if (state & D3D12_RESOURCE_STATE_COPY_SOURCE) {
+    result |= R_ResourceState_CopySrc;
   }
-  else if (state & D3D12_RESOURCE_STATE_COMMON) {
-    result = R_ResourceState_Common;
+  if (state & D3D12_RESOURCE_STATE_COPY_DEST) {
+    result |= R_ResourceState_CopyDst;
+  }
+  if (state == D3D12_RESOURCE_STATE_COMMON) {
+    result |= R_ResourceState_Common;
   }
 
   return result;
@@ -133,10 +149,10 @@ r_d3d12_rsrc(R_Handle handle)
   return result;
 }
 
-static R_ResourceState
+static U32
 r_resource_state(R_Handle handle)
 {
-  R_ResourceState result = R_ResourceState_Invalid;
+  U32 result = R_ResourceState_Invalid;
   R_ResourceSlot *slot = &r_resource_table.slots[handle.idx];
   result = slot->state;
   return result;
@@ -592,13 +608,10 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   R_D3D12_Texture *tex = ArenaPushStruct(ctx->arena, R_D3D12_Texture);
 
   D3D12_RESOURCE_STATES init_state_d3d12 = D3D12_RESOURCE_STATE_COMMON;
-  switch (desc.init_state) {
-    case R_ResourceState_RenderTarget: { init_state_d3d12 = D3D12_RESOURCE_STATE_RENDER_TARGET;          }break;
-    case R_ResourceState_DepthWrite:   { init_state_d3d12 = D3D12_RESOURCE_STATE_DEPTH_WRITE;            }break;
-    case R_ResourceState_CopyDst:      { init_state_d3d12 = D3D12_RESOURCE_STATE_COPY_DEST;              }break;
-    case R_ResourceState_ShaderRead:   { init_state_d3d12 = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;  }break;
-  }
-  result.state = desc.init_state;
+  U32 init_state = desc.init_state;
+  result.state = init_state;
+
+  init_state_d3d12 = r_d3d12_state_from_r_state(init_state);
 
   D3D12_HEAP_PROPERTIES heap = {};
   heap.Type = D3D12_HEAP_TYPE_DEFAULT;

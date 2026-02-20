@@ -108,6 +108,7 @@ r_view_from_texture(R_Handle texture, R_ViewDesc desc)
   return result;
 }
 
+// @Todo: Reject BCn, depth, sRGB formats for textures created with UnorderedAccess.
 static R_Handle
 r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc)
 {

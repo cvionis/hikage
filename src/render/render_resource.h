@@ -64,40 +64,40 @@ enum R_ResourceKind {
 };
 
 enum R_ResourceState {
-  R_ResourceState_Invalid,
+  R_ResourceState_Invalid         = 0,
 
-  R_ResourceState_Common,
+  R_ResourceState_Common          = (1 << 0),
 
-  R_ResourceState_RenderTarget,
-  R_ResourceState_DepthWrite,
-  R_ResourceState_DepthRead,
+  R_ResourceState_RenderTarget    = (1 << 1),
+  R_ResourceState_DepthWrite      = (1 << 2),
+  R_ResourceState_DepthRead       = (1 << 3),
 
-  R_ResourceState_ShaderRead,
-  R_ResourceState_ShaderReadWrite,
+  R_ResourceState_ShaderRead_PS   = (1 << 4), // pixel shader read
+  R_ResourceState_ShaderRead_NP   = (1 << 5), // non-pixel shader (VS/CS) read
 
-  // @Todo: Compute shader read, write
+  R_ResourceState_UnorderedAccess = (1 << 6), // compute shader write
 
-  R_ResourceState_CopySrc,
-  R_ResourceState_CopyDst,
+  R_ResourceState_CopySrc         = (1 << 7),
+  R_ResourceState_CopyDst         = (1 << 8),
 
-  R_ResourceState_Present,
+  R_ResourceState_Present         = (1 << 9),
 };
 
 struct R_ResourceTransition {
   R_Handle rsrc;
-  R_ResourceState state_before;
-  R_ResourceState state_after;
+  U32 state_before;
+  U32 state_after;
 };
 
 struct R_CreateResource {
-  R_ResourceState state;
+  U32 state;
   S64 fence_value; // @Todo: Remove from this struct
   void *backend;
 };
 
 struct R_ResourceSlot {
   R_ResourceKind kind;
-  R_ResourceState state; // @Note: Not used by all resource types (e.g. pipelines)
+  U32 state; // @Note: Not used by all resource types (e.g. pipelines)
 
   S32 gen;
   B32 alive; // @Todo: Make sure this is set properly.
@@ -208,7 +208,7 @@ struct R_TextureInitData {
   R_Format fmt;
   U32 usage;
   R_TextureKind kind;
-  R_ResourceState init_state;
+  U32 init_state;
 
   B32 has_clear_value;
   union {

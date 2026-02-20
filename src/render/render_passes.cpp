@@ -124,7 +124,7 @@ r_pass_add_lighting(R_Context *ctx, AssetContext *assets, ModelInstance *models,
   pass->write_resources[0] = col_target;
   pass->write_count = 1;
 
-  pass->color_final_state = R_ResourceState_ShaderRead;
+  pass->color_final_state = R_ResourceState_ShaderRead_PS;
   // @Note: Don't care about depth state transitions yet;
 
   pass->viewport = ctx->default_viewport;
@@ -245,7 +245,7 @@ r_pass_add_shadow(R_Context *ctx, AssetContext *assets, ModelInstance *models, S
   pass->depth_target = ctx->shadow_cascades_depth;
   pass->clear_depth = 1.f;
 
-  pass->depth_final_state = R_ResourceState_ShaderRead;
+  pass->depth_final_state = R_ResourceState_ShaderRead_PS;
 
   pass->viewport = {
     .rect = rect_f32(0.,0., (F32)shadow_resolution, (F32)shadow_resolution),
@@ -297,7 +297,7 @@ r_pass_add_bloom_prefilter(R_Context *ctx)
   pass->write_resources[0] = target;
   pass->write_count = 1;
 
-  pass->color_final_state = R_ResourceState_ShaderRead;
+  pass->color_final_state = R_ResourceState_ShaderRead_PS;
 
   pass->viewport = ctx->default_viewport;
   pass->scissor = ctx->default_scissor;
