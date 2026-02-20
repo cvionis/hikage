@@ -14,22 +14,21 @@
 #define R_D3D12_MAX_DRAWS 4096
 #define R_D3D12_FRAME_COUNT 2
 
-#define R_D3D12_FRAME_CBV_COUNT 1
-#define R_D3D12_DRAW_CBV_COUNT  1
-#define R_D3D12_CBV_COUNT       (R_D3D12_FRAME_CBV_COUNT + R_D3D12_DRAW_CBV_COUNT)
 #define R_D3D12_MATERIAL_MAX    4096
 #define R_D3D12_TEXTURE_2D_MAX       512
 #define R_D3D12_TEXTURE_2D_ARRAY_MAX 512
 #define R_D3D12_TEXTURE_TOTAL_MAX (R_D3D12_TEXTURE_2D_MAX + R_D3D12_TEXTURE_2D_ARRAY_MAX)
 #define R_D3D12_UAV_MAX              512
-#define R_D3D12_SRV_UAV_HEAP_SIZE   (R_D3D12_CBV_COUNT + R_D3D12_TEXTURE_TOTAL_MAX + R_D3D12_UAV_MAX + 1) // @Note: +1 is for material buffer
+#define R_D3D12_SRV_UAV_HEAP_SIZE   (R_D3D12_TEXTURE_TOTAL_MAX + R_D3D12_UAV_MAX + 1) // @Note: +1 is for material buffer
 
-#define R_D3D12_FRAME_CBV_SLOT  0
-#define R_D3D12_DRAW_CBV_SLOT   1
-#define R_D3D12_TEXTURE_TABLE_BASE   (R_D3D12_CBV_COUNT)
+#define R_D3D12_TEXTURE_TABLE_BASE  0
 #define R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE (R_D3D12_TEXTURE_TABLE_BASE + R_D3D12_TEXTURE_2D_MAX) // @Todo: Will need to enforce ranges when alloc. descriptors
 #define R_D3D12_UAV_BASE (R_D3D12_TEXTURE_TABLE_BASE + R_D3D12_TEXTURE_TOTAL_MAX)
 #define R_D3D12_MATERIAL_BUFFER_BASE (R_D3D12_UAV_BASE + R_D3D12_UAV_MAX)
+
+// @Todo: Set the rest of these and use them instead of literals
+#define R_D3D12_FRAME_CBV_SLOT  0
+#define R_D3D12_DRAW_CBV_SLOT   1
 
 struct R_D3D12_Backend {
   Arena *arena;
@@ -69,11 +68,9 @@ struct R_D3D12_Backend {
 
   /*
   SRV heap:
-
-  0          root CBV (b0)
-  1          root CBV (b1)
-  2–1025     textures (fixed region)
-  1026       material buffer
+    textures (2D, 2D array)
+    uav's
+    material buffer
   ...
   */
 
@@ -87,7 +84,7 @@ struct R_D3D12_Backend {
   S32 rtv_descriptor_size;
   S32 dsv_descriptor_size;
 
-  S32 srv_next_idx;
+  S32 srv_2d_next_idx;
   S32 srv_2darray_next_idx; // @Note: Temp
   S32 mtl_next_idx; // Material table slot allocation
   S32 uav_next_idx;

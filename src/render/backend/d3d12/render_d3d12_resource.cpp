@@ -2,10 +2,6 @@
 // D3D12 Resources
 //
 
-
-// @Todo: the "state" members for these (where applicable) are more like "initial state";
-// kind of deceiving. Should get rid of this as I store current state in resource slot.
-
 struct R_D3D12_GraphicsPipeline {
   // Runtime
   ID3D12PipelineState *pso;
@@ -200,8 +196,8 @@ r_alloc_texture_descriptor_idx_srv(R_SubresourceRange range)
     ctx->srv_2darray_next_idx += 1;
   }
   else {
-    idx = ctx->srv_next_idx;
-    ctx->srv_next_idx += 1;
+    idx = ctx->srv_2d_next_idx;
+    ctx->srv_2d_next_idx += 1;
   }
 
   return idx;

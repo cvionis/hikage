@@ -82,15 +82,7 @@ static S32
 r_get_current_base_texture_2d_idx(void)
 {
   R_D3D12_Backend *backend = &r_ctx;
-  S32 current_base = backend->srv_next_idx - R_D3D12_TEXTURE_TABLE_BASE;
-  return current_base;
-}
-
-static S32
-r_get_current_base_texture_2d_array_idx(void)
-{
-  R_D3D12_Backend *backend = &r_ctx;
-  S32 current_base = backend->srv_next_idx - R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE;
+  S32 current_base = backend->srv_2d_next_idx - R_D3D12_TEXTURE_TABLE_BASE;
   return current_base;
 }
 
@@ -352,7 +344,7 @@ r_init(OS_Handle window)
     Assert(SUCCEEDED(hr));
   }
 
-  // Unified shader-visible heap: [root CBVs] + [bindless textures] + [material buffer]
+  // Unified shader-visible heap: [bindless textures] + [uav's] [material buffer]
   {
     D3D12_DESCRIPTOR_HEAP_DESC heap_desc = {};
     heap_desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -366,7 +358,7 @@ r_init(OS_Handle window)
     ctx->srv_uav_descriptor_size =
       ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-    ctx->srv_next_idx = R_D3D12_TEXTURE_TABLE_BASE;
+    ctx->srv_2d_next_idx = R_D3D12_TEXTURE_TABLE_BASE;
     ctx->srv_2darray_next_idx = R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE;
     ctx->uav_next_idx = R_D3D12_UAV_BASE;
   }
