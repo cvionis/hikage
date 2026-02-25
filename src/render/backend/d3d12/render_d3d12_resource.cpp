@@ -483,7 +483,7 @@ bc_bytes_per_block(DXGI_FORMAT fmt)
 }
 
 static void
-r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData *init, S32 init_count)
+r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData *init, S32 init_count, D3D12_RESOURCE_STATES post_upload_state)
 {
   R_D3D12_Backend *ctx = &r_ctx;
 
@@ -589,7 +589,7 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
     barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
     barrier.Transition.pResource = tex->resource;
     barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
-    barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    barrier.Transition.StateAfter = post_upload_state;
     barrier.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
 
     ctx->copy_cmd_list->ResourceBarrier(1, &barrier);
@@ -666,11 +666,14 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
 
   R_D3D12_Texture *tex = ArenaPushStruct(ctx->arena, R_D3D12_Texture);
 
-  D3D12_RESOURCE_STATES init_state_d3d12 = D3D12_RESOURCE_STATE_COMMON;
-  U32 init_state = desc.init_state;
-  result.state = init_state;
+  D3D12_RESOURCE_STATES provided_state_d3d12 = D3D12_RESOURCE_STATE_COMMON;
+  result.state = desc.init_state;
+  provided_state_d3d12 = r_d3d12_state_from_r_state(desc.init_state);
 
-  init_state_d3d12 = r_d3d12_state_from_r_state(init_state);
+  D3D12_RESOURCE_STATES init_state_d3d12 = provided_state_d3d12;
+  if (init_count > 0) {
+    init_state_d3d12 = D3D12_RESOURCE_STATE_COPY_DEST;
+  }
 
   D3D12_HEAP_PROPERTIES heap = {};
   heap.Type = D3D12_HEAP_TYPE_DEFAULT;
@@ -685,7 +688,7 @@ r_create_texture_impl(R_TextureInitData *init, S32 init_count, R_TextureDesc des
   Assert(SUCCEEDED(hr));
 
   if (init_count > 0) {
-    r_d3d12_upload_texture(tex, dxgi_fmt, init, init_count);
+    r_d3d12_upload_texture(tex, dxgi_fmt, init, init_count, provided_state_d3d12);
     result.fence_value = ctx->copy_fence_value;
   } else {
     result.fence_value = 0;

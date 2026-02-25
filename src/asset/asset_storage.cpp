@@ -204,7 +204,7 @@ assets_load_model(AssetContext *ctx, String8 name)
           .fmt = img->format,
           .usage = R_TextureUsage_Sampled,
           .kind = R_TextureKind_2D,
-          .init_state = R_ResourceState_CopyDst,
+          .init_state = R_ResourceState_ShaderRead_PS,
         };
 
         U32 mips_end = img->mips_begin + img->mip_count;

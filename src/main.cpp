@@ -159,26 +159,56 @@ entry_point(void)
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
   AssetHandle a = assets_load_model(&assets, S8("Sponza"));
 
-  #if 0
+  int env_width;
+  int env_height;
+  float *env_data;
   {
     const char* input = "R:/KageEngine/assets/environments/citrus_orchard_road_puresky_4k.exr";
-    float* out; // width * height * RGBA
-    int width;
-    int height;
     const char* err = 0; // or nullptr in C++11
 
-    int ret = LoadEXR(&out, &width, &height, input, &err);
+    int ret = LoadEXR(&env_data, &env_width, &env_height, input, &err);
 
     if (ret != TINYEXR_SUCCESS) {
       if (err) {
         fprintf(stderr, "ERR : %s\n", err);
-        FreeEXRErrorMessage(err); // release memory of error message.
+        FreeEXRErrorMessage(err);
       }
     } else {
-      free(out); // release memory of image data
+      free(env_data);
     }
   }
-  #endif
+
+  {
+    R_ComputePipelineDesc compute_pipeline_desc = {
+      .cs_path = L"cubemap_from_exr.hlsl",
+    };
+    R_Handle compute_pipeline = r_create_compute_pipeline(compute_pipeline_desc);
+
+    R_TextureDesc env_2d_desc = {
+      .width       = env_width,
+      .height      = env_height,
+      .depth       = 1,
+      .mips_count  = 1,
+      .fmt         = R_Format_R16G16B16A16_Float,
+      .usage       = R_TextureUsage_Sampled,
+      .kind        = R_TextureKind_2D,
+      .init_state  = R_ResourceState_ShaderRead_PS,
+    };
+
+    S32 bytes_per_pixel = 4;
+    S32 env_row_pitch   = env_width * bytes_per_pixel;
+    S32 env_slice_pitch = env_height * env_row_pitch;
+
+    R_TextureInitData init = {
+      .data = env_data,
+      .row_pitch = env_row_pitch,
+      .slice_pitch = env_slice_pitch,
+    };
+
+    R_Handle env_tex_2d = r_create_texture(&init, 1, env_2d_desc);
+
+    // @Resume: create cubemap, dispatch compute (+ root CBV and bind descriptor tables), figure out why compute shader is failing to compile (with no error msg...)
+  }
 
   Input input = {};
 

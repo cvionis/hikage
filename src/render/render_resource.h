@@ -222,6 +222,7 @@ struct R_TextureDesc {
 };
 
 // @Todo: init_count might be redundant as desc already contains `mips_count` (perhaps this makes the latter redundant instead)
+// @Note: If initial data is supplied, internally start as copydst, then transition to provided init_state.
 static R_Handle r_create_texture(R_TextureInitData *init, S32 init_count, R_TextureDesc desc);
 
 //
