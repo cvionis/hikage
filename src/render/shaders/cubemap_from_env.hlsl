@@ -4,8 +4,6 @@ cbuffer CB : register(b0) {
 
     uint src_tex_idx;
     uint dst_tex_idx;
-
-    uint _pad;
 };
 
 Texture2D<float4> g_textures_2d[512] : register(t0, space0);

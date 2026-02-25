@@ -179,35 +179,129 @@ entry_point(void)
   }
 
   {
+    // Pipeline
+
     R_ComputePipelineDesc compute_pipeline_desc = {
-      .cs_path = L"cubemap_from_exr.hlsl",
+      .cs_path = L"cubemap_from_env.hlsl",
     };
     R_Handle compute_pipeline = r_create_compute_pipeline(compute_pipeline_desc);
+
+    // Textures
+
+    S32 bytes_per_pixel = 16;
+    S32 env_row_pitch   = env_width * bytes_per_pixel;
+    S32 env_slice_pitch = env_height * env_row_pitch;
+    S32 cube_dim = 2048; // @Note: Temp
 
     R_TextureDesc env_2d_desc = {
       .width       = env_width,
       .height      = env_height,
       .depth       = 1,
       .mips_count  = 1,
-      .fmt         = R_Format_R16G16B16A16_Float,
+      .fmt         = R_Format_R32G32B32A32_Float,
       .usage       = R_TextureUsage_Sampled,
       .kind        = R_TextureKind_2D,
-      .init_state  = R_ResourceState_ShaderRead_PS,
+      .init_state  = R_ResourceState_ShaderRead_NP,
     };
-
-    S32 bytes_per_pixel = 4;
-    S32 env_row_pitch   = env_width * bytes_per_pixel;
-    S32 env_slice_pitch = env_height * env_row_pitch;
-
     R_TextureInitData init = {
       .data = env_data,
       .row_pitch = env_row_pitch,
       .slice_pitch = env_slice_pitch,
     };
-
     R_Handle env_tex_2d = r_create_texture(&init, 1, env_2d_desc);
 
-    // @Resume: create cubemap, dispatch compute (+ root CBV and bind descriptor tables), figure out why compute shader is failing to compile (with no error msg...)
+    R_ViewDesc env_tex_srv_desc = {
+      .kind = R_ViewKind_ShaderResource,
+      .fmt = R_Format_R32G32B32A32_Float,
+      .range = {
+        .mip_start = 0,
+        .mip_count = 1,
+        .slice_start = 0,
+        .slice_count = 0,
+      },
+    };
+    r_view_from_texture(env_tex_2d, env_tex_srv_desc);
+
+    R_TextureDesc cubemap_desc = {
+      .width =  cube_dim,
+      .height = cube_dim,
+      .depth = 6,
+      .mips_count = 1,
+      .fmt = R_Format_R16G16B16A16_Float,
+      .usage = R_TextureUsage_Sampled|R_TextureUsage_UnorderedAccess,
+      .kind = R_TextureKind_2D_Array,
+      .init_state = R_ResourceState_UnorderedAccess,
+    };
+    R_Handle cubemap = r_create_texture(0, 0, cubemap_desc);
+
+    R_ViewDesc cubemap_uav_desc = {
+      .kind = R_ViewKind_UnorderedAccess,
+      .fmt = R_Format_R16G16B16A16_Float,
+      .range = {
+        .mip_start = 0,
+        .mip_count = 1,
+        .slice_start = 0,
+        .slice_count = 6,
+      },
+    };
+    r_view_from_texture(cubemap, cubemap_uav_desc);
+
+    // @Todo: Need to transition from unordered access to shader read to sample cubemap in shader later on.
+    // @Resume: dispatch compute (+ root CBV and bind descriptor tables), figure out why compute shader is failing to compile (with no error msg...)
+
+    struct CubemapFromEnvCB {
+      U32 src_width;
+      U32 src_height;
+      U32 src_tex_idx;
+      U32 dst_tex_idx;
+    };
+    R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(CubemapFromEnvCB));
+    auto *cb = (CubemapFromEnvCB *)alloc.cpu;
+    cb->src_width = cube_dim;
+    cb->src_height = cube_dim;
+    cb->src_tex_idx = 0; // @Todo: Fill these out.
+    cb->dst_tex_idx = 0;
+
+    // Bind and dispatch
+
+    // @Resume
+
+    R_D3D12_Backend *backend = &r_ctx;
+    ID3D12GraphicsCommandList* cl = backend->command_list;
+    {
+      auto *pipeline = (R_D3D12_ComputePipeline *)r_resource_table.slots[compute_pipeline.idx].backend_rsrc; // @Note: Temporary
+      cl->SetPipelineState(pipeline->pso);
+      cl->SetComputeRootSignature(backend->root_signature);
+
+      // Descriptor heap
+      ID3D12DescriptorHeap* heaps[] = { backend->srv_uav_heap };
+      cl->SetDescriptorHeaps(1, heaps);
+
+      // Bind root CBV (param 0)
+      cl->SetGraphicsRootConstantBufferView(0, alloc.gpu);
+
+      // Bind descriptor tables (same base handles you already compute)
+      D3D12_GPU_DESCRIPTOR_HANDLE gpu_base =
+        backend->srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
+
+      D3D12_GPU_DESCRIPTOR_HANDLE gpu_srv_tex_2d = gpu_base;
+      gpu_srv_tex_2d.ptr +=
+        (U64)R_D3D12_SRV_TEXTURE_2D_BASE * (U64)backend->srv_uav_descriptor_size;
+      cl->SetComputeRootDescriptorTable(2, gpu_srv_tex_2d);
+
+      D3D12_GPU_DESCRIPTOR_HANDLE gpu_uav_tex_2d_array = gpu_base;
+      gpu_uav_tex_2d_array.ptr +=
+        (U64)R_D3D12_UAV_TEXTURE_2D_ARRAY_BASE * (U64)backend->srv_uav_descriptor_size;
+      backend->command_list->SetGraphicsRootDescriptorTable(5, gpu_uav_tex_2d_array);
+    }
+
+    {
+      U32 gx = (cube_dim + 7) / 8;
+      U32 gy = (cube_dim + 7) / 8;
+      U32 gz = 6;
+      cl->Dispatch(gx, gy, gz);
+    }
+
   }
 
   Input input = {};
