@@ -118,7 +118,7 @@ R_PASS_EXECUTE_PROC(r_pass_execute_lighting)
   R_Handle shadow_tex_view = r_view_from_texture(shadow_tex, desc);
 
   S32 shadow_texture_idx_abs = r_descriptor_idx_from_view(shadow_tex_view);
-  S32 shadow_texture_idx = shadow_texture_idx_abs - R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE; // @Todo: Tmp; Create helper that maps from heap idx -> shader array idx
+  S32 shadow_texture_idx = shadow_texture_idx_abs - R_D3D12_SRV_TEXTURE_2D_ARRAY_BASE; // @Todo: Tmp; Create helper that maps from heap idx -> shader array idx
   cb->shadow_texture_idx = shadow_texture_idx;
 
   backend->command_list->SetGraphicsRootConstantBufferView(0, alloc.gpu);
@@ -420,7 +420,7 @@ R_PASS_EXECUTE_PROC(r_pass_execute_composite)
   };
   R_Handle shader_resource_view = r_view_from_texture(hdr_color_tex, view_desc);
   S32 hdr_color_idx_abs = r_descriptor_idx_from_view(shader_resource_view);
-  S32 hdr_color_idx = hdr_color_idx_abs - R_D3D12_TEXTURE_TABLE_BASE; // @Todo: Tmp
+  S32 hdr_color_idx = hdr_color_idx_abs - R_D3D12_SRV_TEXTURE_2D_BASE; // @Todo: Tmp
 
   R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(R_CompositeCB));
   R_CompositeCB *cb = (R_CompositeCB *)alloc.cpu;

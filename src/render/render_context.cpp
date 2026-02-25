@@ -404,25 +404,30 @@ r_pass_begin(R_Pass *pass)
     D3D12_GPU_DESCRIPTOR_HANDLE gpu_base =
       backend->srv_uav_heap->GetGPUDescriptorHandleForHeapStart();
 
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex_table = gpu_base;
-    gpu_tex_table.ptr +=
-      (U64)R_D3D12_TEXTURE_TABLE_BASE * (U64)backend->srv_uav_descriptor_size;
-    backend->command_list->SetGraphicsRootDescriptorTable(2, gpu_tex_table);
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_srv_tex_2d = gpu_base;
+    gpu_srv_tex_2d.ptr +=
+      (U64)R_D3D12_SRV_TEXTURE_2D_BASE * (U64)backend->srv_uav_descriptor_size;
+    backend->command_list->SetGraphicsRootDescriptorTable(2, gpu_srv_tex_2d);
 
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu_tex_2d_array_table = gpu_base;
-    gpu_tex_2d_array_table.ptr +=
-      (U64)R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE * (U64)backend->srv_uav_descriptor_size;
-    backend->command_list->SetGraphicsRootDescriptorTable(3, gpu_tex_2d_array_table);
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_srv_tex_2d_array = gpu_base;
+    gpu_srv_tex_2d_array.ptr +=
+      (U64)R_D3D12_SRV_TEXTURE_2D_ARRAY_BASE * (U64)backend->srv_uav_descriptor_size;
+    backend->command_list->SetGraphicsRootDescriptorTable(3, gpu_srv_tex_2d_array);
 
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu_uav_table = gpu_base;
-    gpu_uav_table.ptr +=
-      (U64)R_D3D12_UAV_BASE * (U64)backend->srv_uav_descriptor_size;
-    backend->command_list->SetGraphicsRootDescriptorTable(4, gpu_uav_table);
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_uav_tex_2d = gpu_base;
+    gpu_uav_tex_2d.ptr +=
+      (U64)R_D3D12_UAV_TEXTURE_2D_BASE * (U64)backend->srv_uav_descriptor_size;
+    backend->command_list->SetGraphicsRootDescriptorTable(4, gpu_uav_tex_2d);
 
-    D3D12_GPU_DESCRIPTOR_HANDLE gpu_material =
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_uav_tex_2d_array = gpu_base;
+    gpu_uav_tex_2d_array.ptr +=
+      (U64)R_D3D12_UAV_TEXTURE_2D_ARRAY_BASE * (U64)backend->srv_uav_descriptor_size;
+    backend->command_list->SetGraphicsRootDescriptorTable(5, gpu_uav_tex_2d_array);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE gpu_materials =
     // @Todo: Replace material_srv_idx with R_D3D12_MATERIAL_TABLE_BASE
       CD3DX12_GPU_DESCRIPTOR_HANDLE(gpu_base, backend->material_srv_idx, backend->srv_uav_descriptor_size);
-    backend->command_list->SetGraphicsRootDescriptorTable(5, gpu_material);
+    backend->command_list->SetGraphicsRootDescriptorTable(6, gpu_materials);
   }
 
   // Bind render targets

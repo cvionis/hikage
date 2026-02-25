@@ -1,6 +1,7 @@
 // @Note: Temporary
 #pragma warning(push, 0)
 #define TINYEXR_USE_MINIZ 1
+#define TINYEXR_USE_THREAD 1
 #define TINYEXR_IMPLEMENTATION
 #include "tinyexr.h"
 #include "miniz.c"
@@ -157,6 +158,27 @@ entry_point(void)
   AssetContext assets = assets_make();
   assets_set_root_path(&assets, S8("R:/KageEngine/assets/models/"));
   AssetHandle a = assets_load_model(&assets, S8("Sponza"));
+
+  #if 0
+  {
+    const char* input = "R:/KageEngine/assets/environments/citrus_orchard_road_puresky_4k.exr";
+    float* out; // width * height * RGBA
+    int width;
+    int height;
+    const char* err = 0; // or nullptr in C++11
+
+    int ret = LoadEXR(&out, &width, &height, input, &err);
+
+    if (ret != TINYEXR_SUCCESS) {
+      if (err) {
+        fprintf(stderr, "ERR : %s\n", err);
+        FreeEXRErrorMessage(err); // release memory of error message.
+      }
+    } else {
+      free(out); // release memory of image data
+    }
+  }
+  #endif
 
   Input input = {};
 

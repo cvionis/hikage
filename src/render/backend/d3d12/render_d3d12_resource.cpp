@@ -171,17 +171,23 @@ r_resource_state(R_Handle handle)
 // Textures
 //
 
-
 static S32
-r_alloc_texture_descriptor_idx_uav(void)
+r_alloc_texture_descriptor_idx_uav(R_SubresourceRange range)
 {
-   R_D3D12_Backend *ctx = &r_ctx;
+  R_D3D12_Backend *ctx = &r_ctx;
 
-   // @Todo: Free list
-   S32 idx = ctx->uav_next_idx;
-   ctx->uav_next_idx += 1;
+  // @Todo: Free list
+  S32 idx = -1;
+  if (range.slice_count >= 1) {
+    idx = ctx->uav_2darray_next_idx;
+    ctx->uav_2darray_next_idx += 1;
+  }
+  else {
+    idx = ctx->uav_2d_next_idx;
+    ctx->uav_2d_next_idx += 1;
+  }
 
-   return idx;
+  return idx;
 }
 
 static S32

@@ -47,7 +47,7 @@ r_alloc_descriptor_for_view(R_Handle texture, R_ViewDesc desc)
 
   switch (desc.kind) {
     case R_ViewKind_UnorderedAccess: {
-      S32 uav_idx = r_alloc_texture_descriptor_idx_uav();
+      S32 uav_idx = r_alloc_texture_descriptor_idx_uav(desc.range);
       r_d3d12_write_uav(tex->resource, dxgi_fmt, desc.range, uav_idx);
       idx = uav_idx;
     }break;

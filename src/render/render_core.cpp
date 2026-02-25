@@ -78,11 +78,12 @@ r_alloc_push(R_LinearAllocator *alloc, U64 size)
 
 // @Todo: Move this stuff
 
+// @Todo: Rename
 static S32
 r_get_current_base_texture_2d_idx(void)
 {
   R_D3D12_Backend *backend = &r_ctx;
-  S32 current_base = backend->srv_2d_next_idx - R_D3D12_TEXTURE_TABLE_BASE;
+  S32 current_base = backend->srv_2d_next_idx - R_D3D12_SRV_TEXTURE_2D_BASE;
   return current_base;
 }
 
@@ -358,9 +359,10 @@ r_init(OS_Handle window)
     ctx->srv_uav_descriptor_size =
       ctx->device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-    ctx->srv_2d_next_idx = R_D3D12_TEXTURE_TABLE_BASE;
-    ctx->srv_2darray_next_idx = R_D3D12_TEXTURE_TABLE_2D_ARRAY_BASE;
-    ctx->uav_next_idx = R_D3D12_UAV_BASE;
+    ctx->srv_2d_next_idx = R_D3D12_SRV_TEXTURE_2D_BASE;
+    ctx->srv_2darray_next_idx = R_D3D12_SRV_TEXTURE_2D_ARRAY_BASE;
+    ctx->uav_2d_next_idx = R_D3D12_UAV_TEXTURE_2D_BASE;
+    ctx->uav_2darray_next_idx = R_D3D12_UAV_TEXTURE_2D_ARRAY_BASE;
   }
 
   // Material buffer (StructuredBuffer) (t0, space1) stored in slot 3 of srv_uav_heap
@@ -400,11 +402,11 @@ r_init(OS_Handle window)
 
   // Root signature
   {
-    CD3DX12_DESCRIPTOR_RANGE ranges[4];
+    CD3DX12_DESCRIPTOR_RANGE ranges[5];
     // t0[] space0: texture table (2d textures)
     ranges[0].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-      R_D3D12_TEXTURE_2D_MAX,
+      R_D3D12_SRV_TEXTURE_2D_MAX,
       0, // baseShaderRegister t0
       0  // registerSpace 0
     );
@@ -412,7 +414,7 @@ r_init(OS_Handle window)
     // t0[] space1: texture table (2d array textures)
     ranges[1].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-      R_D3D12_TEXTURE_2D_ARRAY_MAX,
+      R_D3D12_SRV_TEXTURE_2D_ARRAY_MAX,
       0, // baseShaderRegister t0
       1  // registerSpace 1
     );
@@ -420,20 +422,27 @@ r_init(OS_Handle window)
     // u8[] space0: uav table (read/write resources)
     ranges[2].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
-      R_D3D12_UAV_MAX,
+      R_D3D12_UAV_TEXTURE_2D_MAX,
       0, // baseShaderRegister u0
-      1  // registerSpace 0
+      0  // registerSpace 0
+    );
+
+    ranges[3].Init(
+      D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+      R_D3D12_UAV_TEXTURE_2D_ARRAY_MAX,
+      0, // baseShaderRegister u0
+      1  // registerSpace 1
     );
 
     // t0 space2: material buffer
-    ranges[3].Init(
+    ranges[4].Init(
       D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
       1,
       0, // baseShaderRegister t0
       2  // registerSpace 2
     );
 
-    CD3DX12_ROOT_PARAMETER params[6];
+    CD3DX12_ROOT_PARAMETER params[7];
     // b0: frame/pass constants (root CBV)
     params[0].InitAsConstantBufferView(
       0, // shaderRegister b0
@@ -456,15 +465,19 @@ r_init(OS_Handle window)
       1, &ranges[1],
       D3D12_SHADER_VISIBILITY_ALL
     );
-    // UAV descriptor table for read/write resources
+    // UAV descriptor table for RW textures (2D)
     params[4].InitAsDescriptorTable(
       1, &ranges[2],
       D3D12_SHADER_VISIBILITY_ALL
     );
-
-    // SRV descriptor table for materials
+    // UAV descriptor table for RW textures (2D array)
     params[5].InitAsDescriptorTable(
       1, &ranges[3],
+      D3D12_SHADER_VISIBILITY_ALL
+    );
+    // SRV descriptor table for materials
+    params[6].InitAsDescriptorTable(
+      1, &ranges[4],
       D3D12_SHADER_VISIBILITY_ALL
     );
 
