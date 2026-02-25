@@ -161,11 +161,11 @@ struct R_ViewTable {
   S32 views_count;
  };
 
- global R_ResourceContext r_resources;
+ static R_ResourceContext r_resources;
  */
 
-global R_ResourceTable r_resource_table; // -> r_resources.
-global R_ViewTable r_views;
+static R_ResourceTable r_resource_table; // -> r_resources.
+static R_ViewTable r_views;
 
 //
 // Textures
@@ -200,7 +200,7 @@ struct R_TextureInitData {
     * (kind == Cube_Array) --> depth % 6 == 0
     * (kind == 3D) --> depth > 1
   */
- struct R_TextureDesc {
+struct R_TextureDesc {
   S32 width;
   S32 height;
   S32 depth; // depth for 3D, array size for array textures

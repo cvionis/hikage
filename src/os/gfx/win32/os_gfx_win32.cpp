@@ -28,9 +28,9 @@ struct OS_Gfx_Win32_State {
 // Globals
 //
 
-global OS_Gfx_Win32_State os_gfx_win32_state;
-global OS_Key os_gfx_win32_key_table[OS_GFX_WIN32_KEYS_MAX];
-global HCURSOR os_gfx_win32_cursor_table[OS_CursorKind_COUNT];
+static OS_Gfx_Win32_State os_gfx_win32_state;
+static OS_Key os_gfx_win32_key_table[OS_GFX_WIN32_KEYS_MAX];
+static HCURSOR os_gfx_win32_cursor_table[OS_CursorKind_COUNT];
 
 //
 // Internal helpers

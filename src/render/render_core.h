@@ -58,7 +58,7 @@ struct R_Alloc {
   U64 gpu;
 };
 
-global R_LinearAllocator r_allocator; // @Note: Temporarily global.
+static R_LinearAllocator r_allocator; // @Note: Temporarily static.
 
 static R_LinearAllocator r_alloc_make(U64 size); // Backend-specific impl
 static void r_alloc_release(R_LinearAllocator *alloc); // Backend-specific impl
@@ -69,7 +69,7 @@ static R_Alloc r_alloc_push(R_LinearAllocator *alloc, U64 size);
 // Globals
 //
 
-global R_Layout r_mesh_layout = {
+static R_Layout r_mesh_layout = {
   .elements = {
     { S8("POSITION"), 0, R_Format_R32G32B32_Float,    0,  0, R_VertexInputClass_PerVertex, 0 },
     { S8("NORMAL"),   0, R_Format_R32G32B32_Float,    0, 12, R_VertexInputClass_PerVertex, 0 },

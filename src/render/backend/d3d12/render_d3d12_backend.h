@@ -27,8 +27,13 @@
 #define R_D3D12_MATERIAL_BUFFER_BASE (R_D3D12_UAV_BASE + R_D3D12_UAV_MAX)
 
 // @Todo: Set the rest of these and use them instead of literals
-#define R_D3D12_FRAME_CBV_SLOT  0
-#define R_D3D12_DRAW_CBV_SLOT   1
+#define R_D3D12_ROOT_SIG_SLOT_FRAME_CBV  0
+#define R_D3D12_ROOT_SIG_SLOT_DRAW_CBV   1
+#define R_D3D12_ROOT_SIG_SLOT_TEXTURE_2D 2
+#define R_D3D12_ROOT_SIG_SLOT_TEXTURE_2D_ARRAY 3
+#define R_D3D12_ROOT_SIG_SLOT_UAV 4
+#define R_D3D12_ROOT_SIG_SLOT_MATERIALS 5
+
 
 struct R_D3D12_Backend {
   Arena *arena;
@@ -98,4 +103,4 @@ struct R_D3D12_Backend {
 
 };
 
-global R_D3D12_Backend r_ctx;
+static R_D3D12_Backend r_ctx;

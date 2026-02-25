@@ -109,7 +109,7 @@ cbuffer DrawCB : register(b1) {
 // Resources
 //
 
-Texture2D g_textures_2d[512]       : register(t0, space0);
+Texture2D g_textures_2d[512] : register(t0, space0);
 Texture2DArray<float> g_textures_2d_array[512] : register(t0, space1);
 StructuredBuffer<Material> g_materials : register(t0, space2);
 

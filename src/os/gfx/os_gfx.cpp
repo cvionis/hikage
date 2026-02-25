@@ -1,4 +1,4 @@
-global char *os_key_string_table[] = {
+static char *os_key_string_table[] = {
   "Null",
   "Escape",
   "F1",
@@ -99,7 +99,7 @@ struct OS_CodepointEntry {
   U32 char_shift;
 };
 
-global OS_CodepointEntry os_key_codepoint_table[] = {
+static OS_CodepointEntry os_key_codepoint_table[] = {
   { OS_Key_Space, ' ', ' ' },
   { OS_Key_1, '1', '!' },
   { OS_Key_2, '2', '@' },
@@ -137,7 +137,7 @@ struct OS_Gfx_State {
   RectU32 prev_window_rect;
 };
 
-global OS_Gfx_State os_gfx_state;
+static OS_Gfx_State os_gfx_state;
 
 //
 // Window events

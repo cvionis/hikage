@@ -29,7 +29,7 @@ struct ASYNC_Context {
   volatile U32 next_write;
 };
 
-global ASYNC_Context *async_ctx;
+static ASYNC_Context *async_ctx;
 
 static void async_thread_proc(void *param);
 

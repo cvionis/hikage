@@ -6,4 +6,4 @@ struct OS_Win32_State {
   LARGE_INTEGER hrpc;
 };
 
-global OS_Win32_State os_win32_state;
+static OS_Win32_State os_win32_state;

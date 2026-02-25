@@ -1,3 +1,11 @@
+// @Note: Temporary
+#pragma warning(push, 0)
+#define TINYEXR_USE_MINIZ 1
+#define TINYEXR_IMPLEMENTATION
+#include "tinyexr.h"
+#include "miniz.c"
+#pragma warning(pop)
+
 #include "base/base_inc.h"
 #include "os/os_inc.h"
 #include "input/input_inc.h"

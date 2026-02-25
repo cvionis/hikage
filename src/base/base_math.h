@@ -10,34 +10,34 @@
 # pragma warning(disable: 4310)
 #endif
 
-global S8  MIN_S8  = (S8) 0x80;
-global S16 MIN_S16 = (S16)0x8000;
-global S32 MIN_S32 = (S32)0x80000000;
-global S64 MIN_S64 = (S64)0x8000000000000000llu;
+static S8  MIN_S8  = (S8) 0x80;
+static S16 MIN_S16 = (S16)0x8000;
+static S32 MIN_S32 = (S32)0x80000000;
+static S64 MIN_S64 = (S64)0x8000000000000000llu;
 
 #if OS_WINDOWS
 #pragma warning(default: 4310)
 #endif
 
-global S8  MAX_S8  = (S8) 0x7f;
-global S16 MAX_S16 = (S16)0x7fff;
-global S32 MAX_S32 = (S32)0x7fffffff;
-global S64 MAX_S64 = (S64)0x7fffffffffffffffllu;
+static S8  MAX_S8  = (S8) 0x7f;
+static S16 MAX_S16 = (S16)0x7fff;
+static S32 MAX_S32 = (S32)0x7fffffff;
+static S64 MAX_S64 = (S64)0x7fffffffffffffffllu;
 
-global U8  MAX_U8  = 0xff;
-global U16 MAX_U16 = 0xffff;
-global U32 MAX_U32 = 0xffffffff;
-global U64 MAX_U64 = 0xffffffffffffffffllu;
+static U8  MAX_U8  = 0xff;
+static U16 MAX_U16 = 0xffff;
+static U32 MAX_U32 = 0xffffffff;
+static U64 MAX_U64 = 0xffffffffffffffffllu;
 
-global F32 EPSILON_F32 = 1.1920929e-7f;
-global F32 PI_F32 = 3.14159265359f;
-global F32 TAU_F32 = 6.28318530718f;
-global F32 E_F32 = 2.71828182846f;
+static F32 EPSILON_F32 = 1.1920929e-7f;
+static F32 PI_F32 = 3.14159265359f;
+static F32 TAU_F32 = 6.28318530718f;
+static F32 E_F32 = 2.71828182846f;
 
-global F64 EPSILON_F64 = 2.220446e-16;
-global F64 PI_F64 = 3.14159265359;
-global F64 TAU_F64 = 6.28318530718;
-global F64 E_F64 = 2.71828182846;
+static F64 EPSILON_F64 = 2.220446e-16;
+static F64 PI_F64 = 3.14159265359;
+static F64 TAU_F64 = 6.28318530718;
+static F64 E_F64 = 2.71828182846;
 
 //
 // Macros

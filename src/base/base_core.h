@@ -20,8 +20,6 @@ typedef uint32_t B32;
 typedef float    F32;
 typedef double   F64;
 
-#define global   static
-
 #if COMPILER_MSVC
 # define threadlocal __declspec(thread)
 #elif COMPILER_CLANG

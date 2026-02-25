@@ -38,7 +38,7 @@ set exe_name=kage.exe
 
 set cl_build_flags=/DBUILD_CLI=0 /DBUILD_DEBUG=%debug%
 set cl_warning_flags=/D_CRT_SECURE_NO_WARNINGS /wd4201 /wd4456 /wd4505 /W4 /Zc:strictStrings-
-set cl_common=/Fe:%exe_name% /nologo /FC /Zi /diagnostics:caret /std:c++20
+set cl_common=/Fe:%exe_name% /nologo /FC /Zi /diagnostics:caret /std:c++20 /EHsc
 
 if "%asan%"=="1" (
   set cl_common=%cl_common% /fsanitize=address
@@ -52,6 +52,8 @@ set stb="%root%\src\third_party\stb"
 set freetype="%root%\src\third_party\freetype-2.11.1"
 set cgltf="%root%\src\third_party\cgltf"
 set DirectXTex="%root%\src\third_party\DirectXTex"
+set tinyexr="%root%\src\third_party\tinyexr"
+set miniz="%root%\src\third_party\miniz"
 
 set includes=
 set includes=%includes% /FI %freetype%\include\ft2build.h
@@ -60,6 +62,8 @@ set includes=%includes% /I %stb%
 set includes=%includes% /I %raylib%\include
 set includes=%includes% /I %cgltf%
 set includes=%includes% /I %DirectXTex%\include
+set includes=%includes% /I %tinyexr%
+set includes=%includes% /I %miniz%
 
 :: -- Linker flags --------------------------------------------------------
 set linker_flags=/link %freetype%\build\freetype.lib winmm.lib shell32.lib ole32.lib %DirectXTex%\build\x64\Release\DirectXTex.lib /ignore:4099 /INCREMENTAL:no
