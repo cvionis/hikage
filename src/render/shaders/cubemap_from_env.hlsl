@@ -40,7 +40,7 @@ float2 dir_to_lat_long_uv(float3 d)
 }
 
 [numthreads(8, 8, 1)]
-void main(uint3 tid : SV_DispatchThreadID)
+void cs_main(uint3 tid : SV_DispatchThreadID)
 {
     uint x = tid.x;
     uint y = tid.y;

@@ -506,8 +506,8 @@ r_d3d12_upload_texture(R_D3D12_Texture *tex, DXGI_FORMAT fmt, R_TextureInitData 
     desc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
     desc.Width = upload_size;
     desc.Height = 1;
-    desc.DepthOrArraySize = 1;
-    desc.MipLevels = 1;
+    desc.DepthOrArraySize = 1; // @Todo
+    desc.MipLevels = 1; // @Todo
     desc.SampleDesc.Count = 1;
     desc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
 
@@ -1286,7 +1286,7 @@ r_create_compute_pipeline_impl(R_ComputePipelineDesc desc)
   pipe->cs_path = desc.cs_path;
   pipe->root_sig = ctx->root_signature; // @Note: Using a single shared root signature that all pipelines will agree upon.
 
-  ID3DBlob *cs_blob = r_d3d12_compile_hlsl(desc.cs_path, "cs_main", "vs_5_1");
+  ID3DBlob *cs_blob = r_d3d12_compile_hlsl(desc.cs_path, "cs_main", "cs_5_1");
   Assert(cs_blob != 0);
 
   D3D12_COMPUTE_PIPELINE_STATE_DESC pso = {};

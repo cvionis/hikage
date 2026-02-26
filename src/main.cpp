@@ -161,6 +161,7 @@ entry_point(void)
 
   int env_width;
   int env_height;
+  int env_channels;
   float *env_data;
   {
     const char* input = "R:/KageEngine/assets/environments/citrus_orchard_road_puresky_4k.exr";
@@ -168,27 +169,29 @@ entry_point(void)
 
     int ret = LoadEXR(&env_data, &env_width, &env_height, input, &err);
 
-    if (ret != TINYEXR_SUCCESS) {
-      if (err) {
-        fprintf(stderr, "ERR : %s\n", err);
-        FreeEXRErrorMessage(err);
-      }
-    } else {
-      free(env_data);
-    }
+    EXRHeader header;
+    EXRVersion version;
+    InitEXRHeader(&header);
+    ParseEXRVersionFromFile(&version, input);
+    ParseEXRHeaderFromFile(&header, &version, input, &err);
+    env_channels = header.num_channels;
+
+    Assert(ret == TINYEXR_SUCCESS);
   }
 
   {
     // Pipeline
 
     R_ComputePipelineDesc compute_pipeline_desc = {
-      .cs_path = L"cubemap_from_env.hlsl",
+      .cs_path = L"../src/render/shaders/cubemap_from_env.hlsl",
     };
     R_Handle compute_pipeline = r_create_compute_pipeline(compute_pipeline_desc);
 
     // Textures
 
-    S32 bytes_per_pixel = 16;
+    env_channels = 4;
+    R_Format env_fmt = R_Format_R32G32B32A32_Float;
+    S32 bytes_per_pixel = env_channels * sizeof(F32);
     S32 env_row_pitch   = env_width * bytes_per_pixel;
     S32 env_slice_pitch = env_height * env_row_pitch;
     S32 cube_dim = 2048; // @Note: Temp
@@ -198,7 +201,7 @@ entry_point(void)
       .height      = env_height,
       .depth       = 1,
       .mips_count  = 1,
-      .fmt         = R_Format_R32G32B32A32_Float,
+      .fmt         = env_fmt,
       .usage       = R_TextureUsage_Sampled,
       .kind        = R_TextureKind_2D,
       .init_state  = R_ResourceState_ShaderRead_NP,
@@ -212,7 +215,7 @@ entry_point(void)
 
     R_ViewDesc env_tex_srv_desc = {
       .kind = R_ViewKind_ShaderResource,
-      .fmt = R_Format_R32G32B32A32_Float,
+      .fmt = env_fmt,
       .range = {
         .mip_start = 0,
         .mip_count = 1,
@@ -220,14 +223,14 @@ entry_point(void)
         .slice_count = 0,
       },
     };
-    r_view_from_texture(env_tex_2d, env_tex_srv_desc);
+    R_Handle env_tex_srv = r_view_from_texture(env_tex_2d, env_tex_srv_desc);
 
     R_TextureDesc cubemap_desc = {
       .width =  cube_dim,
       .height = cube_dim,
       .depth = 6,
       .mips_count = 1,
-      .fmt = R_Format_R16G16B16A16_Float,
+      .fmt = R_Format_R32G32B32A32_Float,
       .usage = R_TextureUsage_Sampled|R_TextureUsage_UnorderedAccess,
       .kind = R_TextureKind_2D_Array,
       .init_state = R_ResourceState_UnorderedAccess,
@@ -236,7 +239,7 @@ entry_point(void)
 
     R_ViewDesc cubemap_uav_desc = {
       .kind = R_ViewKind_UnorderedAccess,
-      .fmt = R_Format_R16G16B16A16_Float,
+      .fmt = R_Format_R32G32B32A32_Float,
       .range = {
         .mip_start = 0,
         .mip_count = 1,
@@ -244,10 +247,9 @@ entry_point(void)
         .slice_count = 6,
       },
     };
-    r_view_from_texture(cubemap, cubemap_uav_desc);
+    R_Handle cubemap_uav = r_view_from_texture(cubemap, cubemap_uav_desc);
 
-    // @Todo: Need to transition from unordered access to shader read to sample cubemap in shader later on.
-    // @Resume: dispatch compute (+ root CBV and bind descriptor tables), figure out why compute shader is failing to compile (with no error msg...)
+    // @Todo: Need to explictly transition from unordered access to shader read to sample cubemap in shader later on.
 
     struct CubemapFromEnvCB {
       U32 src_width;
@@ -257,10 +259,11 @@ entry_point(void)
     };
     R_Alloc alloc = r_alloc_push(&r_allocator, sizeof(CubemapFromEnvCB));
     auto *cb = (CubemapFromEnvCB *)alloc.cpu;
-    cb->src_width = cube_dim;
-    cb->src_height = cube_dim;
-    cb->src_tex_idx = 0; // @Todo: Fill these out.
-    cb->dst_tex_idx = 0;
+    cb->src_width = env_width;
+    cb->src_height = env_height;
+
+    cb->src_tex_idx = r_descriptor_idx_from_view(env_tex_srv) - R_D3D12_SRV_TEXTURE_2D_BASE;
+    cb->dst_tex_idx = r_descriptor_idx_from_view(cubemap_uav) - R_D3D12_UAV_TEXTURE_2D_ARRAY_BASE;
 
     // Bind and dispatch
 
@@ -278,7 +281,7 @@ entry_point(void)
       cl->SetDescriptorHeaps(1, heaps);
 
       // Bind root CBV (param 0)
-      cl->SetGraphicsRootConstantBufferView(0, alloc.gpu);
+      cl->SetComputeRootConstantBufferView(0, alloc.gpu);
 
       // Bind descriptor tables (same base handles you already compute)
       D3D12_GPU_DESCRIPTOR_HANDLE gpu_base =
@@ -292,7 +295,7 @@ entry_point(void)
       D3D12_GPU_DESCRIPTOR_HANDLE gpu_uav_tex_2d_array = gpu_base;
       gpu_uav_tex_2d_array.ptr +=
         (U64)R_D3D12_UAV_TEXTURE_2D_ARRAY_BASE * (U64)backend->srv_uav_descriptor_size;
-      backend->command_list->SetGraphicsRootDescriptorTable(5, gpu_uav_tex_2d_array);
+      backend->command_list->SetComputeRootDescriptorTable(5, gpu_uav_tex_2d_array);
     }
 
     {
