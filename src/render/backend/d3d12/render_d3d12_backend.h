@@ -57,9 +57,16 @@ struct R_D3D12_Backend {
 
   ID3D12Resource *back_buffers[R_D3D12_FRAME_COUNT];
 
+  // Compute
   ID3D12CommandAllocator *command_allocators[R_D3D12_FRAME_COUNT];
   ID3D12CommandQueue *command_queue; // @Todo: Rename gfx or draw queue or something to differentiate from upload/copy queue
   ID3D12GraphicsCommandList *command_list;
+
+  // Compute
+  ID3D12CommandAllocator *compute_cmd_allocator;
+  ID3D12CommandQueue *compute_cmd_queue;
+  ID3D12GraphicsCommandList *compute_cmd_list;
+
   ID3D12RootSignature *root_signature;
 
   // Frame synchronization

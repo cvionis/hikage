@@ -345,6 +345,12 @@ r_init(OS_Handle window)
     Assert(SUCCEEDED(hr));
   }
 
+  // Compute command allocator
+  hr = ctx->device->CreateCommandAllocator(
+      D3D12_COMMAND_LIST_TYPE_DIRECT, // using graphics queue
+      IID_PPV_ARGS(&ctx->compute_cmd_allocator)
+  );
+
   // Unified shader-visible heap: [bindless textures] + [uav's] [material buffer]
   {
     D3D12_DESCRIPTOR_HEAP_DESC heap_desc = {};
@@ -559,6 +565,17 @@ r_init(OS_Handle window)
   );
   Assert(SUCCEEDED(hr));
   ctx->command_list->Close();
+
+  // Compute command list
+  ctx->device->CreateCommandList(
+      0,
+      D3D12_COMMAND_LIST_TYPE_DIRECT,
+      ctx->compute_cmd_allocator,
+      0,
+      IID_PPV_ARGS(&ctx->compute_cmd_list)
+  );
+
+  ctx->compute_cmd_list->Close(); // must start closed
 
   // Create synchronization primitives (frame fence)
   ctx->device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&ctx->fence));

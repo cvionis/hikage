@@ -179,6 +179,8 @@ entry_point(void)
     Assert(ret == TINYEXR_SUCCESS);
   }
 
+  // @Resume: Create a separate compute command allocator, queue, list.
+
   {
     // Pipeline
 
@@ -267,21 +269,20 @@ entry_point(void)
 
     // Bind and dispatch
 
-    // @Resume
-
     R_D3D12_Backend *backend = &r_ctx;
-    ID3D12GraphicsCommandList* cl = backend->command_list;
+    backend->compute_cmd_allocator->Reset();
+    backend->compute_cmd_list->Reset(backend->compute_cmd_allocator, 0);
     {
       auto *pipeline = (R_D3D12_ComputePipeline *)r_resource_table.slots[compute_pipeline.idx].backend_rsrc; // @Note: Temporary
-      cl->SetPipelineState(pipeline->pso);
-      cl->SetComputeRootSignature(backend->root_signature);
+      backend->compute_cmd_list->SetPipelineState(pipeline->pso);
+      backend->compute_cmd_list->SetComputeRootSignature(backend->root_signature);
 
       // Descriptor heap
       ID3D12DescriptorHeap* heaps[] = { backend->srv_uav_heap };
-      cl->SetDescriptorHeaps(1, heaps);
+      backend->compute_cmd_list->SetDescriptorHeaps(1, heaps);
 
       // Bind root CBV (param 0)
-      cl->SetComputeRootConstantBufferView(0, alloc.gpu);
+      backend->compute_cmd_list->SetComputeRootConstantBufferView(0, alloc.gpu);
 
       // Bind descriptor tables (same base handles you already compute)
       D3D12_GPU_DESCRIPTOR_HANDLE gpu_base =
@@ -290,21 +291,32 @@ entry_point(void)
       D3D12_GPU_DESCRIPTOR_HANDLE gpu_srv_tex_2d = gpu_base;
       gpu_srv_tex_2d.ptr +=
         (U64)R_D3D12_SRV_TEXTURE_2D_BASE * (U64)backend->srv_uav_descriptor_size;
-      cl->SetComputeRootDescriptorTable(2, gpu_srv_tex_2d);
+      backend->compute_cmd_list->SetComputeRootDescriptorTable(2, gpu_srv_tex_2d);
 
       D3D12_GPU_DESCRIPTOR_HANDLE gpu_uav_tex_2d_array = gpu_base;
       gpu_uav_tex_2d_array.ptr +=
         (U64)R_D3D12_UAV_TEXTURE_2D_ARRAY_BASE * (U64)backend->srv_uav_descriptor_size;
-      backend->command_list->SetComputeRootDescriptorTable(5, gpu_uav_tex_2d_array);
+      backend->compute_cmd_list->SetComputeRootDescriptorTable(5, gpu_uav_tex_2d_array);
     }
 
-    {
-      U32 gx = (cube_dim + 7) / 8;
-      U32 gy = (cube_dim + 7) / 8;
-      U32 gz = 6;
-      cl->Dispatch(gx, gy, gz);
-    }
+    U32 gx = (cube_dim + 7) / 8;
+    U32 gy = (cube_dim + 7) / 8;
+    U32 gz = 6;
+    backend->compute_cmd_list->Dispatch(gx, gy, gz);
 
+    backend->compute_cmd_list->Close();
+    ID3D12CommandList *lists[] = { backend->compute_cmd_list };
+    backend->command_queue->ExecuteCommandLists(1, lists);
+
+    static U64 fence_value = 0;
+    fence_value += 1;
+
+    backend->command_queue->Signal(backend->fence, fence_value);
+
+    if (backend->fence->GetCompletedValue() < fence_value)    {
+        backend->fence->SetEventOnCompletion(fence_value, backend->fence_event);
+        WaitForSingleObject(backend->fence_event, INFINITE);
+    }
   }
 
   Input input = {};

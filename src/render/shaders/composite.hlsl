@@ -79,13 +79,17 @@ float4 ps_main(VS_Out i) : SV_Target
   float3 tot = hdr;
 
   // Tonemap
-  tot = tot /(1.0 + tot);
+  tot = tot / (1.0 + tot);
   // Gamma correct
   tot = pow(tot, 0.4545);
   // Color grading
   tot.r *= 1.06;
   tot.g *= 1.02;
   tot.b *= 0.96;
+
+  float2 p = i.uv * 2. - 1.;
+  float vig = 1.-pow(dot(p, p)*0.33,2.);
+  tot = lerp(float3(0.,0.,0.), tot, vig);
 
   //Texture2DArray<float> shadow_map = g_textures_2d_array[514];
   //tot.xyz = shadow_map.Sample(g_sampler, float3(i.uv.xy, 0)).r;
